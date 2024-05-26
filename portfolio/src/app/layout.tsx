@@ -1,18 +1,13 @@
-export default function RootLayout({children,}: {
-  children:React.ReactNode;
+import '@/app/ui/global.css';
+import {mono} from './ui/fonts';
+export default function RootLayout({
+                                     children,
+                                   }: {
+  children: React.ReactNode;
 }) {
-  return(
+  return (
     <html lang="ja">
-    <body>
-    <div className={styles.container}>
-      <Header />
-      <div className={styles.content}>
-        <Nav />
-        <main className={styles.main}>{children}</main>
-      </div>
-      <Footer />
-    </div>
-    </body>
+    <body className={mono.className}>{children}</body>
     </html>
   );
 }
