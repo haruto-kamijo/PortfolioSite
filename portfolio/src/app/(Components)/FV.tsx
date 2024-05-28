@@ -7,9 +7,9 @@ type FVProps = {
 
 const FV = ({catchphrase, buttonText }: FVProps) => {
 	return (
-		<section className="flex-none w-screen h-80">
-			<h2>{catchphrase}</h2>
-			<button>{buttonText}</button>
+		<section className="flex-none w-screen h-5/6">
+			<h2 className="">{catchphrase}</h2>
+			<button className="">{buttonText}</button>
 		</section>
 	)
 }

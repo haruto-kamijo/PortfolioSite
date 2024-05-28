@@ -31,9 +31,9 @@ const Header = ({ title }: HeaderProps) => {
 		else setVisible('visible')
 	}, [isDesktopOrLaptop])
 	return (
-		<header className="w-full  z-10">
+		<header className="w-full  z-10 h-16">
 			<nav className="flex items-center justify-between flex-wrap bg-[#000000] p-4">
-				<div className="flex items-center flex-shrink-0 text-white mr-6">
+				<div className="flex items-center flex-shrink-0 text-white mr-6 title-gradation">
 					<Link href="/">
 						{title}
 					</Link>
