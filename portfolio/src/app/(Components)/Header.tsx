@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import {useState, useEffect} from 'react'
 import { useMediaQuery } from 'react-responsive'
-import logoImage from "@/app/(Img)/logo.png";
+
 
 
 type HeaderProps = {
@@ -38,7 +38,7 @@ const Header = ({ title }: HeaderProps) => {
 				<div className="flex items-center flex-shrink-0 text-white mr-6 title-gradation">
 					<Link href="/">
 						<Image
-							src={logoImage}
+							src="/logo.png"
 							width={35}
 							height={35}
 							alt="logo" />
