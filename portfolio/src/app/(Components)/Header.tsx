@@ -2,8 +2,10 @@
 
 import React from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import {useState, useEffect} from 'react'
 import { useMediaQuery } from 'react-responsive'
+import logoImage from "@/app/(Img)/logo.png";
 
 
 type HeaderProps = {
@@ -31,11 +33,15 @@ const Header = ({ title }: HeaderProps) => {
 		else setVisible('visible')
 	}, [isDesktopOrLaptop])
 	return (
-		<header className="w-full  z-10 h-16">
+		<header className="w-full fixed z-10 h-16">
 			<nav className="flex items-center justify-between flex-wrap bg-[#000000] p-4">
 				<div className="flex items-center flex-shrink-0 text-white mr-6 title-gradation">
 					<Link href="/">
-						{title}
+						<Image
+							src={logoImage}
+							width={35}
+							height={35}
+							alt="logo" />
 					</Link>
 				</div>
 				<div className="block lg:hidden">
@@ -49,16 +55,20 @@ const Header = ({ title }: HeaderProps) => {
 				</div>
 				<div className={`${visible} w-full block flex-grow lg:flex lg:items-center lg:w-auto`}>
 					<div className="text-right lg:flex-grow">
+						<Link href="/"
+									className="block mt-4 lg:inline-block lg:mt-0 text-white text-center hover:text-teal-200 lg:ml-8 mx-6">
+							Home
+						</Link>
 						<Link href="./About"
-							 className="block mt-4 lg:inline-block lg:mt-0 text-white text-center hover:text-teal-200 lg:ml-8 mr-12">
+							 className="block mt-4 lg:inline-block lg:mt-0 text-white text-center hover:text-teal-200 mx-6">
 							About
 						</Link>
 						<Link href="./Portfolio"
-							 className="block mt-4 lg:inline-block lg:mt-0 text-white text-center hover:text-teal-200 mr-12">
+							 className="block mt-4 lg:inline-block lg:mt-0 text-white text-center hover:text-teal-200 mx-6">
 							Portforlio
 						</Link>
 						<Link href="./Contact"
-									className="block mt-4 lg:inline-block lg:mt-0 text-white text-center hover:text-teal-200 mr-12">
+									className="block mt-4 lg:inline-block lg:mt-0 text-white text-center hover:text-teal-200 mx-6">
 							Contact
 					</Link>
 

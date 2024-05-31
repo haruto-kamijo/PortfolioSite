@@ -5,6 +5,10 @@ html {
     visibility: visible;
 }
 
+.profile{
+    margin-top:30vh;
+    text-align: center;
+}
 .double-gradation {
     height:100vh;
     width:100%;
