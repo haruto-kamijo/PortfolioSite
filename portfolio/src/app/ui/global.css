@@ -7,24 +7,17 @@ html {
 
 .profile{
     width: 100%;
-    padding-top:23vh;
+    padding-top:19vh;
     padding-left: 10vw;
     text-align: left;
     color:whitesmoke;
 }
-.catchcopy-container{
-    top: 15vh;
-    right:10vw;
-    height:70vh;
-    width:40vw;
-    text-align: right;
-    color:rgba(240,240,240,1);
+.name-shadow{
+    margin-top:23vh;
+    margin-left: 10vw;
+    text-align: left;
 }
-.catchcopy{
-    width:100%;
-    font-size:3rem;
-    margin-top:0;
-}
+
 .double-gradation {
     height:100vh;
     width:100%;
