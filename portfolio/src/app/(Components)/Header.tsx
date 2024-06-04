@@ -2,7 +2,6 @@
 
 import React from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import {useState, useEffect} from 'react'
 import { useMediaQuery } from 'react-responsive'
 
@@ -33,11 +32,11 @@ const Header = ({ title }: HeaderProps) => {
 		else setVisible('visible')
 	}, [isDesktopOrLaptop])
 	return (
-		<header className="w-full fixed z-10 h-16">
+		<header className="w-full fixed z-50 h-16">
 			<nav className="flex items-center justify-between flex-wrap bg-[#000000] p-4">
-				<div className="flex items-center flex-shrink-0 text-white mr-6 title-gradation">
+				<div className="flex items-center flex-shrink-0 text-white mr-6">
 					<Link href="/">
-						<Image
+						<img
 							src="/logo.png"
 							width={35}
 							height={35}

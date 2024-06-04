@@ -6,24 +6,46 @@ html {
 }
 
 .profile{
-    margin-top:30vh;
-    text-align: center;
+    width: 100%;
+    padding-top:23vh;
+    padding-left: 10vw;
+    text-align: left;
+    color:whitesmoke;
+}
+.catchcopy-container{
+    top: 15vh;
+    right:10vw;
+    height:70vh;
+    width:40vw;
+    text-align: right;
+    color:rgba(240,240,240,1);
+}
+.catchcopy{
+    width:100%;
+    font-size:3rem;
+    margin-top:0;
 }
 .double-gradation {
     height:100vh;
     width:100%;
-    background-image: linear-gradient(90deg, rgba(115, 248, 224, 1), rgba(150, 167, 241, 1));
+    background-image: linear-gradient(180deg, rgba(115, 248, 224, 1), rgba(150, 167, 241, 1));
 }
 .title-gradation{
-    background-size: 300% auto;
-    background-image: linear-gradient(90deg, rgba(115, 248, 224, 1), rgba(150, 167, 241, 1));
+    background-size: 700% auto;
+    background-image: linear-gradient(90deg, rgba(255, 97, 97, 1), rgba(233, 178, 45, 1) 20%, rgba(192, 202, 75, 1) 34%, rgba(53, 179, 56, 1) 58%, rgba(86, 110, 243, 1) 79%, rgba(154, 39, 238, 1));
+    -webkit-text-stroke-width: 2px;
+    -webkit-text-stroke-color: rgba(0,0,0,0.5);
     -webkit-background-clip: text;
-    -webkit-text-fill-color: rgba(0,0,0,0.0);
-    animation: gradientEffect 3s infinite alternate;
+    -webkit-text-fill-color: rgba(255,255,255,0.2);
+    animation: gradientEffect 20s infinite alternate;
+
 }
 
 @keyframes gradientEffect {
     from {background-position: left}
-    to {background-position: right}
+    25% {background-position: right}
+    50% {background-position: left}
+    75%{background-position: right}
+    to {background-position: left}
 }
 
