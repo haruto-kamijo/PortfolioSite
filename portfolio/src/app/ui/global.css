@@ -12,11 +12,37 @@ html {
     text-align: left;
     color:whitesmoke;
 }
-.name-shadow{
-    margin-top:23vh;
-    margin-left: 10vw;
-    text-align: left;
+
+.name-shadow-border{
+    box-shadow: 10px 9px 0px 0 rgb(0, 0,0);
 }
+.name-shadow-border:hover{
+    margin:10px -9px -10px 9px;
+    box-shadow: none;
+}
+.skills-shadow-border{
+    box-shadow: 9px 9px 0px 0 rgb(0, 0,0);
+}
+.skills-shadow-border:hover{
+    margin:50px -9px -10px 9px;
+    box-shadow: none;
+}
+.skill-fcontents-shadow-border{
+    box-shadow: 9px 9px 0px 0 rgb(0, 0,0);
+}
+.skill-fcontents-shadow-border:hover{
+    margin:20px -9px -8px 9px;
+    box-shadow: none;
+}
+.skill-contents-shadow-border{
+    box-shadow: 9px 9px 0px 0 rgb(0, 0,0);
+}
+.skill-contents-shadow-border:hover{
+    margin:20px -9px -4px 9px;
+    box-shadow: none;
+}
+
+
 
 .double-gradation {
     height:100vh;
