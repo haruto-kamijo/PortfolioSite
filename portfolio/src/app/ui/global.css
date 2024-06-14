@@ -56,8 +56,6 @@ html {
     box-shadow: 9px 9px 0px 0 rgb(0, 0,0);
 }
 
-
-
 .double-gradation {
     height:100vh;
     width:100%;
@@ -80,5 +78,37 @@ html {
     50% {background-position: left}
     75%{background-position: right}
     to {background-position: left}
+}
+
+/*contact*/
+.contact-form{
+    position:absolute;
+    top:11vh;
+    width:100vw;
+    height:85vh;
+}
+.form-content{
+    border-radius: 8px;
+}
+
+.submit-button {
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    text-decoration: none;
+    color: #000000;
+    font-size: 18px;
+    border-radius: 10px;
+    width: 200px;
+    height: 40px;
+    border: 4px #000000 solid;
+    transition: 0.3s;
+    background-color: #b39ddb;
+}
+
+.submit-button:hover {
+    opacity: .6;
+    color: white;
+    border: 4px #FFFFFF solid;
 }
 
