@@ -7,8 +7,8 @@ html {
 
 .profile{
     width: 100%;
-    padding-top:19vh;
-    padding-left: 10vw;
+    padding-top:20vh;
+    padding-left: 13vw;
     text-align: left;
     color:whitesmoke;
 }
@@ -23,10 +23,10 @@ html {
 .skills-shadow-border{
     box-shadow: 9px 9px 0px 0 rgb(0, 0,0);
 }
-.skills-shadow-border:hover{
-    margin:50px -9px -10px 9px;
-    box-shadow: none;
-}
+/*.skills-shadow-border:hover{*/
+/*    margin:50px -9px -10px 9px;*/
+/*    box-shadow: none;*/
+/*}*/
 .skill-fcontents-shadow-border{
     box-shadow: 9px 9px 0px 0 rgb(0, 0,0);
 }
@@ -40,6 +40,20 @@ html {
 .skill-contents-shadow-border:hover{
     margin:20px -9px -4px 9px;
     box-shadow: none;
+}
+.self-introduction{
+    width:50vw;
+    left:50vw;
+    top:25vh;
+}
+.self-introduction-shadow{
+    box-shadow: 9px 9px 0px 0 rgb(0, 0,0);
+}
+.self-introduction-topics-shadow{
+    box-shadow: 7px 7px 0px 0 rgb(0, 0,0);
+}
+.self-introduction-contents-shadow{
+    box-shadow: 9px 9px 0px 0 rgb(0, 0,0);
 }
 
 
