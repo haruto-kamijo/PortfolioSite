@@ -1,7 +1,6 @@
 "use client"
 import Header from '@/app/(Components)/Header';
 import Footer from '@/app/(Components)/Footer';
-import FV from "@/app/(Components)/FV";
 import { useState } from "react"
 
 
