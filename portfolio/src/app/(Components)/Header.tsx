@@ -55,21 +55,25 @@ const Header = ({ title }: HeaderProps) => {
 				<div className={`${visible} w-full block flex-grow lg:flex lg:items-center lg:w-auto`}>
 					<div className="text-right lg:flex-grow">
 						<Link href="/"
-									className="block mt-4 lg:inline-block lg:mt-0 text-white text-center hover:text-teal-200 lg:ml-8 mx-6">
+							  className="block mt-4 lg:inline-block lg:mt-0 text-white text-center hover:text-teal-200 lg:ml-8 mx-6">
 							Home
 						</Link>
 						<Link href="./About"
-							 className="block mt-4 lg:inline-block lg:mt-0 text-white text-center hover:text-teal-200 mx-6">
+							  className="block mt-4 lg:inline-block lg:mt-0 text-white text-center hover:text-teal-200 mx-6">
 							About
 						</Link>
+						<a href="https://note.com/pon20020929/" target="_blank" rel="noopener noreferrer"
+						   className="block mt-4 lg:inline-block lg:mt-0 text-white text-center hover:text-teal-200 mx-6">
+						Blog
+						</a>
 						<Link href="./Portfolio"
-							 className="block mt-4 lg:inline-block lg:mt-0 text-white text-center hover:text-teal-200 mx-6">
+						  className="block mt-4 lg:inline-block lg:mt-0 text-white text-center hover:text-teal-200 mx-6">
 							Portforlio
 						</Link>
 						<Link href="./Contact"
 									className="block mt-4 lg:inline-block lg:mt-0 text-white text-center hover:text-teal-200 mx-6">
 							Contact
-					</Link>
+						</Link>
 
 					</div>
 				</div>
