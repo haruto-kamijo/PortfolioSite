@@ -5,7 +5,7 @@ type MaincontentsProps = {
 	count:number;
 }
 
-const Maintcontents = ({ count}: MaincontentsProps) => {
+const Maincontents = ({ count}: MaincontentsProps) => {
 	
 	return (
 		<div className="main-contents">
@@ -44,4 +44,4 @@ const Maintcontents = ({ count}: MaincontentsProps) => {
 	)
 }
 
-export default Maintcontents;
+export default Maincontents;

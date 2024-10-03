@@ -2,7 +2,7 @@
 import Header from '@/app/(Components)/Header';
 import Footer from '@/app/(Components)/Footer';
 import {useState} from "react"
-import Maintcontents from "@/app/(Components)/Maincontents";
+import Maincontents from "@/app/(Components)/Maincontents";
 
 
 
@@ -32,9 +32,9 @@ const Portfolio = () => {
 		<div className="flex h-screen p-0 double-gradation">
 			<Header title="Kamijo Haruto"></Header>
 			<div>
-				<Maintcontents count={count}></Maintcontents>
+				<Maincontents count={count}></Maincontents>
 				<div className="icon-contents">
-					<button onClick={() => SubCount()}>
+					<button className="hidden lg:visible" onClick={() => SubCount()}>
 						<svg className="h-16 w-16 text-purple-500 icon-scroll" width="24" height="24" viewBox="0 0 24 24"
 								 strokeWidth="1.5"
 								 stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">
@@ -85,7 +85,7 @@ const Portfolio = () => {
 								d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
 						</svg>
 					</button>
-					<button onClick={() => AddCount()}>
+					<button className="hidden lg:visible" onClick={() => AddCount()}>
 						<svg className="h-16 w-16 text-purple-500 icon-scroll" width="24" height="24" viewBox="0 0 24 24"
 								 strokeWidth="1.5"
 								 stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">

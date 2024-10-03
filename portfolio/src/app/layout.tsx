@@ -6,7 +6,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ja">
+    <html className="html" lang="ja">
     <body className={mono.className}>{children}</body>
     </html>
   );
