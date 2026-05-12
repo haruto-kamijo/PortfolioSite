@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html,
+    body {
+        @apply h-full m-0 p-0 bg-black text-white;
+    }
+
+    body {
+        @apply overflow-hidden;
+    }
+}
+
+@keyframes orbit {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+@keyframes alignLine {
+    0% { opacity: 0; transform: translateX(-50%) translateY(calc(var(--ring) * -0.28)) scaleY(0.35); }
+    100% { opacity: 1; transform: translateX(-50%) translateY(calc(var(--ring) * -0.28)) scaleY(1); }
+}
+
+@keyframes alignDot {
+    0% {
+        opacity: 0;
+        transform: translate(var(--sx), var(--sy));
+        filter: blur(0.6px);
+    }
+    20% { opacity: 1; }
+    100% {
+        opacity: 1;
+        transform: translate(0px, var(--ey));
+        filter: blur(0px);
+    }
+}
+
+/* 点：リング上の位置から縦線へ高速集結 */
+.warp-dot{
+    border-radius:9999px;
+    background: rgba(190,255,255,0.92);
+    box-shadow:
+            0 0 22px rgba(120,255,255,0.70),
+            0 0 80px rgba(120,255,255,0.22);
+    opacity:0;
+    transform: translate(var(--sx), var(--sy));
+    animation: warpGather 240ms cubic-bezier(.2,.9,.2,1) forwards;
+}
+
+@keyframes warpGather{
+    0%   { opacity:0; transform: translate(var(--sx), var(--sy)); filter: blur(0.8px); }
+    20%  { opacity:1; }
+    100% { opacity:1; transform: translate(0px, var(--ey)); filter: blur(0px); }
+}
+
+/* ビーム：点が結ばれて一本線になる（細→太、少しだけ発光） */
+.warp-beam{
+    position:absolute;
+    width: 2px;
+    transform-origin: bottom;
+    opacity:0;
+    background: linear-gradient(
+            to top,
+            rgba(120,255,255,0.0),
+            rgba(120,255,255,0.55),
+            rgba(120,255,255,0.0)
+    );
+    box-shadow: 0 0 18px rgba(120,255,255,0.35);
+    animation: warpBeam 280ms ease-out forwards;
+}
+
+@keyframes warpBeam{
+    0%   { transform: translateX(-50%) translateY(calc(var(--ring) * -0.32)) scaleY(0.25); opacity:0; }
+    40%  { opacity:1; }
+    100% { transform: translateX(-50%) translateY(calc(var(--ring) * -0.32)) scaleY(1); opacity:1; }
+}
+
+/* フラッシュ：ビームが面に広がる（軽い“ワープ感”） */
+.warp-flash{
+    position:absolute;
+    inset:0;
+    opacity:0;
+    background:
+            radial-gradient(circle at 50% 50%,
+            rgba(120,255,255,0.16) 0%,
+            rgba(120,255,255,0.08) 18%,
+            rgba(0,0,0,0.0) 55%);
+    animation: warpFlash 520ms ease-out forwards;
+}
+
+@keyframes warpFlash{
+    0%   { opacity:0; transform: scale(0.9); filter: blur(6px); }
+    25%  { opacity:1; }
+    100% { opacity:0; transform: scale(1.15); filter: blur(18px); }
+}
+
+/* ワイプ：中心→外側へ“消えていく” */
+.warp-wipe{
+    position:absolute;
+    inset:0;
+    /* 中心だけ残し、外へ向かって抜ける感じ（円形に消える） */
+    background: radial-gradient(circle at 50% 50%,
+    rgba(0,0,0,0) 0%,
+    rgba(0,0,0,0) 22%,
+    rgba(0,0,0,0.55) 42%,
+    rgba(0,0,0,0.95) 70%,
+    rgba(0,0,0,1) 100%);
+    opacity:0;
+    animation: warpWipe 520ms ease-out forwards;
+}
+
+@keyframes warpWipe{
+    0%   { opacity:0; transform: scale(0.85); }
+    20%  { opacity:1; }
+    100% { opacity:1; transform: scale(1.30); }
+}
+
