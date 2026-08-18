@@ -1,0 +1,27 @@
+rules_version = '2';
+
+// Cloud Storage セキュリティルール
+// 作品のカバー画像だけを扱う。公開読み取り / 管理者のみアップロード。
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in ['kamijoharuto@gmail.com'];
+    }
+
+    match /works/{workId}/{fileName} {
+      allow read: if true;
+      // 画像のみ・5MBまでに制限して、誤アップロードと帯域の無駄を防ぐ
+      allow write: if isAdmin()
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

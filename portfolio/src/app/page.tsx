@@ -1,14 +1,17 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
-const SpaceCanvas = dynamic(() => import("../components/three/SpaceCanvas"), {
-    ssr: false,
-});
-
-type Phase = "idle" | "spinup" | "flash" | "warp";
+import { CSSProperties, useCallback, useEffect, useMemo, useRef } from "react";
+import { ScenePhase, useSpaceScene } from "@/components/space/SpaceSceneProvider";
+import { useReducedMotion } from "@/lib/useReducedMotion";
+import { site } from "@/lib/site";
+import {
+    AUTO_START_MS,
+    FLASH_AT_MS,
+    NAVIGATE_AT_MS,
+    SPINUP_MS,
+    WARP_AT_MS,
+} from "@/lib/warpTimeline";
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const easeInOutCubic = (t: number) =>
@@ -146,7 +149,13 @@ function RingLayer({
     );
 }
 
-function ContentRings({ phase, spinUpMs = 5000 }: { phase: Phase; spinUpMs?: number }) {
+function ContentRings({
+                          phase,
+                          spinUpMs = SPINUP_MS,
+                      }: {
+    phase: ScenePhase;
+    spinUpMs?: number;
+}) {
     const ringEls = useRef<Array<HTMLDivElement | null>>([null, null, null]);
     const dotEls = useRef<Array<HTMLDivElement | null>>(Array(6).fill(null));
     const tailEls = useRef<Array<SVGCircleElement | null>>(Array(6).fill(null));
@@ -180,17 +189,6 @@ function ContentRings({ phase, spinUpMs = 5000 }: { phase: Phase; spinUpMs?: num
             makeCfg(4.5, 6.5, 0.65, 1.05),
         ];
     }
-
-    useEffect(() => {
-        const id = "orbitVar-keyframes";
-        if (document.getElementById(id)) return;
-        const style = document.createElement("style");
-        style.id = id;
-        style.textContent = `
-@keyframes orbitVar { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-`;
-        document.head.appendChild(style);
-    }, []);
 
     useEffect(() => {
         if (phase === "spinup") {
@@ -444,40 +442,68 @@ function ContentRings({ phase, spinUpMs = 5000 }: { phase: Phase; spinUpMs?: num
 
 export default function StartPage() {
     const router = useRouter();
-    const [phase, setPhase] = useState<Phase>("idle");
+    const { phase, setPhase } = useSpaceScene();
+    const reducedMotion = useReducedMotion();
+
     const timersRef = useRef<number[]>([]);
+    // ワープは一度始まったら受け付けない（連打で遷移が後ろにずれるのを防ぐ）
+    const startedRef = useRef(false);
 
     const copy = useMemo(
         () => ({
             kicker: "PORTFOLIO SITE",
-            title: "Kamijo Haruto / 上條 遥都",
-            sub: "Designer / Developer / Creator",
-            tagline: "可能性という名の宇宙を進み続ける",
+            title: `${site.name} / ${site.nameJa}`,
+            sub: site.role,
+            tagline: site.tagline,
             cta: "GO TO SPACE",
             hint: "Click / Space",
         }),
         []
     );
 
-    const clearTimers = () => {
+    const clearTimers = useCallback(() => {
         timersRef.current.forEach((id) => clearTimeout(id));
         timersRef.current = [];
-    };
+    }, []);
 
     const goNext = useCallback(() => {
-        setPhase((p) => (p === "idle" ? "spinup" : p));
-        clearTimers();
+        if (startedRef.current) return;
+        startedRef.current = true;
 
-        timersRef.current.push(window.setTimeout(() => setPhase("flash"), 5000));
-        timersRef.current.push(window.setTimeout(() => setPhase("warp"), 5120));
-        timersRef.current.push(window.setTimeout(() => router.push("/home"), 5600));
+        // 演出を減らす設定では、長尺のワープと全画面フラッシュを行わず即座に遷移する
+        if (reducedMotion) {
+            router.push("/home");
+            return;
+        }
+
+        setPhase("spinup");
+        timersRef.current.push(window.setTimeout(() => setPhase("flash"), FLASH_AT_MS));
+        timersRef.current.push(window.setTimeout(() => setPhase("warp"), WARP_AT_MS));
+        timersRef.current.push(window.setTimeout(() => router.push("/home"), NAVIGATE_AT_MS));
+    }, [reducedMotion, router, setPhase]);
+
+    // /home から戻ってきた場合、背景は cruise のままなので待機状態に戻す
+    useEffect(() => {
+        setPhase("idle");
+    }, [setPhase]);
+
+    // 暗転中の待ち時間を減らすため遷移先を先読みする
+    useEffect(() => {
+        router.prefetch("/home");
     }, [router]);
 
-    useEffect(() => () => clearTimers(), []);
+    // 無操作でも一定時間経過したら自動でワープを開始する
+    useEffect(() => {
+        if (reducedMotion) return;
+        const id = window.setTimeout(goNext, AUTO_START_MS);
+        return () => clearTimeout(id);
+    }, [goNext, reducedMotion]);
+
+    useEffect(() => clearTimers, [clearTimers]);
 
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
-            if (e.code === "Space") {
+            if (e.code === "Space" || e.code === "Enter") {
                 e.preventDefault();
                 goNext();
             }
@@ -486,44 +512,17 @@ export default function StartPage() {
         return () => window.removeEventListener("keydown", onKey);
     }, [goNext]);
 
-    const isEntering = phase !== "idle";
-
-    const bgClass =
-        phase === "idle"
-            ? "scale-100 brightness-100"
-            : phase === "spinup"
-                ? "scale-[1.12] brightness-110"
-                : phase === "flash"
-                    ? "scale-[1.18] brightness-125"
-                    : "scale-[1.30] brightness-120";
-
-    const bgDuration = phase === "spinup" ? "duration-[5000ms]" : "duration-[800ms]";
-
     return (
-        <main className="relative min-h-screen overflow-hidden bg-black">
-            <div
-                className={[
-                    "fixed inset-0 z-0 will-change-transform",
-                    "transition-[transform,filter] ease-out",
-                    bgDuration,
-                    bgClass,
-                ].join(" ")}
-            >
-                <SpaceCanvas />
-            </div>
-
-            <div
-                className={[
-                    "pointer-events-none fixed inset-0 z-[1]",
-                    "bg-[radial-gradient(circle_at_50%_50%,rgba(0,0,0,0.25),transparent_55%)]",
-                    "transition-opacity duration-700",
-                    isEntering ? "opacity-0" : "opacity-100",
-                ].join(" ")}
-            />
-
-            <div className="relative z-[3] flex min-h-screen items-center justify-center">
-                <div className="relative" style={{ ["--ring" as any]: "min(90svh,84vw,720px)" }}>
-                    <ContentRings phase={phase} spinUpMs={5000} />
+        <main
+            onClick={goNext}
+            className="fixed inset-0 overflow-hidden"
+        >
+            <div className="relative z-[3] flex h-full items-center justify-center">
+                <div
+                    className="relative"
+                    style={{ "--ring": "min(90svh,84vw,720px)" } as CSSProperties}
+                >
+                    <ContentRings phase={phase} spinUpMs={SPINUP_MS} />
 
                     <div
                         className={[
@@ -554,13 +553,17 @@ export default function StartPage() {
                                 {copy.cta}
                             </button>
 
-                            <span className="text-[10px] tracking-[0.22em] text-cyan-100/55">{copy.hint}</span>
+                            <span className="text-[10px] tracking-[0.22em] text-cyan-100/55">
+                                {copy.hint}
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>
 
+            {/* 白フラッシュ */}
             <div
+                aria-hidden
                 className={[
                     "pointer-events-none fixed inset-0 z-[6] bg-white",
                     "transition-opacity duration-150",
@@ -568,7 +571,9 @@ export default function StartPage() {
                 ].join(" ")}
             />
 
+            {/* 暗転（この上に /home が入場ベールを重ねて明ける） */}
             <div
+                aria-hidden
                 className={[
                     "pointer-events-none fixed inset-0 z-[7] bg-black",
                     "transition-opacity duration-700",
