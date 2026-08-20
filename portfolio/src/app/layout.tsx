@@ -26,7 +26,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
         <html lang="ja" className="h-full">
-        <body className="min-h-full bg-black text-white antialiased">
+        {/* 背景色は html 側に持たせている（global.css 参照）。
+            ここで bg を付けると背景のCanvasが隠れる。 */}
+        <body className="min-h-full text-white antialiased">
         {/*
               星空Canvasはルートに1つだけ置き、全ページで共有する。
               ページ遷移でWebGLコンテキストを作り直さないため世界観が途切れない。

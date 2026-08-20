@@ -20,6 +20,14 @@ service firebase.storage {
         && request.resource.contentType.matches('image/.*');
     }
 
+    // /portfolio の個々の作品のカバー画像
+    match /portfolioItems/{itemId}/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin()
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }
