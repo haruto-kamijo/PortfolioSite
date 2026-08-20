@@ -34,6 +34,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // /portfolio ページの中身（カテゴリごとの個々の作品）
+    match /portfolioItems/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // ---- 問い合わせ ----
     // 受信内容は個人情報なので公開側からは読ませない。
     // 保存も API Route（サーバー）でバリデーション後に行う。

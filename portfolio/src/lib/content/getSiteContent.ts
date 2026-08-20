@@ -29,13 +29,18 @@ export const getSiteContent = async (): Promise<SiteContent> => {
             db.collection(collections.works).orderBy("order").get(),
         ]);
 
+        // 接続できただけでは "firestore" にしない。
+        // ドキュメントが1つも無ければ実質すべて既定値なので、その状態は "defaults" として扱う
+        // （でないと管理画面の「まだ何も保存されていません」という案内が一生出せなくなる）。
+        const hasRealContent = profileSnap.exists || !skillsSnap.empty || !worksSnap.empty;
+
         return {
             profile: mergeProfile(profileSnap.data()),
             skillGroups: skillsSnap.empty
                 ? defaultContent.skillGroups
                 : skillsSnap.docs.map(toSkillGroup),
             works: worksSnap.empty ? defaultContent.works : worksSnap.docs.map(toWork),
-            source: "firestore",
+            source: hasRealContent ? "firestore" : "defaults",
         };
     } catch (err) {
         console.warn("[content] Firestore から読めなかったため既定値を使います:", err);

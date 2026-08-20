@@ -46,6 +46,35 @@ export type SiteContent = {
     source: "firestore" | "defaults";
 };
 
+/** /portfolio ページのタブ */
+export const PORTFOLIO_CATEGORIES = ["sites", "games", "models", "photos"] as const;
+export type PortfolioCategory = (typeof PORTFOLIO_CATEGORIES)[number];
+
+export const PORTFOLIO_CATEGORY_LABELS: Record<PortfolioCategory, { en: string; ja: string }> = {
+    sites: { en: "Web Sites", ja: "制作したWebサイト" },
+    games: { en: "Games", ja: "ゲーム制作" },
+    models: { en: "3D Models", ja: "Blenderでのモデリング" },
+    photos: { en: "Photos", ja: "撮影した写真" },
+};
+
+/**
+ * /portfolio の各カテゴリに載る個々の作品。
+ * home の WORKS カード(WorkContent)とは別物：カードはカテゴリへの入口、
+ * こちらはカテゴリの中身（実際の1作品ずつ）。
+ */
+export type PortfolioItem = {
+    id: string;
+    category: PortfolioCategory;
+    title: string;
+    caption: string;
+    /** 外部リンクが無い作品（写真など）もあるため任意 */
+    href: string | null;
+    /** カテゴリ内での並び順。カテゴリをまたいだ比較はしない */
+    order: number;
+    coverUrl: string | null;
+    ready: boolean;
+};
+
 /** 問い合わせ。クライアントからは読めない（API Route の Admin SDK 経由のみ） */
 export type ContactMessage = {
     id: string;
@@ -62,6 +91,7 @@ export const collections = {
     skillGroups: "skillGroups",
     works: "works",
     contacts: "contacts",
+    portfolioItems: "portfolioItems",
 } as const;
 
 /** プロフィールは単一ドキュメント */
