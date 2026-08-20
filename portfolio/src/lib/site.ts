@@ -34,8 +34,8 @@ export type NavItem = {
  */
 export const nav: readonly NavItem[] = [
     { label: "Home", href: "/home", ready: true },
-    { label: "About", href: "/about", ready: false },
-    { label: "Works", href: "/portfolio", ready: false },
+    { label: "About", href: "/about", ready: true },
+    { label: "Works", href: "/portfolio", ready: true },
     { label: "Blog", href: links.note, ready: true, external: true },
     { label: "Contact", href: "/contact", ready: true },
 ] as const;
@@ -58,15 +58,10 @@ export type Work = {
 };
 
 export const works: readonly Work[] = [
-    {
-        title: "Web Sites",
-        caption: "制作したWebサイト",
-        href: "/portfolio/sites",
-        ready: false,
-    },
-    { title: "Games", caption: "ゲーム制作", href: "/portfolio/games", ready: false },
-    { title: "3D Models", caption: "Blenderでのモデリング", href: "/portfolio/models", ready: false },
-    { title: "Photos", caption: "撮影した写真", href: "/portfolio/photos", ready: false },
+    { title: "Web Sites", caption: "制作したWebサイト", href: "/portfolio?tab=sites", ready: true },
+    { title: "Games", caption: "ゲーム制作", href: "/portfolio?tab=games", ready: true },
+    { title: "3D Models", caption: "Blenderでのモデリング", href: "/portfolio?tab=models", ready: true },
+    { title: "Photos", caption: "撮影した写真", href: "/portfolio?tab=photos", ready: true },
     { title: "GitHub", caption: "ソースコード", href: links.github, ready: true, external: true },
 ] as const;
 
