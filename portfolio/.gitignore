@@ -40,3 +40,6 @@ next-env.d.ts
 
 # firebase CLI / emulator のデバッグログ
 *-debug.log
+
+# クラッシュしたシェルのダンプ
+*.stackdump
