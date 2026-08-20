@@ -452,7 +452,8 @@ export default function StartPage() {
     const copy = useMemo(
         () => ({
             kicker: "PORTFOLIO SITE",
-            title: `${site.name} / ${site.nameJa}`,
+            title: site.name,
+            titleJa: site.nameJa,
             sub: site.role,
             tagline: site.tagline,
             cta: "GO TO SPACE",
@@ -524,23 +525,30 @@ export default function StartPage() {
                 >
                     <ContentRings phase={phase} spinUpMs={SPINUP_MS} />
 
+                    {/* 文字はリングの内側に収める。幅を制限しないと狭い画面で
+                        main の overflow-hidden に切り取られてしまう */}
                     <div
                         className={[
-                            "relative z-[3] text-center",
+                            "relative z-[3] mx-auto max-w-[min(78vw,520px)] px-2 text-center",
                             "transition-opacity duration-700 ease-out",
                             phase === "idle" ? "opacity-100" : "opacity-0",
                         ].join(" ")}
                     >
-                        <p className="text-xs tracking-[0.4em] text-cyan-100/60 drop-shadow-[0_0_12px_rgba(120,255,255,0.16)]">
+                        <p className="text-[10px] tracking-[0.32em] text-cyan-100/60 drop-shadow-[0_0_12px_rgba(120,255,255,0.16)] sm:text-xs sm:tracking-[0.4em]">
                             {copy.kicker}
                         </p>
-                        <h1 className="mt-5 text-2xl text-white drop-shadow-[0_0_24px_rgba(255,255,255,0.3)]">
+                        <h1 className="mt-4 text-lg leading-snug text-white drop-shadow-[0_0_24px_rgba(255,255,255,0.3)] sm:mt-5 sm:text-2xl">
                             {copy.title}
+                            <span className="mx-2 hidden text-white/40 sm:inline">/</span>
+                            {/* 狭い画面では日本語表記を改行して収める */}
+                            <span className="mt-1 block sm:mt-0 sm:inline">{copy.titleJa}</span>
                         </h1>
-                        <p className="mt-3 text-slate-300">{copy.sub}</p>
-                        <p className="mt-6 text-slate-200">{copy.tagline}</p>
+                        <p className="mt-3 text-sm text-slate-300 sm:text-base">{copy.sub}</p>
+                        <p className="mt-5 text-sm text-slate-200 sm:mt-6 sm:text-base">
+                            {copy.tagline}
+                        </p>
 
-                        <div className="mt-7 flex items-center justify-center gap-3">
+                        <div className="mt-6 flex flex-wrap items-center justify-center gap-3 sm:mt-7">
                             <button
                                 onClick={goNext}
                                 className={[

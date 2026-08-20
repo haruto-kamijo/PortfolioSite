@@ -70,9 +70,20 @@ export const Header = () => {
                                             className={`${linkBase} text-white/80 hover:text-cyan-200`}
                                         >
                                             {item.label}
-                                            <span className="ml-1 align-super text-[9px]" aria-hidden>
-                                                ↗
-                                            </span>
+                                            {/* 外部リンクの矢印。文字の「↗」はフォントによって
+                                                スラッシュのように見えるため SVG で描く */}
+                                            <svg
+                                                className="ml-1.5 inline-block h-2 w-2 -translate-y-1"
+                                                viewBox="0 0 8 8"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="1.2"
+                                                strokeLinecap="round"
+                                                aria-hidden
+                                            >
+                                                <path d="M1 7L7 1" />
+                                                <path d="M2.5 1H7v4.5" />
+                                            </svg>
                                         </a>
                                     ) : (
                                         <Link

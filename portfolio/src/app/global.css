@@ -3,15 +3,17 @@
 @tailwind utilities;
 
 @layer base {
-    html,
-    body {
+    /* 背景色は html にだけ持たせる。
+       body に背景を付けると、body の不透明な背景が z-index が負の子要素より
+       手前に描かれてしまい、背景の星空Canvas(-z-10)が隠れてしまう。 */
+    html {
         @apply m-0 h-full bg-black p-0 text-white;
     }
 
     /* スタート画面は fixed レイアウトで自前にスクロールを持たないため、
        ここでは overflow を止めず本編ページのスクロールを許可する */
     body {
-        @apply overscroll-none;
+        @apply m-0 h-full overscroll-none p-0;
     }
 }
 
