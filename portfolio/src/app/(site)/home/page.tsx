@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Panel } from "@/components/ui/Panel";
+import { SectionTitle } from "@/components/ui/SectionTitle";
 import { AcademicStatusLine } from "@/components/ui/AcademicStatusLine";
 import { academicStatusAt } from "@/lib/academicYear";
 import { getSiteContent } from "@/lib/content/getSiteContent";
@@ -17,13 +18,6 @@ export const metadata: Metadata = {
  * CMS の保存処理を作る段階で revalidatePath による即時反映も足す。
  */
 export const revalidate = 300;
-
-const SectionTitle = ({ en, ja }: { en: string; ja: string }) => (
-    <div className="mb-6 flex items-baseline gap-4">
-        <h2 className="text-xl tracking-[0.28em] text-white">{en}</h2>
-        <span className="text-xs tracking-[0.2em] text-cyan-100/50">{ja}</span>
-    </div>
-);
 
 export default async function HomePage() {
     const { profile, skillGroups, works } = await getSiteContent();
