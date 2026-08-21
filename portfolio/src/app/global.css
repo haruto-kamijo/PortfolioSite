@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    /* 背景色は html にだけ持たせる。
+       body に背景を付けると、body の不透明な背景が z-index が負の子要素より
+       手前に描かれてしまい、背景の星空Canvas(-z-10)が隠れてしまう。 */
+    html {
+        @apply m-0 h-full bg-black p-0 text-white;
+    }
+
+    /* スタート画面は fixed レイアウトで自前にスクロールを持たないため、
+       ここでは overflow を止めず本編ページのスクロールを許可する */
+    body {
+        @apply m-0 h-full overscroll-none p-0;
+    }
+}
+
+/* リング上を回る光点の公転。page.tsx から animation として参照する */
+@keyframes orbitVar {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ワープの暗転から明けるベール。JSの状態に依存させず CSS だけで消す */
+.page-enter-veil {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    pointer-events: none;
+    background: #000;
+    animation: pageEnterVeil 900ms ease-out forwards;
+}
+
+@keyframes pageEnterVeil {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+/* 演出を減らす設定では暗転ベールを使わない */
+@media (prefers-reduced-motion: reduce) {
+    .page-enter-veil {
+        animation: none;
+        opacity: 0;
+    }
+}

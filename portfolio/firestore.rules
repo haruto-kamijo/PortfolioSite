@@ -1,0 +1,55 @@
+rules_version = '2';
+
+// Firestore セキュリティルール
+//
+// 方針:
+//  - 公開コンテンツ(profile / skillGroups / works)は誰でも読めるが、書けるのは管理者だけ
+//  - 問い合わせ(contacts)はクライアントから一切触れない。API Route の Admin SDK 経由のみ
+//    （Admin SDK はこのルールを迂回するため、ここでは全面禁止にしておくのが正しい）
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 管理者判定。Googleログインの検証済みメールアドレスで判定する。
+    // 管理者を増やすときはこのリストに追記する。
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in ['kamijoharuto@gmail.com'];
+    }
+
+    // ---- 公開コンテンツ ----
+    match /profile/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /skillGroups/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /works/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // /portfolio ページの中身（カテゴリごとの個々の作品）
+    match /portfolioItems/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---- 問い合わせ ----
+    // 受信内容は個人情報なので公開側からは読ませない。
+    // 保存も API Route（サーバー）でバリデーション後に行う。
+    match /contacts/{docId} {
+      allow read, write: if false;
+    }
+
+    // ---- 明示していないパスは拒否 ----
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
