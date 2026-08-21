@@ -18,6 +18,11 @@ import { getStorage } from "firebase-admin/storage";
  *
  * 認証情報が無い環境（開発マシンでの静的ビルドなど）では null を返し、
  * 呼び出し側が静的な既定値にフォールバックできるようにしている。
+ *
+ * ローカル開発機では「本物のクラウド環境かどうか」を K_SERVICE の有無で判定し、
+ * 違えば初期化自体を試みない。試みてしまうと、存在しないメタデータサーバーへの
+ * 問い合わせがタイムアウトするまで数秒〜10秒近く待たされ、これが原因で
+ * ページの初回表示やスタート画面からの遷移が大きく遅れて見えることがある。
  */
 
 const projectId =
@@ -59,10 +64,26 @@ const getAdminApp = (): App | null => {
         }
 
         const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-        cachedApp = serviceAccountJson
-            ? initializeApp({ credential: cert(JSON.parse(serviceAccountJson)), projectId })
-            : initializeApp({ projectId }); // 既定の認証情報（Cloud Run など）
+        if (serviceAccountJson) {
+            cachedApp = initializeApp({ credential: cert(JSON.parse(serviceAccountJson)), projectId });
+            return cachedApp;
+        }
 
+        // ここから先は「既定の認証情報」に頼る経路。これは実際には
+        // Cloud Run などのメタデータサーバーへの問い合わせを伴い、
+        // そのサーバーが存在しないローカル開発機では応答が返らず
+        // タイムアウトするまで数秒〜10秒近く待たされる（実測で8秒以上）。
+        // Cloud Run は起動時に必ず K_SERVICE を設定するため、これが無ければ
+        // 「本物のクラウド環境ではない」と分かり、初期化自体を試みずに諦める。
+        const looksLikeCloudRuntime = Boolean(
+            process.env.K_SERVICE || process.env.GOOGLE_APPLICATION_CREDENTIALS
+        );
+        if (!looksLikeCloudRuntime) {
+            cachedApp = null;
+            return cachedApp;
+        }
+
+        cachedApp = initializeApp({ projectId });
         return cachedApp;
     } catch (err) {
         console.warn("[firebase/admin] 初期化に失敗しました:", err);
