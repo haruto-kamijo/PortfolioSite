@@ -2,27 +2,34 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { ScenePhase, useSpaceScene } from "./SpaceSceneProvider";
-import { SPINUP_MS } from "@/lib/warpTimeline";
+import { useSpaceScene } from "./SpaceSceneProvider";
+import { NAVIGATE_AT_MS } from "@/lib/warpTimeline";
 
 // WebGL は SSR できないため、Canvas はクライアントのみで読み込む
 const SpaceCanvas = dynamic(() => import("../three/SpaceCanvas"), { ssr: false });
 
-const PHASE_TRANSFORM: Record<ScenePhase, string> = {
-    idle: "scale-100 brightness-100",
-    spinup: "scale-[1.12] brightness-110",
-    flash: "scale-[1.18] brightness-125",
-    warp: "scale-[1.30] brightness-120",
-    cruise: "scale-[1.04] brightness-75",
-};
-
 /**
- * 全ページ共通の星空背景。
- * ルートレイアウトに1つだけ配置し、ページ遷移でも WebGL コンテキストを作り直さないことで
- * スタート画面から下層ページまで地続きの世界観を保つ。
+ * 背景の拡大・増光。
+ *
+ * 以前は idle/spinup/flash/warp 4段階それぞれに別の目標値と duration を持たせており、
+ * flash(100ms)・warp(150ms)のように短い区間に切り替わるたびにCSSトランジションが
+ * retarget され、ズームが完了しないまま何度も向き先を変えて継ぎ目が見えていた。
+ *
+ * spinup/flash/warp の3段階は「同じ最終ズーム値へ、クリックから遷移までの全時間をかけて
+ * 一気にイーズする」1本のトランジションにまとめている。クラス・durationが変わらない限り
+ * Reactの再レンダーではCSSトランジションは再スタートしないため、途中でphaseが
+ * flash→warpと変わっても、ズーム自体はそのまま連続する。
  */
+const WARPING_TRANSFORM = "scale-[1.30] brightness-120";
+
 export const SpaceBackground = () => {
     const { phase } = useSpaceScene();
+
+    const isWarping = phase === "spinup" || phase === "flash" || phase === "warp";
+    const transformClass =
+        phase === "idle" ? "scale-100 brightness-100"
+            : phase === "cruise" ? "scale-[1.04] brightness-75"
+                : WARPING_TRANSFORM;
 
     return (
         <>
@@ -31,10 +38,10 @@ export const SpaceBackground = () => {
                 className={[
                     "fixed inset-0 -z-10 will-change-transform",
                     "transition-[transform,filter] ease-out",
-                    PHASE_TRANSFORM[phase],
+                    transformClass,
                 ].join(" ")}
                 // Tailwind の任意値クラスは動的生成できないため duration は inline で指定する
-                style={{ transitionDuration: phase === "spinup" ? `${SPINUP_MS}ms` : "900ms" }}
+                style={{ transitionDuration: isWarping ? `${NAVIGATE_AT_MS}ms` : "900ms" }}
             >
                 <SpaceCanvas />
             </div>

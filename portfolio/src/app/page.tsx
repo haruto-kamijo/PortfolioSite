@@ -8,9 +8,12 @@ import { site } from "@/lib/site";
 import {
     AUTO_START_MS,
     FLASH_AT_MS,
+    FLASH_FADE_IN_MS,
     NAVIGATE_AT_MS,
+    RING_HOLD_MS,
     SPINUP_MS,
     WARP_AT_MS,
+    WARP_FADE_MS,
 } from "@/lib/warpTimeline";
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
@@ -53,7 +56,10 @@ function RingLayer({
 
     dotSize: number;
 }) {
-    const R = 49.2;
+    // viewBox="-12 -12 124 124"（中心(50,50)から余白込みで124四方）なので、
+    // 中心から枠までの距離は 112-50=62。ここをリングの実際の半径に一致させる。
+    // 49.2 のままだと実リング半径の約79%の位置に小さく描かれ、輪が重ならなかった。
+    const R = 62;
     const baseRotate = "rotate(-90deg)";
 
     return (
@@ -90,6 +96,10 @@ function RingLayer({
                             strokeLinecap: "round",
                             filter: "drop-shadow(0 0 10px rgba(120,255,255,0.25))",
                             transform: baseRotate,
+                            // transform-origin の基準を明示的に「円自身の形状」にする。
+                            // 既定(view-box基準)だと、祖先(dotARef)が回転している影響で
+                            // 基準の矩形自体が揺れ動き、回転の中心が円の中心からズレてしまう。
+                            transformBox: "fill-box",
                             transformOrigin: "50% 50%",
                         }}
                     />
@@ -129,6 +139,7 @@ function RingLayer({
                             strokeLinecap: "round",
                             filter: "drop-shadow(0 0 10px rgba(120,255,255,0.25))",
                             transform: `${baseRotate} rotate(180deg)`,
+                            transformBox: "fill-box",
                             transformOrigin: "50% 50%",
                         }}
                     />
@@ -171,6 +182,12 @@ function ContentRings({
     // ✅ さらに「1フレームだけ太くする」用（約1〜2フレーム）
     const ringBumpUntilRef = useRef(0);
 
+    // tailが伸び切ってフラッシュ/太さ上乗せも終わった後は値が一切変わらないのに、
+    // 毎フレーム同じ box-shadow・drop-shadow(2重blur)を6要素に書き込み続けていた。
+    // これが「弧が伸び切った瞬間に一段階重くなる」原因の1つだったため、
+    // 値が変わらなくなったら書き込みそのものをやめる。
+    const tailsSteadyRef = useRef(false);
+
     const cfgRef = useRef<DotConfig[] | null>(null);
     if (!cfgRef.current) {
         const makeCfg = (baseMin: number, baseMax: number, minMin: number, minMax: number): DotConfig => ({
@@ -196,6 +213,7 @@ function ContentRings({
             grewFullRef.current = false;
             ringFlashUntilRef.current = 0;
             ringBumpUntilRef.current = 0;
+            tailsSteadyRef.current = false;
         }
 
         if (phase === "idle") {
@@ -203,6 +221,7 @@ function ContentRings({
             grewFullRef.current = false;
             ringFlashUntilRef.current = 0;
             ringBumpUntilRef.current = 0;
+            tailsSteadyRef.current = false;
 
             ringEls.current.forEach((el, i) => {
                 if (!el) return;
@@ -236,10 +255,18 @@ function ContentRings({
     }, [phase]);
 
     useEffect(() => {
+        // このeffectは phase が依存配列にあるため phase が変わるたびに作り直される。
+        // つまり「今 spinup でない」なら、この世代の間ずっと spinup になることはない
+        // ＝ここでrAFループを始める意味が無い。
+        // 以前は無条件にループを続けていたため、flash/warp/idle中もメインスレッドを
+        // 毎フレーム占有し続け、router.push の低優先度な画面遷移がなかなか実行されない
+        // （操作するまで遷移しない・数秒待たされる）原因になっていた。
+        if (phase !== "spinup") return;
+
         let raf = 0;
 
         const tick = (now: number) => {
-            if (phase !== "spinup" || !spinRef.current.active) {
+            if (!spinRef.current.active) {
                 raf = requestAnimationFrame(tick);
                 return;
             }
@@ -248,8 +275,8 @@ function ContentRings({
             const t = clamp01(tRaw);
             const k = easeInOutCubic(t);
 
-            // tail: warpの2秒前に100%
-            const growEnd = Math.max(0.001, (spinUpMs - 2000) / spinUpMs);
+            // tail: warpの RING_HOLD_MS 前に100%
+            const growEnd = Math.max(0.001, (spinUpMs - RING_HOLD_MS) / spinUpMs);
             const growT = clamp01(t / growEnd);
             const growK = easeInOutCubic(growT);
 
@@ -303,26 +330,36 @@ function ContentRings({
             });
 
             // tails
-            const baseOpacity = 0.10 + 0.60 * growK;
-            const strokeBase = 0.8 + 3.4 * growK;
+            // ✅ 伸び切ってフラッシュ/太さ上乗せも終わった後は値が一切変わらないため、
+            // 6要素×(opacity/strokeWidth/strokeDasharray/2重blurのfilter)の書き込みを
+            // 毎フレーム繰り返さない。isFullになった瞬間に一度だけ最終値を書き、以降は skip する
+            // （これが「弧が伸び切った瞬間に一段階重くなる」体感の原因の1つだった）。
+            const tailsCanSkip = isFull && !inFlash && !inBump;
 
-            tailEls.current.forEach((c, idx) => {
-                if (!c) return;
-                const ringIdx = idx < 2 ? 0 : idx < 4 ? 1 : 2;
-                const w = Math.max(0.9, strokeBase - ringIdx * 0.55);
+            if (!tailsCanSkip || !tailsSteadyRef.current) {
+                const baseOpacity = 0.10 + 0.60 * growK;
+                const strokeBase = 0.8 + 3.4 * growK;
 
-                c.style.opacity = `${baseOpacity}`;
-                c.style.strokeWidth = `${w}px`;
-                c.style.strokeDasharray = `${arcLen} ${gapLen}`;
+                tailEls.current.forEach((c, idx) => {
+                    if (!c) return;
+                    const ringIdx = idx < 2 ? 0 : idx < 4 ? 1 : 2;
+                    const w = Math.max(0.9, strokeBase - ringIdx * 0.55);
 
-                if (isFull) {
-                    c.style.opacity = "1";
-                    c.style.filter =
-                        "drop-shadow(0 0 16px rgba(120,255,255,0.60)) drop-shadow(0 0 40px rgba(120,255,255,0.30))";
-                } else {
-                    c.style.filter = "drop-shadow(0 0 10px rgba(120,255,255,0.25))";
-                }
-            });
+                    c.style.opacity = `${baseOpacity}`;
+                    c.style.strokeWidth = `${w}px`;
+                    c.style.strokeDasharray = `${arcLen} ${gapLen}`;
+
+                    if (isFull) {
+                        c.style.opacity = "1";
+                        c.style.filter =
+                            "drop-shadow(0 0 16px rgba(120,255,255,0.60)) drop-shadow(0 0 40px rgba(120,255,255,0.30))";
+                    } else {
+                        c.style.filter = "drop-shadow(0 0 10px rgba(120,255,255,0.25))";
+                    }
+                });
+
+                if (tailsCanSkip) tailsSteadyRef.current = true;
+            }
 
             raf = requestAnimationFrame(tick);
         };
@@ -569,24 +606,30 @@ export default function StartPage() {
                 </div>
             </div>
 
-            {/* 白フラッシュ */}
+            {/*
+              白フラッシュ→暗転が1本のクロスフェードになるよう、
+              duration を Tailwind の固定クラスではなく warpTimeline の値で揃えている。
+              flash中はFLASH_FADE_IN_MSで0→1、warp中はWARP_FADE_MSで1→0に切り替わり、
+              ちょうど WARP_AT_MS の瞬間に真っ白、NAVIGATE_AT_MS の瞬間に完全に消える
+              （＝下の暗転が完全な黒になる瞬間と一致する）。
+            */}
             <div
                 aria-hidden
                 className={[
-                    "pointer-events-none fixed inset-0 z-[6] bg-white",
-                    "transition-opacity duration-150",
+                    "pointer-events-none fixed inset-0 z-[6] bg-white transition-opacity",
                     phase === "flash" ? "opacity-100" : "opacity-0",
                 ].join(" ")}
+                style={{ transitionDuration: `${phase === "flash" ? FLASH_FADE_IN_MS : WARP_FADE_MS}ms` }}
             />
 
-            {/* 暗転（この上に /home が入場ベールを重ねて明ける） */}
+            {/* 暗転（この上に /home が入場ベールを重ねて明ける）。NAVIGATE_AT_MSの瞬間に完全な黒になる */}
             <div
                 aria-hidden
                 className={[
-                    "pointer-events-none fixed inset-0 z-[7] bg-black",
-                    "transition-opacity duration-700",
+                    "pointer-events-none fixed inset-0 z-[7] bg-black transition-opacity",
                     phase === "warp" ? "opacity-100" : "opacity-0",
                 ].join(" ")}
+                style={{ transitionDuration: `${WARP_FADE_MS}ms` }}
             />
         </main>
     );
