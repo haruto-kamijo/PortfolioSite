@@ -47,7 +47,7 @@ export type SiteContent = {
 };
 
 /** /portfolio ページのタブ */
-export const PORTFOLIO_CATEGORIES = ["sites", "games", "models", "photos"] as const;
+export const PORTFOLIO_CATEGORIES = ["sites", "games", "models", "photos", "blog"] as const;
 export type PortfolioCategory = (typeof PORTFOLIO_CATEGORIES)[number];
 
 export const PORTFOLIO_CATEGORY_LABELS: Record<PortfolioCategory, { en: string; ja: string }> = {
@@ -55,6 +55,9 @@ export const PORTFOLIO_CATEGORY_LABELS: Record<PortfolioCategory, { en: string; 
     games: { en: "Games", ja: "ゲーム制作" },
     models: { en: "3D Models", ja: "Blenderでのモデリング" },
     photos: { en: "Photos", ja: "撮影した写真" },
+    // 記事本文は note 側に置いたまま、ここには一覧カードだけを手動登録する
+    // （PortfolioItem.href に note の記事URLを入れる運用）
+    blog: { en: "Blog", ja: "書いた記事" },
 };
 
 /**
