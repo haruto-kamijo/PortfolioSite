@@ -18,6 +18,11 @@ import { ADMIN_SESSION_COOKIE } from "@/lib/admin/cookieName";
  */
 export function middleware(req: NextRequest) {
     if (!req.cookies.has(ADMIN_SESSION_COOKIE)) {
+        // ここでrewriteすると app/admin/layout.tsx 自体が呼ばれなくなるため、
+        // その後段のログ（getAdminUser側）には何も残らない。
+        // Cookie自体が届いていないのか、届いた上で検証に失敗しているのかを
+        // 切り分けられるよう、ここにも記録しておく。
+        console.warn(`[admin] middleware: セッションCookieが無いため404にrewriteします (${req.nextUrl.pathname})`);
         return NextResponse.rewrite(new URL("/__not_found__", req.url));
     }
     return NextResponse.next();

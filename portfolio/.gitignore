@@ -28,6 +28,10 @@ yarn-error.log*
 # local env files
 .env*.local
 
+# Firebase Functions (2nd gen) がデプロイ時にランタイム環境変数として読み込む
+# プロジェクト専用の .env ファイル。.env.local と同じ機密情報を含む
+.env.portfoliosite-b12da
+
 # vercel
 .vercel
 
