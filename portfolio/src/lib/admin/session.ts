@@ -92,18 +92,31 @@ export const createAdminSession = async (
  */
 export const getAdminUser = async (): Promise<AdminUser | null> => {
     const token = cookies().get(ADMIN_SESSION_COOKIE)?.value;
-    if (!token) return null;
+    if (!token) {
+        // middleware は Cookie の有無しか見ないため、ここに来た時点でCookie無しなら
+        // middleware をすり抜けた別経路（Server Action の直接呼び出し等）ということになる
+        console.warn("[admin] getAdminUser: セッションCookieがありません");
+        return null;
+    }
 
     const auth = getAdminAuth();
-    if (!auth) return null;
+    if (!auth) {
+        console.warn("[admin] getAdminUser: Admin SDK を初期化できませんでした");
+        return null;
+    }
 
     try {
         const decoded = await auth.verifySessionCookie(token, true);
-        if (!isAdminEmail(decoded.email)) return null;
+        if (!isAdminEmail(decoded.email)) {
+            console.warn(`[admin] getAdminUser: ${decoded.email ?? "(不明)"} は ADMIN_EMAILS に含まれていません`);
+            return null;
+        }
 
         return { uid: decoded.uid, email: decoded.email! };
-    } catch {
-        // 期限切れ・改ざん・失効。いずれも「未認証」として扱う
+    } catch (err) {
+        // 期限切れ・改ざん・失効。いずれも「未認証」として扱うが、
+        // 原因究明のためログにだけ理由を残す（ブラウザには何も返らない）
+        console.warn("[admin] getAdminUser: セッションCookieの検証に失敗しました:", err);
         return null;
     }
 };
