@@ -1,0 +1,52 @@
+# main への push で Firebase（Hosting + SSR Functions + Firestore/Storage ルール）へデプロイする。
+# GCP への認証は Workload Identity Federation を使い、サービスアカウントキーは保存しない。
+name: Deploy to Firebase
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# デプロイが重ならないよう 1 本ずつ実行する（途中キャンセルはしない）
+concurrency:
+  group: firebase-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: portfolio
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: portfolio/package-lock.json
+
+      - run: npm ci
+
+      # .env.local は next build 用、.env.portfoliosite-b12da は Functions のランタイム環境変数用
+      - name: Write env files
+        env:
+          ENV_LOCAL: ${{ secrets.ENV_LOCAL }}
+          ENV_FUNCTIONS: ${{ secrets.ENV_FUNCTIONS }}
+        run: |
+          printf '%s\n' "$ENV_LOCAL" > .env.local
+          printf '%s\n' "$ENV_FUNCTIONS" > .env.portfoliosite-b12da
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Deploy
+        run: npx --yes firebase-tools@15.28.1 deploy --project portfoliosite-b12da --non-interactive --force
+        env:
+          FIREBASE_CLI_EXPERIMENTS: webframeworks
