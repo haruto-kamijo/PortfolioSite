@@ -36,7 +36,7 @@ firebase deploy
 
 ## ファイル構成
 
-```
+```text
 src/
   middleware.ts            // /admin の存在を隠すための前段（Cookie無しは404にrewrite）
   app/
@@ -138,7 +138,7 @@ Storage は `works/{workId}/{fileName}` と `portfolioItems/{itemId}/{fileName}`
 
 ユーザーの操作はサイト内で完結させ、内容はメールでも受け取れるようにする。
 
-```
+```text
 フォーム(/contact) → POST /api/contact → Admin SDK で contacts に保存（必須）
                                        → Resend でメール通知      ┐ ベストエフォート
                                        → チャットWebhookに通知    ┘
@@ -192,7 +192,7 @@ cp .env.local.example .env.local   # 値を埋める（初回のみ）
 npm run dev:emulators              # エミュレータ一式 + dev サーバーを1コマンドで起動
 ```
 
-起動したら http://localhost:3000/login を開く。
+起動したら <http://localhost:3000/login> を開く。
 
 - **「Google でサインイン」を押すと、実際の Google の代わりに Auth エミュレータの
   テスト用サインイン画面が開く。** メールアドレスに `ADMIN_EMAILS`（`.env.local`）に
@@ -202,7 +202,7 @@ npm run dev:emulators              # エミュレータ一式 + dev サーバー
   とだけ表示されるが、**`npm run dev:emulators` を実行しているターミナルには
   `[admin] ログイン拒否: ... は ADMIN_EMAILS に含まれていません` のように理由が出る**
   （ブラウザ側に理由を返さないのは、管理者のメールアドレスを外部から推測されないようにするため）。
-- Firestore/Storage の中身は http://localhost:4000 （Emulator UI）で直接確認・編集できる。
+- Firestore/Storage の中身は <http://localhost:4000> （Emulator UI）で直接確認・編集できる。
 - エミュレータのデータはプロセスを止めると消える（永続化はしていない）。
 
 `npm run dev:emulators` は `NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true` を自動で設定するため、
