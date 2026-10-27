@@ -141,7 +141,8 @@ export const works: readonly Work[] = [
 /** プロフィール情報。/about でも同じ値を使う */
 export const profile = {
     school: { ja: "長岡技術科学大学", en: "Nagaoka University of Technology" } satisfies Localized,
-    schoolShort: { ja: "長岡技大", en: "NUT" } satisfies Localized,
+    // 学年の横に出す表記。日本語は略さず正式名称にする
+    schoolShort: { ja: "長岡技術科学大学", en: "NUT" } satisfies Localized,
     program: {
         ja: "情報・経営システム工学",
         en: "Information & Management Systems Engineering",

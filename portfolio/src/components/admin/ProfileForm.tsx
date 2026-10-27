@@ -21,7 +21,7 @@ const BASIC_FIELDS: Field[] = [
 
 const SCHOOL_FIELDS: Field[] = [
     { key: "school", label: "学校名" },
-    { key: "schoolShort", label: "学校名（略称）", placeholder: { ja: "長岡技大", en: "NUT" } },
+    { key: "schoolShort", label: "学校名（略称）", placeholder: { ja: "長岡技術科学大学", en: "NUT" } },
     { key: "program", label: "専攻" },
 ];
 
