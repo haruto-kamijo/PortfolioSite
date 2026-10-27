@@ -4,7 +4,9 @@
 import { useState, useTransition } from "react";
 import { Panel } from "@/components/ui/Panel";
 import { CoverUploader } from "@/components/admin/CoverUploader";
+import { LocalizedField, adminFieldClass as fieldClass, adminLabelClass as labelClass } from "@/components/admin/LocalizedField";
 import { WorkContent } from "@/lib/content/types";
+import { Localized } from "@/lib/i18n";
 import {
     clearWorkCover,
     createWork,
@@ -14,18 +16,16 @@ import {
     updateWork,
 } from "@/app/admin/works/actions";
 
-const fieldClass = [
-    "mt-1.5 w-full rounded-lg border border-white/15 bg-black/40 px-3.5 py-2.5",
-    "text-sm text-white placeholder:text-white/25",
-    "outline-none transition-colors",
-    "focus:border-cyan-200/60 focus:ring-1 focus:ring-cyan-200/30",
-].join(" ");
+/** タイトル・説明文は日英で入力する。英語が空なら公開ページで日本語を代わりに出す */
+type EditableFields = { title: Localized; caption: Localized; href: string; external: boolean; ready: boolean };
 
-const labelClass = "block text-xs tracking-[0.16em] text-cyan-100/70";
-
-type EditableFields = { title: string; caption: string; href: string; external: boolean; ready: boolean };
-
-const emptyFields: EditableFields = { title: "", caption: "", href: "", external: false, ready: false };
+const emptyFields: EditableFields = {
+    title: { ja: "", en: "" },
+    caption: { ja: "", en: "" },
+    href: "",
+    external: false,
+    ready: false,
+};
 
 const WorkRow = ({
                      work,
@@ -81,41 +81,30 @@ const WorkRow = ({
                 />
 
                 <form onSubmit={handleSave} className="flex-1 space-y-4">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <label className={labelClass}>
-                            タイトル
-                            <input
-                                type="text"
-                                value={fields.title}
-                                onChange={(e) => setFields((f) => ({ ...f, title: e.target.value }))}
-                                maxLength={100}
-                                required
-                                disabled={pending}
-                                className={fieldClass}
-                            />
-                        </label>
-                        <label className={labelClass}>
-                            リンク先
-                            <input
-                                type="text"
-                                value={fields.href}
-                                onChange={(e) => setFields((f) => ({ ...f, href: e.target.value }))}
-                                placeholder={fields.external ? "https://..." : "/portfolio/..."}
-                                maxLength={500}
-                                required
-                                disabled={pending}
-                                className={fieldClass}
-                            />
-                        </label>
-                    </div>
-
+                    <LocalizedField
+                        label="タイトル"
+                        value={fields.title}
+                        onChange={(title) => setFields((f) => ({ ...f, title }))}
+                        maxLength={100}
+                        disabled={pending}
+                    />
+                    <LocalizedField
+                        label="説明文"
+                        value={fields.caption}
+                        onChange={(caption) => setFields((f) => ({ ...f, caption }))}
+                        maxLength={300}
+                        requiredJa={false}
+                        disabled={pending}
+                    />
                     <label className={labelClass}>
-                        説明文
+                        リンク先（日本語版のパス。英語ページでは自動で /en が付きます）
                         <input
                             type="text"
-                            value={fields.caption}
-                            onChange={(e) => setFields((f) => ({ ...f, caption: e.target.value }))}
-                            maxLength={300}
+                            value={fields.href}
+                            onChange={(e) => setFields((f) => ({ ...f, href: e.target.value }))}
+                            placeholder={fields.external ? "https://..." : "/portfolio/..."}
+                            maxLength={500}
+                            required
                             disabled={pending}
                             className={fieldClass}
                         />
@@ -255,41 +244,30 @@ const NewWorkForm = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
                 <p className="text-sm tracking-[0.2em] text-white/80">新しい作品</p>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <label className={labelClass}>
-                        タイトル
-                        <input
-                            type="text"
-                            value={fields.title}
-                            onChange={(e) => setFields((f) => ({ ...f, title: e.target.value }))}
-                            maxLength={100}
-                            required
-                            disabled={pending}
-                            className={fieldClass}
-                        />
-                    </label>
-                    <label className={labelClass}>
-                        リンク先
-                        <input
-                            type="text"
-                            value={fields.href}
-                            onChange={(e) => setFields((f) => ({ ...f, href: e.target.value }))}
-                            placeholder={fields.external ? "https://..." : "/portfolio/..."}
-                            maxLength={500}
-                            required
-                            disabled={pending}
-                            className={fieldClass}
-                        />
-                    </label>
-                </div>
-
+                <LocalizedField
+                    label="タイトル"
+                    value={fields.title}
+                    onChange={(title) => setFields((f) => ({ ...f, title }))}
+                    maxLength={100}
+                    disabled={pending}
+                />
+                <LocalizedField
+                    label="説明文"
+                    value={fields.caption}
+                    onChange={(caption) => setFields((f) => ({ ...f, caption }))}
+                    maxLength={300}
+                    requiredJa={false}
+                    disabled={pending}
+                />
                 <label className={labelClass}>
-                    説明文
+                    リンク先（日本語版のパス。英語ページでは自動で /en が付きます）
                     <input
                         type="text"
-                        value={fields.caption}
-                        onChange={(e) => setFields((f) => ({ ...f, caption: e.target.value }))}
-                        maxLength={300}
+                        value={fields.href}
+                        onChange={(e) => setFields((f) => ({ ...f, href: e.target.value }))}
+                        placeholder={fields.external ? "https://..." : "/portfolio/..."}
+                        maxLength={500}
+                        required
                         disabled={pending}
                         className={fieldClass}
                     />

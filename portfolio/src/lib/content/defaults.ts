@@ -3,42 +3,33 @@
 import { profile, site, skills, works } from "@/lib/site";
 import { SiteContent } from "./types";
 
-/** 表示テキストを ID 化する（Firestore のドキュメントIDと突き合わせるため） */
-const toId = (value: string) =>
-    value
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "");
-
 /**
  * Firestore が空・未設定・接続不可のときに使う既定コンテンツ。
  * これがあるおかげで、CMS を作り込む前でもサイトは今のまま動く。
  */
 export const defaultContent: SiteContent = {
     profile: {
-        name: site.name,
-        nameJa: site.nameJa,
-        role: site.role,
-        tagline: site.tagline,
-        description: site.description,
-        school: profile.school,
-        schoolShort: profile.schoolShort,
-        program: profile.program,
-        programJa: profile.programJa,
+        name: { ja: site.nameJa, en: site.name },
+        role: { ...site.role },
+        tagline: { ...site.tagline },
+        description: { ...site.description },
+        school: { ...profile.school },
+        schoolShort: { ...profile.schoolShort },
+        program: { ...profile.program },
         gradeOverride: null,
-        hobbies: [...profile.hobbies],
+        hobbies: { ja: [...profile.hobbies.ja], en: [...profile.hobbies.en] },
         languages: [...profile.languages],
     },
     skillGroups: skills.map((group, index) => ({
-        id: toId(group.field),
-        field: group.field,
-        items: [...group.items],
+        id: group.id,
+        field: { ...group.field },
+        items: { ja: [...group.items.ja], en: [...group.items.en] },
         order: index,
     })),
     works: works.map((work, index) => ({
-        id: toId(work.title),
-        title: work.title,
-        caption: work.caption,
+        id: work.id,
+        title: { ...work.title },
+        caption: { ...work.caption },
         href: work.href,
         external: work.external ?? false,
         ready: work.ready,

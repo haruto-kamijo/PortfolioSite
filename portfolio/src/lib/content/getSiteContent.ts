@@ -2,6 +2,7 @@
 
 import { getAdminDb } from "@/lib/firebase/admin";
 import { defaultContent } from "./defaults";
+import { readLocalized, readLocalizedList, str, strList } from "./fields";
 import {
     PROFILE_DOC_ID,
     ProfileContent,
@@ -48,31 +49,24 @@ export const getSiteContent = async (): Promise<SiteContent> => {
     }
 };
 
-const str = (value: unknown, fallback: string) =>
-    typeof value === "string" && value.length > 0 ? value : fallback;
-
-const strList = (value: unknown, fallback: string[]) =>
-    Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : fallback;
-
+/** 項目ごとに既定値へフォールバックする。日英も別々に埋める */
 const mergeProfile = (data: Record<string, unknown> | undefined): ProfileContent => {
     const base = defaultContent.profile;
     if (!data) return base;
 
     return {
-        name: str(data.name, base.name),
-        nameJa: str(data.nameJa, base.nameJa),
-        role: str(data.role, base.role),
-        tagline: str(data.tagline, base.tagline),
-        description: str(data.description, base.description),
-        school: str(data.school, base.school),
-        schoolShort: str(data.schoolShort, base.schoolShort),
-        program: str(data.program, base.program),
-        programJa: str(data.programJa, base.programJa),
+        name: readLocalized(data, "name", base.name),
+        role: readLocalized(data, "role", base.role),
+        tagline: readLocalized(data, "tagline", base.tagline),
+        description: readLocalized(data, "description", base.description),
+        school: readLocalized(data, "school", base.school),
+        schoolShort: readLocalized(data, "schoolShort", base.schoolShort),
+        program: readLocalized(data, "program", base.program),
         // 空文字は「上書きなし」として扱い、年度からの自動計算に任せる
         gradeOverride: typeof data.gradeOverride === "string" && data.gradeOverride
             ? data.gradeOverride
             : null,
-        hobbies: strList(data.hobbies, base.hobbies),
+        hobbies: readLocalizedList(data, "hobbies", base.hobbies),
         languages: strList(data.languages, base.languages),
     };
 };
@@ -83,8 +77,8 @@ const toSkillGroup = (doc: Doc, index: number): SkillGroupContent => {
     const data = doc.data();
     return {
         id: doc.id,
-        field: str(data.field, doc.id),
-        items: strList(data.items, []),
+        field: readLocalized(data, "field", { ja: doc.id, en: "" }),
+        items: readLocalizedList(data, "items"),
         order: typeof data.order === "number" ? data.order : index,
     };
 };
@@ -93,8 +87,8 @@ const toWork = (doc: Doc, index: number): WorkContent => {
     const data = doc.data();
     return {
         id: doc.id,
-        title: str(data.title, doc.id),
-        caption: str(data.caption, ""),
+        title: readLocalized(data, "title", { ja: doc.id, en: "" }),
+        caption: readLocalized(data, "caption"),
         href: str(data.href, "#"),
         external: data.external === true,
         ready: data.ready === true,

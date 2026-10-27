@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { CSSProperties, useCallback, useEffect, useMemo, useRef } from "react";
 import { ScenePhase, useSpaceScene } from "@/components/space/SpaceSceneProvider";
 import { useReducedMotion } from "@/lib/useReducedMotion";
+import { getDictionary } from "@/lib/dictionary";
+import { DEFAULT_LOCALE, isLocale, localizePath } from "@/lib/i18n";
 import { site } from "@/lib/site";
 import {
     AUTO_START_MS,
@@ -477,7 +479,9 @@ function ContentRings({
     );
 }
 
-export default function StartPage() {
+export default function StartPage({ params }: { params: { lang: string } }) {
+    const lang = isLocale(params.lang) ? params.lang : DEFAULT_LOCALE;
+    const homePath = localizePath("/home", lang);
     const router = useRouter();
     const { phase, setPhase } = useSpaceScene();
     const reducedMotion = useReducedMotion();
@@ -486,18 +490,17 @@ export default function StartPage() {
     // ワープは一度始まったら受け付けない（連打で遷移が後ろにずれるのを防ぐ）
     const startedRef = useRef(false);
 
-    const copy = useMemo(
-        () => ({
-            kicker: "PORTFOLIO SITE",
-            title: site.name,
-            titleJa: site.nameJa,
-            sub: site.role,
-            tagline: site.tagline,
-            cta: "GO TO SPACE",
-            hint: "Click / Space",
-        }),
-        []
-    );
+    const copy = useMemo(() => {
+        const t = getDictionary(lang).start;
+        return {
+            ...t,
+            // 表示中の言語の名前を大きく、もう一方を添える
+            title: lang === "ja" ? site.nameJa : site.name,
+            titleAlt: lang === "ja" ? site.name : site.nameJa,
+            sub: site.role[lang],
+            tagline: site.tagline[lang],
+        };
+    }, [lang]);
 
     const clearTimers = useCallback(() => {
         timersRef.current.forEach((id) => clearTimeout(id));
@@ -510,15 +513,15 @@ export default function StartPage() {
 
         // 演出を減らす設定では、長尺のワープと全画面フラッシュを行わず即座に遷移する
         if (reducedMotion) {
-            router.push("/home");
+            router.push(homePath);
             return;
         }
 
         setPhase("spinup");
         timersRef.current.push(window.setTimeout(() => setPhase("flash"), FLASH_AT_MS));
         timersRef.current.push(window.setTimeout(() => setPhase("warp"), WARP_AT_MS));
-        timersRef.current.push(window.setTimeout(() => router.push("/home"), NAVIGATE_AT_MS));
-    }, [reducedMotion, router, setPhase]);
+        timersRef.current.push(window.setTimeout(() => router.push(homePath), NAVIGATE_AT_MS));
+    }, [homePath, reducedMotion, router, setPhase]);
 
     // /home から戻ってきた場合、背景は cruise のままなので待機状態に戻す
     useEffect(() => {
@@ -527,8 +530,8 @@ export default function StartPage() {
 
     // 暗転中の待ち時間を減らすため遷移先を先読みする
     useEffect(() => {
-        router.prefetch("/home");
-    }, [router]);
+        router.prefetch(homePath);
+    }, [homePath, router]);
 
     // 無操作でも一定時間経過したら自動でワープを開始する
     useEffect(() => {
@@ -562,11 +565,11 @@ export default function StartPage() {
                 >
                     <ContentRings phase={phase} spinUpMs={SPINUP_MS} />
 
-                    {/* 文字はリングの内側に収める。幅を制限しないと狭い画面で
-                        main の overflow-hidden に切り取られてしまう */}
+                    {/* 文字は2番目のリング（--ring の75%）の内側に収める。
+                        幅を制限しないと、狭い画面で文字がリングに重なったりはみ出したりする */}
                     <div
                         className={[
-                            "relative z-[3] mx-auto max-w-[min(78vw,520px)] px-2 text-center",
+                            "relative z-[3] mx-auto max-w-[min(calc(var(--ring)*0.7),520px)] px-2 text-center",
                             "transition-opacity duration-700 ease-out",
                             phase === "idle" ? "opacity-100" : "opacity-0",
                         ].join(" ")}
@@ -577,15 +580,18 @@ export default function StartPage() {
                         <h1 className="mt-4 text-lg leading-snug text-white drop-shadow-[0_0_24px_rgba(255,255,255,0.3)] sm:mt-5 sm:text-2xl">
                             {copy.title}
                             <span className="mx-2 hidden text-white/40 sm:inline">/</span>
-                            {/* 狭い画面では日本語表記を改行して収める */}
-                            <span className="mt-1 block sm:mt-0 sm:inline">{copy.titleJa}</span>
+                            {/* 狭い画面ではもう一方の表記を改行して、小さく添える */}
+                            <span className="mt-1 block text-sm text-white/70 sm:mt-0 sm:inline sm:text-2xl sm:text-white">
+                                {copy.titleAlt}
+                            </span>
                         </h1>
-                        <p className="mt-3 text-sm text-slate-300 sm:text-base">{copy.sub}</p>
-                        <p className="mt-5 text-sm text-slate-200 sm:mt-6 sm:text-base">
+                        <p className="mt-3 text-xs text-slate-300 sm:text-base">{copy.sub}</p>
+                        <p className="mt-4 text-xs leading-relaxed text-slate-200 sm:mt-6 sm:text-base">
                             {copy.tagline}
                         </p>
 
-                        <div className="mt-6 flex flex-wrap items-center justify-center gap-3 sm:mt-7">
+                        {/* 狭い画面ではボタンと案内を縦に並べ、リングの内側に収める */}
+                        <div className="mt-5 flex flex-col items-center justify-center gap-2 sm:mt-7 sm:flex-row sm:gap-3">
                             <button
                                 onClick={goNext}
                                 className={[
@@ -598,8 +604,12 @@ export default function StartPage() {
                                 {copy.cta}
                             </button>
 
-                            <span className="text-[10px] tracking-[0.22em] text-cyan-100/55">
-                                {copy.hint}
+                            {/* タッチ操作の端末では「クリック / スペースキー」ではなく「タップ」と案内する */}
+                            <span className="text-[10px] tracking-[0.22em] text-cyan-100/55 [@media(pointer:coarse)]:hidden">
+                                {copy.hintPointer}
+                            </span>
+                            <span className="hidden text-[10px] tracking-[0.22em] text-cyan-100/55 [@media(pointer:coarse)]:inline">
+                                {copy.hintTouch}
                             </span>
                         </div>
                     </div>

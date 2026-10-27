@@ -3,77 +3,60 @@
 
 import { useState, useTransition } from "react";
 import { Panel } from "@/components/ui/Panel";
+import { LocalizedField, adminFieldClass, adminLabelClass } from "@/components/admin/LocalizedField";
 import { ProfileContent } from "@/lib/content/types";
 import { academicStatusAt } from "@/lib/academicYear";
+import { Localized } from "@/lib/i18n";
 import { saveProfile } from "@/app/admin/profile/actions";
 
-const fieldClass = [
-    "mt-1.5 w-full rounded-lg border border-white/15 bg-black/40 px-3.5 py-2.5",
-    "text-sm text-white placeholder:text-white/25",
-    "outline-none transition-colors",
-    "focus:border-cyan-200/60 focus:ring-1 focus:ring-cyan-200/30",
-].join(" ");
+type TextKey = "name" | "role" | "tagline" | "school" | "schoolShort" | "program";
 
-const labelClass = "block text-xs tracking-[0.16em] text-cyan-100/70";
-
-type Field = {
-    key: keyof typeof INITIAL_TEXT_FIELDS;
-    label: string;
-    hint?: string;
-};
-
-const INITIAL_TEXT_FIELDS = {
-    name: "",
-    nameJa: "",
-    role: "",
-    tagline: "",
-    school: "",
-    schoolShort: "",
-    program: "",
-    programJa: "",
-    gradeOverride: "",
-};
+type Field = { key: TextKey; label: string; placeholder?: Localized };
 
 const BASIC_FIELDS: Field[] = [
-    { key: "name", label: "名前（英語表記）" },
-    { key: "nameJa", label: "名前（日本語表記）" },
+    { key: "name", label: "名前", placeholder: { ja: "上條 遥都", en: "Kamijo Haruto" } },
     { key: "role", label: "肩書き" },
     { key: "tagline", label: "キャッチコピー" },
 ];
 
 const SCHOOL_FIELDS: Field[] = [
     { key: "school", label: "学校名" },
-    { key: "schoolShort", label: "学校名（略称）" },
-    { key: "program", label: "専攻（英語）" },
-    { key: "programJa", label: "専攻（日本語）" },
+    { key: "schoolShort", label: "学校名（略称）", placeholder: { ja: "長岡技大", en: "NUT" } },
+    { key: "program", label: "専攻" },
 ];
 
+const toLines = (items: string[]) => items.join("\n");
+
+/**
+ * プロフィールの編集フォーム。
+ * 文章の項目は日本語と英語を並べて入力する。英語が空欄の項目は、英語ページでも日本語で表示される。
+ */
 export const ProfileForm = ({ initial }: { initial: ProfileContent }) => {
-    const [fields, setFields] = useState({
+    const [texts, setTexts] = useState<Record<TextKey | "description", Localized>>({
         name: initial.name,
-        nameJa: initial.nameJa,
         role: initial.role,
         tagline: initial.tagline,
+        description: initial.description,
         school: initial.school,
         schoolShort: initial.schoolShort,
         program: initial.program,
-        programJa: initial.programJa,
-        gradeOverride: initial.gradeOverride ?? "",
     });
-    const [description, setDescription] = useState(initial.description);
-    const [hobbiesText, setHobbiesText] = useState(initial.hobbies.join("\n"));
-    const [languagesText, setLanguagesText] = useState(initial.languages.join("\n"));
+    const [gradeOverride, setGradeOverride] = useState(initial.gradeOverride ?? "");
+    const [hobbiesText, setHobbiesText] = useState<Localized>({
+        ja: toLines(initial.hobbies.ja),
+        en: toLines(initial.hobbies.en),
+    });
+    const [languagesText, setLanguagesText] = useState(toLines(initial.languages));
 
     const [pending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
     const [savedAt, setSavedAt] = useState<number | null>(null);
 
-    const setField = (key: keyof typeof fields) => (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFields((f) => ({ ...f, [key]: e.target.value }));
-    };
+    const setText = (key: TextKey | "description") => (value: Localized) =>
+        setTexts((t) => ({ ...t, [key]: value }));
 
     const autoStatus = academicStatusAt(new Date());
-    const autoGradeLabel = autoStatus.graduated ? "OB" : autoStatus.grade;
+    const autoGradeLabel = autoStatus.graduated ? "修了" : autoStatus.grade;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -82,9 +65,9 @@ export const ProfileForm = ({ initial }: { initial: ProfileContent }) => {
 
         startTransition(async () => {
             const res = await saveProfile({
-                ...fields,
-                description,
-                hobbies: hobbiesText.split("\n"),
+                ...texts,
+                gradeOverride,
+                hobbies: { ja: hobbiesText.ja.split("\n"), en: hobbiesText.en.split("\n") },
                 languages: languagesText.split("\n"),
             });
 
@@ -96,72 +79,53 @@ export const ProfileForm = ({ initial }: { initial: ProfileContent }) => {
         });
     };
 
+    const renderFields = (fields: Field[]) =>
+        fields.map(({ key, label, placeholder }) => (
+            <LocalizedField
+                key={key}
+                label={label}
+                value={texts[key]}
+                onChange={setText(key)}
+                placeholder={placeholder}
+                maxLength={300}
+                disabled={pending}
+            />
+        ));
+
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
+            <p className="text-xs leading-relaxed text-white/40">
+                日本語は必須です。英語が空欄の項目は、英語ページでも日本語で表示されます。
+            </p>
+
             <Panel className="space-y-5 p-6 sm:p-8">
                 <p className="text-sm tracking-[0.24em] text-white/80">基本情報</p>
-
-                <div className="grid gap-5 sm:grid-cols-2">
-                    {BASIC_FIELDS.map(({ key, label }) => (
-                        <label key={key} className={labelClass}>
-                            {label}
-                            <input
-                                type="text"
-                                value={fields[key]}
-                                onChange={setField(key)}
-                                maxLength={300}
-                                required
-                                disabled={pending}
-                                className={fieldClass}
-                            />
-                        </label>
-                    ))}
-                </div>
-
-                <label className={labelClass}>
-                    紹介文（description。検索結果やOGPに使われます）
-                    <textarea
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        rows={3}
-                        maxLength={2000}
-                        required
-                        disabled={pending}
-                        className={`${fieldClass} resize-y`}
-                    />
-                </label>
+                {renderFields(BASIC_FIELDS)}
+                <LocalizedField
+                    label="紹介文（description。検索結果やOGPに使われます）"
+                    value={texts.description}
+                    onChange={setText("description")}
+                    multiline
+                    rows={3}
+                    maxLength={2000}
+                    disabled={pending}
+                />
             </Panel>
 
             <Panel className="space-y-5 p-6 sm:p-8">
                 <p className="text-sm tracking-[0.24em] text-white/80">学校・学年</p>
+                {renderFields(SCHOOL_FIELDS)}
 
-                <div className="grid gap-5 sm:grid-cols-2">
-                    {SCHOOL_FIELDS.map(({ key, label }) => (
-                        <label key={key} className={labelClass}>
-                            {label}
-                            <input
-                                type="text"
-                                value={fields[key]}
-                                onChange={setField(key)}
-                                maxLength={300}
-                                required
-                                disabled={pending}
-                                className={fieldClass}
-                            />
-                        </label>
-                    ))}
-                </div>
-
-                <label className={labelClass}>
+                <label className={adminLabelClass}>
                     学年の上書き（空欄なら年度から自動計算：現在は「{autoGradeLabel}」）
                     <input
                         type="text"
-                        value={fields.gradeOverride}
-                        onChange={setField("gradeOverride")}
+                        value={gradeOverride}
+                        onChange={(e) => setGradeOverride(e.target.value)}
                         placeholder={autoGradeLabel ?? ""}
                         maxLength={100}
                         disabled={pending}
-                        className={fieldClass}
+                        className={adminFieldClass}
                     />
                 </label>
             </Panel>
@@ -170,29 +134,25 @@ export const ProfileForm = ({ initial }: { initial: ProfileContent }) => {
                 <p className="text-sm tracking-[0.24em] text-white/80">スキル・趣味</p>
                 <p className="text-xs text-white/40">1行に1項目ずつ入力してください</p>
 
-                <div className="grid gap-5 sm:grid-cols-2">
-                    <label className={labelClass}>
-                        使用言語 / 技術
-                        <textarea
-                            value={languagesText}
-                            onChange={(e) => setLanguagesText(e.target.value)}
-                            rows={6}
-                            disabled={pending}
-                            className={`${fieldClass} resize-y`}
-                        />
-                    </label>
+                <label className={adminLabelClass}>
+                    使用言語 / 技術（日英共通）
+                    <textarea
+                        value={languagesText}
+                        onChange={(e) => setLanguagesText(e.target.value)}
+                        rows={6}
+                        disabled={pending}
+                        className={`${adminFieldClass} resize-y`}
+                    />
+                </label>
 
-                    <label className={labelClass}>
-                        趣味
-                        <textarea
-                            value={hobbiesText}
-                            onChange={(e) => setHobbiesText(e.target.value)}
-                            rows={6}
-                            disabled={pending}
-                            className={`${fieldClass} resize-y`}
-                        />
-                    </label>
-                </div>
+                <LocalizedField
+                    label="趣味"
+                    value={hobbiesText}
+                    onChange={setHobbiesText}
+                    multiline
+                    rows={6}
+                    disabled={pending}
+                />
             </Panel>
 
             <div className="flex flex-wrap items-center gap-4">

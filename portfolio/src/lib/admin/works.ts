@@ -1,6 +1,7 @@
 // src/lib/admin/works.ts
 
 import { getAdminDb } from "@/lib/firebase/admin";
+import { readLocalized } from "@/lib/content/fields";
 import { WorkContent, collections } from "@/lib/content/types";
 
 /**
@@ -20,8 +21,8 @@ export const listWorksAdmin = async (): Promise<WorkContent[]> => {
             const d = doc.data();
             return {
                 id: doc.id,
-                title: typeof d.title === "string" ? d.title : "",
-                caption: typeof d.caption === "string" ? d.caption : "",
+                title: readLocalized(d, "title"),
+                caption: readLocalized(d, "caption"),
                 href: typeof d.href === "string" ? d.href : "",
                 external: d.external === true,
                 ready: d.ready === true,

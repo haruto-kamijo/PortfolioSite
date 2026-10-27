@@ -1,6 +1,7 @@
 // src/lib/admin/portfolio.ts
 
 import { getAdminDb } from "@/lib/firebase/admin";
+import { readLocalized } from "@/lib/content/fields";
 import { PORTFOLIO_CATEGORIES, PortfolioCategory, PortfolioItem, collections } from "@/lib/content/types";
 
 /**
@@ -28,8 +29,8 @@ export const listPortfolioItemsAdmin = async (): Promise<
             grouped[category].push({
                 id: doc.id,
                 category,
-                title: typeof d.title === "string" ? d.title : "",
-                caption: typeof d.caption === "string" ? d.caption : "",
+                title: readLocalized(d, "title"),
+                caption: readLocalized(d, "caption"),
                 href: typeof d.href === "string" && d.href ? d.href : null,
                 order: typeof d.order === "number" ? d.order : 0,
                 coverUrl: typeof d.coverUrl === "string" && d.coverUrl ? d.coverUrl : null,

@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { getAdminUser } from "@/lib/admin/session";
+import { revalidatePublicPages } from "@/lib/admin/revalidatePublic";
 import { getAdminBucket, getAdminDb } from "@/lib/firebase/admin";
+import { writeLocalized } from "@/lib/content/fields";
 import { PORTFOLIO_CATEGORIES, PortfolioCategory, collections } from "@/lib/content/types";
+import { LOCALES, Localized } from "@/lib/i18n";
 
 /**
  * /portfolio の作品(portfolioItems)管理（Server Action）。
@@ -36,13 +39,29 @@ const assertCategory = (category: string): category is PortfolioCategory => {
 
 const coverPath = (id: string) => `portfolioItems/${id}/cover`;
 
-type ItemFields = { title: string; caption: string; href: string; ready: boolean };
+/** タイトル・説明文は日英で持つ。英語が空なら公開ページで日本語を代わりに出す */
+type ItemFields = { title: Localized; caption: Localized; href: string; ready: boolean };
+
+const trimFields = (input: ItemFields): ItemFields => ({
+    title: { ja: input.title.ja.trim(), en: input.title.en.trim() },
+    caption: { ja: input.caption.ja.trim(), en: input.caption.en.trim() },
+    href: input.href.trim(),
+    ready: input.ready,
+});
+
+/** Firestore に保存する形（title / titleEn のように平らにする）。空のリンクは null で持つ */
+const toDoc = (fields: ItemFields) => ({
+    ...writeLocalized("title", fields.title),
+    ...writeLocalized("caption", fields.caption),
+    href: fields.href || null,
+    ready: fields.ready,
+});
 
 /** href は空欄も許す（写真などリンクの無い作品があるため） */
 const validateFields = ({ title, caption, href }: ItemFields): string | null => {
-    if (!title.trim()) return "タイトルを入力してください";
-    if (title.length > LIMITS.title) return "タイトルが長すぎます";
-    if (caption.length > LIMITS.caption) return "説明文が長すぎます";
+    if (!title.ja) return "タイトル（日本語）を入力してください";
+    if (LOCALES.some((l) => title[l].length > LIMITS.title)) return "タイトルが長すぎます";
+    if (LOCALES.some((l) => caption[l].length > LIMITS.caption)) return "説明文が長すぎます";
     if (href.length > LIMITS.href) return "リンク先が長すぎます";
     if (href.trim() && !/^https?:\/\//.test(href.trim())) {
         return "リンク先は http:// か https:// から始めてください";
@@ -57,12 +76,7 @@ export async function createPortfolioItem(
     await requireAdmin();
     assertCategory(category);
 
-    const fields = {
-        title: input.title.trim(),
-        caption: input.caption.trim(),
-        href: input.href.trim(),
-        ready: input.ready,
-    };
+    const fields = trimFields(input);
     const error = validateFields(fields);
     if (error) return { ok: false, error };
 
@@ -81,8 +95,7 @@ export async function createPortfolioItem(
                 : Math.max(...sameCategory.map((d) => d.data().order ?? 0)) + 1;
 
         await db.collection(collections.portfolioItems).add({
-            ...fields,
-            href: fields.href || null,
+            ...toDoc(fields),
             category,
             order: nextOrder,
             coverUrl: null,
@@ -93,7 +106,7 @@ export async function createPortfolioItem(
     }
 
     revalidatePath("/admin/portfolio");
-    revalidatePath("/portfolio");
+    revalidatePublicPages();
     return { ok: true };
 }
 
@@ -101,12 +114,7 @@ export async function updatePortfolioItem(id: string, input: ItemFields): Promis
     await requireAdmin();
     assertDocId(id);
 
-    const fields = {
-        title: input.title.trim(),
-        caption: input.caption.trim(),
-        href: input.href.trim(),
-        ready: input.ready,
-    };
+    const fields = trimFields(input);
     const error = validateFields(fields);
     if (error) return { ok: false, error };
 
@@ -117,14 +125,14 @@ export async function updatePortfolioItem(id: string, input: ItemFields): Promis
         await db
             .collection(collections.portfolioItems)
             .doc(id)
-            .update({ ...fields, href: fields.href || null });
+            .update(toDoc(fields));
     } catch (err) {
         console.error("[admin] 作品の更新に失敗しました:", err);
         return { ok: false, error: "更新に失敗しました" };
     }
 
     revalidatePath("/admin/portfolio");
-    revalidatePath("/portfolio");
+    revalidatePublicPages();
     return { ok: true };
 }
 
@@ -153,7 +161,7 @@ export async function deletePortfolioItem(id: string): Promise<SaveResult> {
     }
 
     revalidatePath("/admin/portfolio");
-    revalidatePath("/portfolio");
+    revalidatePublicPages();
     return { ok: true };
 }
 
@@ -192,7 +200,7 @@ export async function movePortfolioItem(id: string, direction: "up" | "down"): P
     }
 
     revalidatePath("/admin/portfolio");
-    revalidatePath("/portfolio");
+    revalidatePublicPages();
     return { ok: true };
 }
 
@@ -219,7 +227,7 @@ export async function setPortfolioItemCover(id: string, url: string): Promise<Sa
     }
 
     revalidatePath("/admin/portfolio");
-    revalidatePath("/portfolio");
+    revalidatePublicPages();
     return { ok: true };
 }
 
@@ -248,6 +256,6 @@ export async function clearPortfolioItemCover(id: string): Promise<SaveResult> {
     }
 
     revalidatePath("/admin/portfolio");
-    revalidatePath("/portfolio");
+    revalidatePublicPages();
     return { ok: true };
 }
