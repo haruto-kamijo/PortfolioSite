@@ -38,6 +38,8 @@ const SITE_URL = "https://kamijoharuto.com";
 /** pending で探すリポジトリ。PoC は playground、Kaggle は kaggle に登録ファイルを置く */
 const ENTRY_REPOS = ["playground", "kaggle"];
 
+const KNOWN_FLAGS = ["--run", "--emulator"];
+
 const COVER_TYPES: Record<string, string> = {
     ".png": "image/png",
     ".jpg": "image/jpeg",
@@ -103,6 +105,19 @@ const toLocalized = (v: unknown, name: string): Localized => {
     return { ja: v.ja, en: typeof v.en === "string" ? v.en : "" };
 };
 
+/**
+ * URL を正規化する（/../ や %2e%2e の解決、ホスト名の小文字化）。
+ * 確かめる URL と保存する URL を同じにして、確かめたのと違う場所へのリンクが載らないようにする。
+ */
+const normalizeUrl = (href: string) => {
+    if (!href) return href;
+    try {
+        return new URL(href).href;
+    } catch {
+        throw new Error(`URL として読めません：${href}`);
+    }
+};
+
 const parseEntry = (raw: unknown): Entry => {
     if (!isRecord(raw)) throw new Error(`${ENTRY_FILE} の中身がオブジェクトではありません`);
 
@@ -111,15 +126,18 @@ const parseEntry = (raw: unknown): Entry => {
     if (!isPortfolioCategory(raw.category)) {
         throw new Error(`category は ${PORTFOLIO_CATEGORIES.join(" / ")} のどれかにしてください`);
     }
+    // 公開するかどうかは書き忘れると困るので、省略を許さない
+    if (typeof raw.ready !== "boolean") throw new Error("ready は true（公開）か false（非公開）で書いてください");
 
     const fields = trimPortfolioFields({
         title: toLocalized(raw.title, "title"),
         caption: raw.caption === undefined ? { ja: "", en: "" } : toLocalized(raw.caption, "caption"),
         href: typeof raw.href === "string" ? raw.href : "",
-        ready: raw.ready !== false,
+        ready: raw.ready,
     });
     const fieldError = validatePortfolioFields(fields);
     if (fieldError) throw new Error(fieldError);
+    fields.href = normalizeUrl(fields.href);
 
     if (raw.links !== undefined && !Array.isArray(raw.links)) throw new Error("links は配列で書いてください");
     const links = ((raw.links as unknown[]) ?? []).map((l, i) => {
@@ -129,8 +147,13 @@ const parseEntry = (raw: unknown): Entry => {
     });
     const linkError = validatePortfolioLinks(links);
     if (linkError) throw new Error(linkError);
+    for (const link of links) link.href = normalizeUrl(link.href);
 
+    // 登録ファイルと同じフォルダの画像だけを許す（../ で別の場所のファイルを公開バケットに上げないため）
     const cover = typeof raw.cover === "string" && raw.cover ? raw.cover : null;
+    if (cover && (/[/\\]/.test(cover) || cover.startsWith("."))) {
+        throw new Error("cover は登録ファイルと同じフォルダにある画像のファイル名だけを書いてください");
+    }
     if (cover && !COVER_TYPES[extname(cover).toLowerCase()]) {
         throw new Error(`cover は ${Object.keys(COVER_TYPES).join(" / ")} の画像にしてください`);
     }
@@ -161,11 +184,24 @@ const loadEntry = (source: Source): Entry => {
  */
 type LinkProblem = { href: string; message: string; blocking: boolean };
 
+const isGitHubHost = (host: string) =>
+    host === "github.com" || host.endsWith(".github.com") || host.endsWith("githubusercontent.com");
+
+/** GitHub 上のリポジトリを指す URL なら、その owner/repo を返す（href は normalizeUrl 済みのもの） */
+const githubRepoOf = (url: URL): string | null => {
+    const host = url.hostname.replace(/^www\./, "");
+    if (host !== "github.com" && host !== "raw.githubusercontent.com") return null;
+    const [owner, repo] = url.pathname.split("/").filter(Boolean);
+    if (!owner || !repo) return null;
+    return `${owner}/${repo.replace(/\.git$/, "")}`;
+};
+
 const checkLink = async (href: string): Promise<LinkProblem | null> => {
-    const repo = href.match(/^https:\/\/github\.com\/([^/]+)\/([^/#?]+)/);
+    const url = new URL(href);
+    const repo = githubRepoOf(url);
     if (repo) {
         try {
-            const isPrivate = gh(["api", `repos/${repo[1]}/${repo[2]}`, "--jq", ".private"]).toString().trim();
+            const isPrivate = gh(["api", `repos/${repo}`, "--jq", ".private"]).toString().trim();
             return isPrivate === "false" ? null : { href, message: "非公開リポジトリです", blocking: true };
         } catch {
             return { href, message: "リポジトリが見つかりません", blocking: true };
@@ -175,8 +211,15 @@ const checkLink = async (href: string): Promise<LinkProblem | null> => {
         const res = await fetch(href, { redirect: "follow", signal: AbortSignal.timeout(10_000) });
         return res.ok ? null : { href, message: `開けません（HTTP ${res.status}）`, blocking: true };
     } catch {
-        // 接続できないのはネットワーク側の都合（社内・学内の通信の検査など）のこともあるので、止めずに知らせる
-        return { href, message: "接続できず確認できませんでした。ブラウザで開けるか確かめてください", blocking: false };
+        // 接続できないのはネットワーク側の都合（社内・学内の通信の検査など）のこともあるので、止めずに知らせる。
+        // ただし GitHub のページは非公開リポジトリの中身の場合があるので、確かめられなければ止める
+        return {
+            href,
+            message: isGitHubHost(url.hostname)
+                ? "GitHub のページを確かめられませんでした"
+                : "接続できず確認できませんでした。ブラウザで開けるか確かめてください",
+            blocking: isGitHubHost(url.hostname),
+        };
     }
 };
 
@@ -227,14 +270,27 @@ const isSameCover = async ({ bucket }: Firebase, id: string, data: Buffer) => {
     return meta.md5Hash === md5(data);
 };
 
-/** 管理画面（firebase/storage の getDownloadURL）と同じ形の URL にする */
+const TOKENS_KEY = "firebaseStorageDownloadTokens";
+
+/**
+ * カバー画像を上げ、管理画面（firebase/storage の getDownloadURL）と同じ形の URL を返す。
+ * 古いトークンも残しておき、Firestore の保存まで済んだら dropOldTokens で消す
+ * （保存に失敗しても、今の coverUrl が切れないようにするため）。
+ */
 const uploadCover = async ({ bucket }: Firebase, id: string, data: Buffer, fileName: string) => {
+    const file = bucket.file(coverPath(id));
+    const [exists] = await file.exists();
+    const oldTokens = exists ? String((await file.getMetadata())[0].metadata?.[TOKENS_KEY] ?? "") : "";
     const token = randomUUID();
-    await bucket.file(coverPath(id)).save(data, {
+
+    await file.save(data, {
         contentType: COVER_TYPES[extname(fileName).toLowerCase()],
-        metadata: { metadata: { firebaseStorageDownloadTokens: token } },
+        metadata: { metadata: { [TOKENS_KEY]: [oldTokens, token].filter(Boolean).join(",") } },
     });
-    return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(coverPath(id))}?alt=media&token=${token}`;
+    return {
+        url: `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(coverPath(id))}?alt=media&token=${token}`,
+        dropOldTokens: () => file.setMetadata({ metadata: { [TOKENS_KEY]: token } }),
+    };
 };
 
 /** 登録ファイルの内容のうち、Firestore に保存する項目 */
@@ -244,9 +300,18 @@ const toDoc = (entry: Entry) => ({
     category: entry.category,
 });
 
-/** いま保存されている値と比べて、変わる項目の名前を返す */
-const changedKeys = (current: Record<string, unknown>, next: Record<string, unknown>) =>
-    Object.keys(next).filter((k) => JSON.stringify(current[k] ?? null) !== JSON.stringify(next[k] ?? null));
+/** 比べるときは、未保存・null・空の配列を同じものとみなす（管理画面で作った作品には links が無い） */
+const comparable = (value: unknown) =>
+    JSON.stringify(value === undefined || (Array.isArray(value) && value.length === 0) ? null : value);
+
+/**
+ * いま保存されている値と比べて、変わる項目の名前を返す。
+ * 登録済みの作品の公開・非公開（ready）は管理画面で切り替えるので、比べない（書き込みもしない）。
+ */
+const changedKeys = (current: Record<string, unknown>, next: Record<string, unknown>, exists: boolean) =>
+    Object.keys(next)
+        .filter((k) => !(exists && k === "ready"))
+        .filter((k) => comparable(current[k]) !== comparable(next[k]));
 
 type Plan = {
     entry: Entry;
@@ -269,9 +334,11 @@ const planEntry = async (fb: Firebase, source: Source, entry = loadEntry(source)
         }
         if (coverData.length > MAX_COVER_BYTES) throw new Error(`カバー画像は ${MAX_COVER_BYTES / 1024 / 1024}MB 以下にしてください`);
     }
-    const coverChanged = coverData !== null && !(snap.exists && (await isSameCover(fb, entry.id, coverData)));
+    // Storage に同じ画像があっても、coverUrl が空なら付け直す
+    const coverChanged =
+        coverData !== null && !(snap.exists && current.coverUrl && (await isSameCover(fb, entry.id, coverData)));
 
-    return { entry, exists: snap.exists, changes: changedKeys(current, toDoc(entry)), coverData, coverChanged };
+    return { entry, exists: snap.exists, changes: changedKeys(current, toDoc(entry), snap.exists), coverData, coverChanged };
 };
 
 // ---------------------------------------------------------------- コマンド
@@ -304,7 +371,11 @@ const add = async (arg: string, run: boolean, useEmulator: boolean) => {
     console.log(`  リンク：${entry.fields.href || "なし"}`);
     for (const l of entry.links) console.log(`    ${l.label.ja}：${l.href}`);
     console.log(`  カバー画像：${entry.cover ? `${entry.cover}（${Math.round(plan.coverData!.length / 1024)}KB${plan.coverChanged ? "" : "・変更なし"}）` : "なし"}`);
-    console.log(`  公開：${entry.fields.ready ? "する" : "しない（管理画面で確認してから公開）"}`);
+    console.log(
+        plan.exists
+            ? "  公開：登録済みなので変えません（公開・非公開は管理画面で切り替えます）"
+            : `  公開：${entry.fields.ready ? "する" : "しない（管理画面で確認してから公開）"}`
+    );
     console.log(`  公開URL：${SITE_URL}/portfolio?tab=${entry.category}`);
 
     if (plan.exists && plan.changes.length === 0 && !plan.coverChanged) {
@@ -322,7 +393,9 @@ const add = async (arg: string, run: boolean, useEmulator: boolean) => {
 
     const ref = fb.db.collection(collections.portfolioItems).doc(entry.id);
     const current = (await ref.get()).data();
-    const doc: Record<string, unknown> = { ...toDoc(entry), source: source.label };
+    // 登録ファイルの場所（非公開リポジトリのパスやローカルのパス）は、誰でも読めるこのコレクションに保存しない
+    const doc: Record<string, unknown> = toDoc(entry);
+    if (current) delete doc.ready;
 
     // 並び順は管理画面と同じく、カテゴリの末尾に足す。登録済みで同じカテゴリなら今の位置を保つ
     if (!current || current.category !== entry.category) {
@@ -331,9 +404,11 @@ const add = async (arg: string, run: boolean, useEmulator: boolean) => {
         doc.order = orders.length === 0 ? 0 : Math.max(...orders) + 1;
     }
     if (!current) doc.coverUrl = null;
-    if (plan.coverData && plan.coverChanged) doc.coverUrl = await uploadCover(fb, entry.id, plan.coverData, entry.cover!);
+    const cover = plan.coverData && plan.coverChanged ? await uploadCover(fb, entry.id, plan.coverData, entry.cover!) : null;
+    if (cover) doc.coverUrl = cover.url;
 
     await ref.set(doc, { merge: true });
+    await cover?.dropOldTokens().catch(() => console.log("注意：古いカバー画像の URL を無効にできませんでした（表示には影響しません）"));
     console.log(`\n${fb.target}に書き込みました。${SITE_URL}/portfolio?tab=${entry.category} で確認できます。`);
 };
 
@@ -380,6 +455,14 @@ const main = async () => {
     const flags = new Set(args.filter((a) => a.startsWith("--")));
     const [command, target] = args.filter((a) => !a.startsWith("--"));
     const useEmulator = flags.has("--emulator");
+
+    // 打ち間違えたフラグ（--emulater など）を黙って無視すると、本番に書き込んでしまうので止める
+    const unknown = Array.from(flags).filter((f) => !KNOWN_FLAGS.includes(f));
+    if (unknown.length > 0) {
+        console.error(`知らないフラグです：${unknown.join(" ")}（使えるのは ${KNOWN_FLAGS.join(" / ")}）`);
+        process.exitCode = 1;
+        return;
+    }
 
     if (command === "pending") return pending(useEmulator);
     if (command === "add" && target) return add(target, flags.has("--run"), useEmulator);

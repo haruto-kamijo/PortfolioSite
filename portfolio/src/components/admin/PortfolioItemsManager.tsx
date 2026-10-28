@@ -130,8 +130,8 @@ const ItemRow = ({
                         <div className={labelClass}>
                             追加のリンク（登録スクリプトで編集。ここで保存しても消えません）
                             <ul className="mt-1 space-y-0.5 text-white/60">
-                                {item.links.map((link) => (
-                                    <li key={link.href} className="break-all">
+                                {item.links.map((link, i) => (
+                                    <li key={`${i}-${link.href}`} className="break-all">
                                         {link.label.ja}：{link.href}
                                     </li>
                                 ))}

@@ -123,9 +123,9 @@ export default async function PortfolioPage({ params, searchParams }: Props) {
                                 {/* カード全体のリンクの中にリンクは入れられないので、補助リンクは外に並べる */}
                                 {item.links.length > 0 && (
                                     <div className="-mt-1 flex flex-wrap gap-2 px-5 pb-5">
-                                        {item.links.map((link) => (
+                                        {item.links.map((link, i) => (
                                             <a
-                                                key={link.href}
+                                                key={`${i}-${link.href}`}
                                                 href={link.href}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
