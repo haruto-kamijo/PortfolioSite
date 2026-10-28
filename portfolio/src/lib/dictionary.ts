@@ -16,6 +16,7 @@ export type Dictionary = {
         github: string;
         blog: string;
         skills: Heading;
+        latest: Heading;
         works: Heading;
         view: string;
         comingSoon: string;
@@ -25,7 +26,7 @@ export type Dictionary = {
     };
     about: { heading: Heading; school: string; hobby: string; language: string };
     academic: { graduated: string };
-    portfolio: { heading: Heading; tabsLabel: string; empty: string; noImage: string };
+    portfolio: { heading: Heading; tabsLabel: string; tagsLabel: string; empty: string; noImage: string };
     contact: {
         heading: Heading;
         lead: string;
@@ -72,6 +73,7 @@ const ja: Dictionary = {
         github: "GitHub",
         blog: "ブログ",
         skills: { title: "使える技術", sub: "SKILLS" },
+        latest: { title: "最近の更新", sub: "LATEST" },
         works: { title: "制作物", sub: "WORKS" },
         view: "見る",
         comingSoon: "準備中",
@@ -89,6 +91,7 @@ const ja: Dictionary = {
     portfolio: {
         heading: { title: "制作物", sub: "PORTFOLIO" },
         tabsLabel: "カテゴリ",
+        tagsLabel: "使った技術",
         empty: "準備中です",
         noImage: "画像なし",
     },
@@ -138,6 +141,7 @@ const en: Dictionary = {
         github: "GITHUB",
         blog: "BLOG",
         skills: { title: "SKILLS", sub: "What I work with" },
+        latest: { title: "LATEST", sub: "Recent updates" },
         works: { title: "WORKS", sub: "Things I've made" },
         view: "VIEW",
         comingSoon: "COMING SOON",
@@ -155,6 +159,7 @@ const en: Dictionary = {
     portfolio: {
         heading: { title: "PORTFOLIO", sub: "Selected works" },
         tabsLabel: "Categories",
+        tagsLabel: "Built with",
         empty: "Coming soon...",
         noImage: "No image",
     },

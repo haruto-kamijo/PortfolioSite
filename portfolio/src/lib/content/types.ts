@@ -67,8 +67,8 @@ export const PORTFOLIO_CATEGORY_LABELS: Record<PortfolioCategory, Localized> = {
     // アイデアを試した PoC。記事（Zenn など）と公開リポジトリへのリンクを付ける
     pocs: { ja: "PoC", en: "PoC" },
     kaggle: { ja: "Kaggle", en: "Kaggle" },
-    // 記事本文は note 側に置いたまま、ここには一覧カードだけを手動登録する
-    // （PortfolioItem.href に note の記事URLを入れる運用）
+    // Zenn・note の記事は RSS から自動で並べる（feeds.ts）。手動で登録したカードもここに出る。
+    // PoC の検証記事は PoC のカードに付けるので、そのカードと同じ記事はここには出さない
     blog: { ja: "ブログ", en: "Blog" },
 };
 
@@ -89,10 +89,14 @@ export type PortfolioItem = {
     href: string | null;
     /** href のほかに出すリンク。いまは登録スクリプト（scripts/content.ts）からだけ編集する */
     links: PortfolioLink[];
+    /** 使った技術（Python・Jev など）。言語に関わらず同じ表記で出す。登録スクリプトからだけ編集する */
+    tags: string[];
     /** カテゴリ内での並び順。カテゴリをまたいだ比較はしない */
     order: number;
     coverUrl: string | null;
     ready: boolean;
+    /** 登録した日時（ISO 形式）。ホームの「最近の更新」の並びに使う。RSS の記事は公開日時 */
+    createdAt: string | null;
 };
 
 /** 問い合わせ。クライアントからは読めない（API Route の Admin SDK 経由のみ） */

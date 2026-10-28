@@ -5,6 +5,9 @@ import { getDictionary } from "@/lib/dictionary";
 import { LOCALES, Locale, localizePath, ogLocale } from "@/lib/i18n";
 import { site } from "@/lib/site";
 
+/** リンクを貼ったときに出る画像。app/og.png/route.tsx が作る */
+export const OG_IMAGE = { url: "/og.png", width: 1200, height: 630, alt: `${site.name} Portfolio` };
+
 /**
  * 公開ページの OGP。path にはそのページの日本語版のパスを渡す。
  * 子ページが openGraph を書かないとレイアウトの値（url が言語のトップ）がそのまま使われるため、
@@ -18,4 +21,5 @@ export const openGraphFor = (path: string, lang: Locale): NonNullable<Metadata["
     title: `${site.name} | ${getDictionary(lang).meta.siteTitle}`,
     description: site.description[lang],
     url: localizePath(path, lang),
+    images: [OG_IMAGE],
 });

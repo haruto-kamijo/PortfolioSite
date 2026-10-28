@@ -27,7 +27,7 @@ export const getPortfolioItems = async (): Promise<Record<PortfolioCategory, Por
 
         const grouped = empty;
         for (const doc of snap.docs) {
-            const item = readPortfolioItem(doc.id, doc.data());
+            const item = readPortfolioItem(doc.id, doc.data(), doc.createTime.toDate());
             // 公開ページでは非公開の作品を出さない
             if (item?.ready) grouped[item.category].push(item);
         }

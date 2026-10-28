@@ -1,9 +1,10 @@
 // src/app/[lang]/(site)/portfolio/page.tsx
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
+import { PortfolioCard } from "@/components/portfolio/PortfolioCard";
 import { Panel } from "@/components/ui/Panel";
 import { SectionTitle } from "@/components/ui/SectionTitle";
+import { getFeedItems } from "@/lib/content/feeds";
 import { getPortfolioItems } from "@/lib/content/getPortfolioItems";
 import {
     PORTFOLIO_CATEGORIES,
@@ -11,7 +12,7 @@ import {
     PortfolioCategory,
 } from "@/lib/content/types";
 import { getDictionary } from "@/lib/dictionary";
-import { DEFAULT_LOCALE, alternatesFor, isLocale, localizePath, pick } from "@/lib/i18n";
+import { DEFAULT_LOCALE, alternatesFor, isLocale, localizePath } from "@/lib/i18n";
 import { openGraphFor } from "@/lib/metadata";
 
 type Props = { params: { lang: string }; searchParams: { tab?: string } };
@@ -46,7 +47,11 @@ export default async function PortfolioPage({ params, searchParams }: Props) {
     const t = getDictionary(lang).portfolio;
     const items = await getPortfolioItems();
     const category = isCategory(searchParams.tab) ? searchParams.tab : "sites";
-    const list = items[category];
+    // ブログのタブは、手動で登録したカードのあとに RSS の記事を新しい順に並べる
+    const list =
+        category === "blog"
+            ? [...items.blog, ...(await getFeedItems(Object.values(items).flat()))]
+            : items[category];
 
     return (
         <div className="mx-auto max-w-6xl px-5 py-12 sm:py-24">
@@ -79,66 +84,9 @@ export default async function PortfolioPage({ params, searchParams }: Props) {
                 </Panel>
             ) : (
                 <ul className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
-                    {list.map((item) => {
-                        const caption = pick(item.caption, lang);
-                        const body = (
-                            <>
-                                <div className="flex h-40 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-black/40">
-                                    {item.coverUrl ? (
-                                        <Image
-                                            src={item.coverUrl}
-                                            alt=""
-                                            width={400}
-                                            height={240}
-                                            className="h-full w-full object-cover"
-                                            unoptimized
-                                        />
-                                    ) : (
-                                        <span className="text-[11px] text-white/25">{t.noImage}</span>
-                                    )}
-                                </div>
-                                <p className="mt-4 text-base text-white">{pick(item.title, lang)}</p>
-                                {caption && <p className="mt-2 text-xs text-slate-400">{caption}</p>}
-                            </>
-                        );
-
-                        return (
-                            <Panel
-                                as="li"
-                                key={item.id}
-                                className={item.href ? "transition-colors hover:border-cyan-200/40" : ""}
-                            >
-                                {item.href ? (
-                                    <a
-                                        href={item.href}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="block p-5"
-                                    >
-                                        {body}
-                                    </a>
-                                ) : (
-                                    <div className="p-5">{body}</div>
-                                )}
-                                {/* カード全体のリンクの中にリンクは入れられないので、補助リンクは外に並べる */}
-                                {item.links.length > 0 && (
-                                    <div className="-mt-1 flex flex-wrap gap-2 px-5 pb-5">
-                                        {item.links.map((link, i) => (
-                                            <a
-                                                key={`${i}-${link.href}`}
-                                                href={link.href}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="rounded-full border border-white/15 px-3 py-1.5 text-[11px] tracking-wider text-white/70 transition-colors hover:border-cyan-200/40 hover:text-cyan-200"
-                                            >
-                                                {pick(link.label, lang)} ↗
-                                            </a>
-                                        ))}
-                                    </div>
-                                )}
-                            </Panel>
-                        );
-                    })}
+                    {list.map((item) => (
+                        <PortfolioCard key={item.id} item={item} lang={lang} showDate={category === "blog"} />
+                    ))}
                 </ul>
             )}
         </div>

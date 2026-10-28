@@ -25,10 +25,11 @@ firebase deploy
 | ルート  | 内容                                             |
 |--------|--------------------------------------------------|
 | `/`    | スタート画面。ボタン／Space／無操作8秒でワープして `/home` へ |
-| `/home`| 本編トップ（Hero / Skills / Works / Contact）        |
+| `/home`| 本編トップ（Hero / Latest / Skills / Works / Contact）。Latest は作品と記事の新しい順に3件 |
 | `/about` | プロフィール（写真・所属・学年・趣味・使用言語） |
-| `/portfolio?tab=` | 作品一覧。`sites` / `games` / `models` / `photos` をタブで切り替え |
+| `/portfolio?tab=` | 作品一覧。`sites` / `games` / `models` / `photos` / `pocs` / `kaggle` / `blog` をタブで切り替え。`blog` には Zenn・note の記事を RSS から自動で並べる |
 | `/contact` | お問い合わせフォーム |
+| `/og.png` | リンクを貼ったときに出る画像（OGP、ビルド時に生成） |
 | `/login` | 管理者ログイン（Googleサインイン） |
 | `/admin` | CMS。受信箱・プロフィール編集・TOPカード・ポートフォリオ管理 |
 
@@ -64,6 +65,7 @@ src/
       works/               // TOPカード（home の WORKS 5枚）の管理
       portfolio/           // /portfolio の中身（カテゴリ別の個々の作品）の管理
     login/page.tsx         // 管理者ログイン。有効なセッションがあれば /admin へ即リダイレクト
+    og.png/route.tsx       // OGP 画像（1200×630）。拡張子付きなので middleware を通らない
     api/
       contact/route.ts     // 問い合わせの受け口
       admin/session/route.ts // セッションCookieの発行・失効
@@ -80,6 +82,7 @@ src/
       NebulaBackground.tsx // ガス雲（調整中・未使用）
     ui/
       Panel.tsx / SectionTitle.tsx / AcademicStatusLine.tsx
+    portfolio/PortfolioCard.tsx // 作品1件のカード（/portfolio とホームの Latest で共通）
     admin/
       AdminShell.tsx       // 管理画面の外枠（ナビ・ログアウト）
       CoverUploader.tsx    // 画像アップロード共通部品（works/portfolioItems両方で使う）
@@ -109,6 +112,7 @@ src/
       defaults.ts             // site.ts から作る既定値
       getSiteContent.ts       // 公開ページ向け（profile/skillGroups/works）
       getPortfolioItems.ts    // 公開ページ向け（portfolioItems）
+      feeds.ts                // Zenn・note の RSS からブログのカードを作る（1時間キャッシュ）
     metadata.ts               // 公開ページの OGP（各ページが自分の URL で呼ぶ）
     three/shaders/            // GLSL
 scripts/
@@ -144,7 +148,7 @@ scripts/
 | `profile/main` | 名前・role・tagline・学年の上書き・専攻など | ○ | 管理者のみ |
 | `skillGroups/{id}` | Skills の分野と項目（`order` で並び順） | ○ | 管理者のみ |
 | `works/{id}` | home の WORKS カード5枚（カテゴリへの入口。`ready` `order` `coverUrl`） | ○ | 管理者のみ |
-| `portfolioItems/{id}` | `/portfolio` の中身。カテゴリごとの個々の作品（`category` `order` `ready` `coverUrl` `links`） | ○（`ready:true` のみ） | 管理者のみ |
+| `portfolioItems/{id}` | `/portfolio` の中身。カテゴリごとの個々の作品（`category` `order` `ready` `coverUrl` `links` `tags`） | ○（`ready:true` のみ） | 管理者のみ |
 | `contacts/{id}` | 問い合わせ内容 | × | サーバーのみ |
 
 works と portfolioItems は役割が違う：works は「Web Sites」などカテゴリへの入口カード（常に5枚）、
@@ -266,6 +270,7 @@ gcloud auth application-default login
   "caption": { "ja": "音楽専用モデルと判断モデルを 280 か所で比較した", "en": "" },
   "href": "https://zenn.dev/...",
   "links": [{ "label": { "ja": "GitHub", "en": "GitHub" }, "href": "https://github.com/haruto-kamijo/melody-next-note" }],
+  "tags": ["Python", "PyTorch"],
   "cover": "cover.png",
   "ready": true
 }
@@ -275,6 +280,7 @@ gcloud auth application-default login
 - `category` は `sites` `games` `models` `photos` `pocs` `kaggle` `blog` のどれか
 - `en` を空にした項目は、英語ページでも日本語で表示される
 - `href` はカード全体のリンク（記事など）、`links` はカードの下に並べる補助リンク（5個まで）
+- `tags` は使った技術（省略可。8個まで、1つ30文字まで）。日英で同じ表記をカードに出す
 - `ready` は必須。`false` にすると非公開で登録され、管理画面で確認してから公開できる。
   `ready` が効くのは新規登録のときだけで、登録済みの作品の公開・非公開は管理画面で切り替える
   （もう一度 `add --run` しても、公開中の作品が非公開に戻らないようにするため）
@@ -286,7 +292,12 @@ gcloud auth application-default login
 公開設定を gh で確かめ、非公開（playground や kaggle 本体など）なら登録を止める。ほかのリンクも開けるかを確かめる
 （接続できないときはネットワーク側の都合のこともあるので、注意を出すだけで止めない。GitHub のページだけは止める）。
 登録ファイルの場所は、誰でも読める `portfolioItems` には保存しない。
-`links` は管理画面では表示だけで編集できない（管理画面で保存しても消えない）。
+`links` と `tags` は管理画面では表示だけで編集できない（管理画面で保存しても消えない）。
+
+**ブログのタブ**は、手動で登録したカードのあとに、`src/lib/site.ts` の `blogFeeds`（Zenn・note の RSS）の記事を新しい順に並べる。
+記事を出すたびに登録しなくてよい。公開中の作品の `href` か `links` と同じ記事は出さないので、
+PoC の検証記事は PoC のカードの `href` に Zenn の URL を書けば、ブログのタブとで二重にならない。
+RSS は1時間ごとに読み直し、読めなかった RSS は飛ばして表示する。
 
 ### フォールバック設計
 

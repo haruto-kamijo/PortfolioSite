@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { HtmlLang } from "@/components/i18n/HtmlLang";
 import { getDictionary } from "@/lib/dictionary";
 import { LOCALES, alternatesFor, isLocale } from "@/lib/i18n";
-import { openGraphFor } from "@/lib/metadata";
+import { OG_IMAGE, openGraphFor } from "@/lib/metadata";
 import { site } from "@/lib/site";
 
 /**
@@ -30,6 +30,8 @@ export const generateMetadata = ({ params }: { params: { lang: string } }): Meta
         description: site.description[lang],
         alternates: alternatesFor("/", lang),
         openGraph: openGraphFor("/", lang),
+        // 子ページは twitter を書かないので、ここの値が全ページに使われる
+        twitter: { card: "summary_large_image", images: [OG_IMAGE.url] },
     };
 };
 
