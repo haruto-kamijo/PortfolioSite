@@ -1,0 +1,22 @@
+# CodeRabbit の自動レビュー設定
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "ja-JP"
+
+reviews:
+  # 指摘を重要なものに絞る（assertive にすると細かい指摘も増える）
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  auto_review:
+    enabled: true
+    drafts: false
+  # 自動生成されるファイルはレビューしない
+  path_filters:
+    - "!**/package-lock.json"
+    - "!**/pnpm-lock.yaml"
+    - "!**/yarn.lock"
+    - "!**/uv.lock"
+
+chat:
+  auto_reply: true
