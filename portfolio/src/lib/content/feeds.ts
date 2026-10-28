@@ -88,6 +88,25 @@ export const parseFeed = (xml: string, host: string): FeedEntry[] =>
         .filter((e): e is FeedEntry => !!e.title && !!e.link)
         .slice(0, MAX_ITEMS_PER_FEED);
 
+/** 本文を少しずつ読み、上限を超えたらそこで打ち切る（content-length が無い・偽りの応答でも読みすぎないように） */
+const readLimited = async (res: Response) => {
+    if (!res.body) return "";
+    const reader = res.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        total += value.byteLength;
+        if (total > MAX_FEED_BYTES) {
+            await reader.cancel();
+            throw new Error("応答が大きすぎます");
+        }
+        chunks.push(value);
+    }
+    return new TextDecoder().decode(Buffer.concat(chunks));
+};
+
 /** RSS ごとの、最後に読めなかった時刻（このサーバーのインスタンスの中だけで覚える） */
 const failedAt = new Map<string, number>();
 
@@ -104,9 +123,7 @@ const fetchFeed = async (feed: Feed) => {
                 const res = await fetch(feed.url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 if (Number(res.headers.get("content-length") ?? 0) > MAX_FEED_BYTES) throw new Error("応答が大きすぎます");
-                const xml = await res.text();
-                if (xml.length > MAX_FEED_BYTES) throw new Error("応答が大きすぎます");
-                return parseFeed(xml, feed.host);
+                return parseFeed(await readLimited(res), feed.host);
             },
             ["blog-feed", feed.url],
             { revalidate: REVALIDATE_SECONDS }
