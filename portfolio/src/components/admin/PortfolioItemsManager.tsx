@@ -4,6 +4,8 @@
 import { useState, useTransition } from "react";
 import { Panel } from "@/components/ui/Panel";
 import { CoverUploader } from "@/components/admin/CoverUploader";
+import { LocalizedField, adminFieldClass as fieldClass, adminLabelClass as labelClass } from "@/components/admin/LocalizedField";
+import { Localized } from "@/lib/i18n";
 import {
     PORTFOLIO_CATEGORIES,
     PORTFOLIO_CATEGORY_LABELS,
@@ -19,17 +21,55 @@ import {
     updatePortfolioItem,
 } from "@/app/admin/portfolio/actions";
 
-const fieldClass = [
-    "mt-1.5 w-full rounded-lg border border-white/15 bg-black/40 px-3.5 py-2.5",
-    "text-sm text-white placeholder:text-white/25",
-    "outline-none transition-colors",
-    "focus:border-cyan-200/60 focus:ring-1 focus:ring-cyan-200/30",
-].join(" ");
+/** タイトル・説明文は日英で入力する。英語が空なら公開ページで日本語を代わりに出す */
+type EditableFields = { title: Localized; caption: Localized; href: string; ready: boolean };
+const emptyFields: EditableFields = {
+    title: { ja: "", en: "" },
+    caption: { ja: "", en: "" },
+    href: "",
+    ready: true,
+};
 
-const labelClass = "block text-xs tracking-[0.16em] text-cyan-100/70";
-
-type EditableFields = { title: string; caption: string; href: string; ready: boolean };
-const emptyFields: EditableFields = { title: "", caption: "", href: "", ready: true };
+/** タイトル・説明文・リンク先の入力欄。編集と新規追加で共通 */
+const ItemFields = ({
+                        fields,
+                        setFields,
+                        disabled,
+                    }: {
+    fields: EditableFields;
+    setFields: React.Dispatch<React.SetStateAction<EditableFields>>;
+    disabled: boolean;
+}) => (
+    <>
+        <LocalizedField
+            label="タイトル"
+            value={fields.title}
+            onChange={(title) => setFields((f) => ({ ...f, title }))}
+            maxLength={100}
+            disabled={disabled}
+        />
+        <LocalizedField
+            label="説明文"
+            value={fields.caption}
+            onChange={(caption) => setFields((f) => ({ ...f, caption }))}
+            maxLength={300}
+            requiredJa={false}
+            disabled={disabled}
+        />
+        <label className={labelClass}>
+            リンク先（任意）
+            <input
+                type="text"
+                value={fields.href}
+                onChange={(e) => setFields((f) => ({ ...f, href: e.target.value }))}
+                placeholder="https://..."
+                maxLength={500}
+                disabled={disabled}
+                className={fieldClass}
+            />
+        </label>
+    </>
+);
 
 const ItemRow = ({
                      item,
@@ -84,44 +124,7 @@ const ItemRow = ({
                 />
 
                 <form onSubmit={handleSave} className="flex-1 space-y-4">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <label className={labelClass}>
-                            タイトル
-                            <input
-                                type="text"
-                                value={fields.title}
-                                onChange={(e) => setFields((f) => ({ ...f, title: e.target.value }))}
-                                maxLength={100}
-                                required
-                                disabled={pending}
-                                className={fieldClass}
-                            />
-                        </label>
-                        <label className={labelClass}>
-                            リンク先（任意）
-                            <input
-                                type="text"
-                                value={fields.href}
-                                onChange={(e) => setFields((f) => ({ ...f, href: e.target.value }))}
-                                placeholder="https://..."
-                                maxLength={500}
-                                disabled={pending}
-                                className={fieldClass}
-                            />
-                        </label>
-                    </div>
-
-                    <label className={labelClass}>
-                        説明文
-                        <input
-                            type="text"
-                            value={fields.caption}
-                            onChange={(e) => setFields((f) => ({ ...f, caption: e.target.value }))}
-                            maxLength={300}
-                            disabled={pending}
-                            className={fieldClass}
-                        />
-                    </label>
+                    <ItemFields fields={fields} setFields={setFields} disabled={pending} />
 
                     <label className="flex items-center gap-2 text-xs text-white/70">
                         <input
@@ -236,7 +239,7 @@ const NewItemForm = ({ category }: { category: PortfolioCategory }) => {
                 onClick={() => setOpen(true)}
                 className="w-full rounded-2xl border border-dashed border-white/20 py-4 text-xs tracking-widest text-white/50 transition-colors hover:border-cyan-200/40 hover:text-cyan-200"
             >
-                + {PORTFOLIO_CATEGORY_LABELS[category].en} に追加
+                + {PORTFOLIO_CATEGORY_LABELS[category].ja} に追加
             </button>
         );
     }
@@ -245,47 +248,10 @@ const NewItemForm = ({ category }: { category: PortfolioCategory }) => {
         <Panel className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
                 <p className="text-sm tracking-[0.2em] text-white/80">
-                    新しい{PORTFOLIO_CATEGORY_LABELS[category].en}
+                    新しい{PORTFOLIO_CATEGORY_LABELS[category].ja}
                 </p>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <label className={labelClass}>
-                        タイトル
-                        <input
-                            type="text"
-                            value={fields.title}
-                            onChange={(e) => setFields((f) => ({ ...f, title: e.target.value }))}
-                            maxLength={100}
-                            required
-                            disabled={pending}
-                            className={fieldClass}
-                        />
-                    </label>
-                    <label className={labelClass}>
-                        リンク先（任意）
-                        <input
-                            type="text"
-                            value={fields.href}
-                            onChange={(e) => setFields((f) => ({ ...f, href: e.target.value }))}
-                            placeholder="https://..."
-                            maxLength={500}
-                            disabled={pending}
-                            className={fieldClass}
-                        />
-                    </label>
-                </div>
-
-                <label className={labelClass}>
-                    説明文
-                    <input
-                        type="text"
-                        value={fields.caption}
-                        onChange={(e) => setFields((f) => ({ ...f, caption: e.target.value }))}
-                        maxLength={300}
-                        disabled={pending}
-                        className={fieldClass}
-                    />
-                </label>
+                <ItemFields fields={fields} setFields={setFields} disabled={pending} />
 
                 <div className="flex items-center gap-4">
                     <button
@@ -335,7 +301,7 @@ export const PortfolioItemsManager = ({
                                 : "border-white/15 text-white/60 hover:border-white/35 hover:text-white"
                         }`}
                     >
-                        {PORTFOLIO_CATEGORY_LABELS[c].en}
+                        {PORTFOLIO_CATEGORY_LABELS[c].ja}
                         <span className="ml-1.5 text-white/35">({items[c].length})</span>
                     </button>
                 ))}
@@ -347,7 +313,7 @@ export const PortfolioItemsManager = ({
                 {list.length === 0 ? (
                     <Panel className="p-10 text-center">
                         <p className="text-sm text-white/50">
-                            {PORTFOLIO_CATEGORY_LABELS[category].en} にはまだ作品がありません
+                            {PORTFOLIO_CATEGORY_LABELS[category].ja} にはまだ作品がありません
                         </p>
                     </Panel>
                 ) : (

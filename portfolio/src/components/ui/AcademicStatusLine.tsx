@@ -16,11 +16,14 @@ export const AcademicStatusLine = ({
                                        schoolShort,
                                        program,
                                        gradeOverride,
+                                       graduatedLabel,
                                    }: {
     initial: AcademicStatus;
     schoolShort: string;
     program: string;
     gradeOverride: string | null;
+    /** 修了後に学年の代わりに出す表記（日本語は「修了」、英語は「Alumni」） */
+    graduatedLabel: string;
 }) => {
     const [status, setStatus] = useState(initial);
 
@@ -28,7 +31,7 @@ export const AcademicStatusLine = ({
         setStatus(academicStatusAt(new Date()));
     }, []);
 
-    const grade = gradeOverride ?? (status.graduated ? "OB" : status.grade);
+    const grade = gradeOverride ?? (status.graduated ? graduatedLabel : status.grade);
 
     return (
         <p className="mt-4 text-xs tracking-[0.14em] text-cyan-100/60">

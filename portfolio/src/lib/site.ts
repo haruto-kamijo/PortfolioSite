@@ -1,26 +1,38 @@
 // src/lib/site.ts
 // サイト全体で使う定数・コンテンツの単一ソース。
 // ページ側にテキストを直書きせず、ここを更新すれば全ページに反映される。
+// 表示する文章は日英の両方を持つ（言語の切り替えは src/lib/i18n.ts）。
+
+import type { Localized, LocalizedList } from "@/lib/i18n";
 
 export const site = {
+    /** ロゴ横やタイトルに使う表記。言語に関わらずローマ字で出す */
     name: "Kamijo Haruto",
     nameJa: "上條 遥都",
-    role: "Designer / Developer / Creator",
-    tagline: "可能性という名の宇宙を進み続ける",
-    description:
-        "上條遥都のポートフォリオサイト。Web / ゲーム / AI / 3Dモデルの制作物をまとめています。",
+    role: {
+        ja: "デザイナー / 開発者 / クリエイター",
+        en: "Designer / Developer / Creator",
+    } satisfies Localized,
+    tagline: {
+        ja: "可能性という名の宇宙を進み続ける",
+        en: "Always moving forward through a universe of possibilities",
+    } satisfies Localized,
+    description: {
+        ja: "上條遥都のポートフォリオサイト。Web / ゲーム / AI / 3Dモデルの制作物をまとめています。",
+        en: "Portfolio of Kamijo Haruto, featuring work in web, games, AI, and 3D modeling.",
+    } satisfies Localized,
     url: "https://kamijoharuto.com",
     copyrightSince: 2024,
-} as const;
+};
 
 export const links = {
     github: "https://github.com/haruto-kamijo",
     note: "https://note.com/pon20020929/",
     mail: "kamijoharuto@gmail.com",
-} as const;
+};
 
 export type NavItem = {
-    label: string;
+    label: Localized;
     href: string;
     /** false のうちは Header 上で "Soon" 表示にしてリンクを張らない */
     ready: boolean;
@@ -31,46 +43,113 @@ export type NavItem = {
  * ヘッダーのナビゲーション。
  * リプレイス中はページが揃っていないため ready フラグで制御している。
  * ページを実装したら該当行を ready: true に変えるだけでリンクが有効になる。
+ * href は日本語版のパスで書く（英語版では /en を付けて使う）。
  */
 export const nav: readonly NavItem[] = [
-    { label: "Home", href: "/home", ready: true },
-    { label: "About", href: "/about", ready: true },
-    { label: "Works", href: "/portfolio", ready: true },
-    { label: "Blog", href: links.note, ready: true, external: true },
-    { label: "Contact", href: "/contact", ready: true },
-] as const;
+    { label: { ja: "ホーム", en: "Home" }, href: "/home", ready: true },
+    { label: { ja: "プロフィール", en: "About" }, href: "/about", ready: true },
+    { label: { ja: "制作物", en: "Works" }, href: "/portfolio", ready: true },
+    { label: { ja: "ブログ", en: "Blog" }, href: links.note, ready: true, external: true },
+    { label: { ja: "お問い合わせ", en: "Contact" }, href: "/contact", ready: true },
+];
 
-export type SkillGroup = { field: string; items: readonly string[] };
+export type SkillGroup = { id: string; field: Localized; items: LocalizedList };
 
 export const skills: readonly SkillGroup[] = [
-    { field: "Web", items: ["HTML / CSS / JS", "TS / Next.js / Tailwind"] },
-    { field: "Game", items: ["Java / Android Studio", "C# / Unity"] },
-    { field: "AI", items: ["Python / PyTorch", "Python / TensorFlow / Keras"] },
-    { field: "Other", items: ["3D Model / Blender", "Design / Illustrator / Photoshop"] },
-] as const;
+    {
+        id: "web",
+        field: { ja: "Web", en: "Web" },
+        items: {
+            ja: ["HTML / CSS / JS", "TS / Next.js / Tailwind"],
+            en: ["HTML / CSS / JS", "TS / Next.js / Tailwind"],
+        },
+    },
+    {
+        id: "game",
+        field: { ja: "ゲーム", en: "Game" },
+        items: {
+            ja: ["Java / Android Studio", "C# / Unity"],
+            en: ["Java / Android Studio", "C# / Unity"],
+        },
+    },
+    {
+        id: "ai",
+        field: { ja: "AI", en: "AI" },
+        items: {
+            ja: ["Python / PyTorch", "Python / TensorFlow / Keras"],
+            en: ["Python / PyTorch", "Python / TensorFlow / Keras"],
+        },
+    },
+    {
+        id: "other",
+        field: { ja: "その他", en: "Other" },
+        items: {
+            ja: ["3Dモデル / Blender", "デザイン / Illustrator / Photoshop"],
+            en: ["3D Model / Blender", "Design / Illustrator / Photoshop"],
+        },
+    },
+];
 
 export type Work = {
-    title: string;
-    caption: string;
+    id: string;
+    title: Localized;
+    caption: Localized;
     href: string;
     ready: boolean;
     external?: boolean;
 };
 
 export const works: readonly Work[] = [
-    { title: "Web Sites", caption: "制作したWebサイト", href: "/portfolio?tab=sites", ready: true },
-    { title: "Games", caption: "ゲーム制作", href: "/portfolio?tab=games", ready: true },
-    { title: "3D Models", caption: "Blenderでのモデリング", href: "/portfolio?tab=models", ready: true },
-    { title: "Photos", caption: "撮影した写真", href: "/portfolio?tab=photos", ready: true },
-    { title: "GitHub", caption: "ソースコード", href: links.github, ready: true, external: true },
-] as const;
+    {
+        id: "web-sites",
+        title: { ja: "Webサイト", en: "Web Sites" },
+        caption: { ja: "制作したWebサイト", en: "Websites I've built" },
+        href: "/portfolio?tab=sites",
+        ready: true,
+    },
+    {
+        id: "games",
+        title: { ja: "ゲーム", en: "Games" },
+        caption: { ja: "ゲーム制作", en: "Games I've made" },
+        href: "/portfolio?tab=games",
+        ready: true,
+    },
+    {
+        id: "3d-models",
+        title: { ja: "3Dモデル", en: "3D Models" },
+        caption: { ja: "Blenderでのモデリング", en: "Modeling in Blender" },
+        href: "/portfolio?tab=models",
+        ready: true,
+    },
+    {
+        id: "photos",
+        title: { ja: "写真", en: "Photos" },
+        caption: { ja: "撮影した写真", en: "Photos I've taken" },
+        href: "/portfolio?tab=photos",
+        ready: true,
+    },
+    {
+        id: "github",
+        title: { ja: "GitHub", en: "GitHub" },
+        caption: { ja: "ソースコード", en: "Source code" },
+        href: links.github,
+        ready: true,
+        external: true,
+    },
+];
 
 /** プロフィール情報。/about でも同じ値を使う */
 export const profile = {
-    school: "Nagaoka University of Technology",
-    schoolShort: "NUT",
-    program: "Information & Management Systems Engineering",
-    programJa: "情報・経営システム工学",
-    hobbies: ["Programming", "Game", "Fashion", "Perfume", "Camera"],
+    school: { ja: "長岡技術科学大学", en: "Nagaoka University of Technology" } satisfies Localized,
+    // 学年の横に出す表記。日本語は略さず正式名称にする
+    schoolShort: { ja: "長岡技術科学大学", en: "NUT" } satisfies Localized,
+    program: {
+        ja: "情報・経営システム工学",
+        en: "Information & Management Systems Engineering",
+    } satisfies Localized,
+    hobbies: {
+        ja: ["プログラミング", "ゲーム", "ファッション", "香水", "カメラ"],
+        en: ["Programming", "Game", "Fashion", "Perfume", "Camera"],
+    } satisfies LocalizedList,
     languages: ["Python", "C", "C++", "C#", "Java", "HTML/CSS", "JS", "TS", "R"],
-} as const;
+};

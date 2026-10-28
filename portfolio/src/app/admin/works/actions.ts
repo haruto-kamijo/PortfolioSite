@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { getAdminUser } from "@/lib/admin/session";
+import { revalidatePublicPages } from "@/lib/admin/revalidatePublic";
 import { getAdminBucket, getAdminDb } from "@/lib/firebase/admin";
+import { writeLocalized } from "@/lib/content/fields";
 import { collections } from "@/lib/content/types";
+import { LOCALES, Localized } from "@/lib/i18n";
 
 /**
  * 作品管理の更新処理（Server Action）。
@@ -30,18 +33,30 @@ const assertDocId = (id: string) => {
 /** カバー画像の Storage オブジェクトパス。work 1件につき1枚だけ持つ */
 const coverPath = (id: string) => `works/${id}/cover`;
 
+/** タイトル・説明文は日英で持つ。英語が空なら公開ページで日本語を代わりに出す */
 type WorkFields = {
-    title: string;
-    caption: string;
+    title: Localized;
+    caption: Localized;
     href: string;
     external: boolean;
     ready: boolean;
 };
 
+const trimLocalized = (value: Localized): Localized => ({ ja: value.ja.trim(), en: value.en.trim() });
+
+/** Firestore に保存する形（title / titleEn のように平らにする） */
+const toDoc = (fields: WorkFields) => ({
+    ...writeLocalized("title", fields.title),
+    ...writeLocalized("caption", fields.caption),
+    href: fields.href,
+    external: fields.external,
+    ready: fields.ready,
+});
+
 const validateFields = ({ title, caption, href, external }: WorkFields): string | null => {
-    if (!title.trim()) return "タイトルを入力してください";
-    if (title.length > LIMITS.title) return "タイトルが長すぎます";
-    if (caption.length > LIMITS.caption) return "説明文が長すぎます";
+    if (!title.ja) return "タイトル（日本語）を入力してください";
+    if (LOCALES.some((l) => title[l].length > LIMITS.title)) return "タイトルが長すぎます";
+    if (LOCALES.some((l) => caption[l].length > LIMITS.caption)) return "説明文が長すぎます";
     if (!href.trim()) return "リンク先を入力してください";
     if (href.length > LIMITS.href) return "リンク先が長すぎます";
 
@@ -59,9 +74,9 @@ const validateFields = ({ title, caption, href, external }: WorkFields): string 
 export async function createWork(input: WorkFields): Promise<SaveResult> {
     await requireAdmin();
 
-    const fields = {
-        title: input.title.trim(),
-        caption: input.caption.trim(),
+    const fields: WorkFields = {
+        title: trimLocalized(input.title),
+        caption: trimLocalized(input.caption),
         href: input.href.trim(),
         external: input.external,
         ready: input.ready,
@@ -80,14 +95,14 @@ export async function createWork(input: WorkFields): Promise<SaveResult> {
             .get();
         const nextOrder = lastSnap.empty ? 0 : (lastSnap.docs[0].data().order ?? 0) + 1;
 
-        await db.collection(collections.works).add({ ...fields, order: nextOrder, coverUrl: null });
+        await db.collection(collections.works).add({ ...toDoc(fields), order: nextOrder, coverUrl: null });
     } catch (err) {
         console.error("[admin] 作品の作成に失敗しました:", err);
         return { ok: false, error: "作成に失敗しました" };
     }
 
     revalidatePath("/admin/works");
-    revalidatePath("/home");
+    revalidatePublicPages();
     return { ok: true };
 }
 
@@ -95,9 +110,9 @@ export async function updateWork(id: string, input: WorkFields): Promise<SaveRes
     await requireAdmin();
     assertDocId(id);
 
-    const fields = {
-        title: input.title.trim(),
-        caption: input.caption.trim(),
+    const fields: WorkFields = {
+        title: trimLocalized(input.title),
+        caption: trimLocalized(input.caption),
         href: input.href.trim(),
         external: input.external,
         ready: input.ready,
@@ -109,14 +124,14 @@ export async function updateWork(id: string, input: WorkFields): Promise<SaveRes
     if (!db) return { ok: false, error: "データベースに接続できません" };
 
     try {
-        await db.collection(collections.works).doc(id).update(fields);
+        await db.collection(collections.works).doc(id).update(toDoc(fields));
     } catch (err) {
         console.error("[admin] 作品の更新に失敗しました:", err);
         return { ok: false, error: "更新に失敗しました" };
     }
 
     revalidatePath("/admin/works");
-    revalidatePath("/home");
+    revalidatePublicPages();
     return { ok: true };
 }
 
@@ -143,7 +158,7 @@ export async function deleteWork(id: string): Promise<SaveResult> {
     }
 
     revalidatePath("/admin/works");
-    revalidatePath("/home");
+    revalidatePublicPages();
     return { ok: true };
 }
 
@@ -179,7 +194,7 @@ export async function moveWork(id: string, direction: "up" | "down"): Promise<Sa
     }
 
     revalidatePath("/admin/works");
-    revalidatePath("/home");
+    revalidatePublicPages();
     return { ok: true };
 }
 
@@ -208,7 +223,7 @@ export async function setWorkCover(id: string, url: string): Promise<SaveResult>
     }
 
     revalidatePath("/admin/works");
-    revalidatePath("/home");
+    revalidatePublicPages();
     return { ok: true };
 }
 
@@ -234,6 +249,6 @@ export async function clearWorkCover(id: string): Promise<SaveResult> {
     }
 
     revalidatePath("/admin/works");
-    revalidatePath("/home");
+    revalidatePublicPages();
     return { ok: true };
 }

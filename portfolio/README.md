@@ -32,24 +32,30 @@ firebase deploy
 | `/login` | 管理者ログイン（Googleサインイン） |
 | `/admin` | CMS。受信箱・プロフィール編集・TOPカード・ポートフォリオ管理 |
 
+公開ページは日本語と英語の2言語で配信する。日本語が既定で上の URL のまま、
+英語は先頭に `/en` を付ける（`/en/home`、`/en/portfolio?tab=games` など）。
+ヘッダーの `EN` / `JA` ボタンで、今いるページのもう一方の言語へ切り替わる。
+
 未実装ページは `src/lib/site.ts` の `ready` を `true` にするとヘッダーとカードのリンクが有効になる。
 
 ## ファイル構成
 
 ```text
 src/
-  middleware.ts            // /admin の存在を隠すための前段（Cookie無しは404にrewrite）
+  middleware.ts            // 言語の振り分け（/home → /ja/home に rewrite）と /admin の目隠し
   app/
     layout.tsx             // 全ページ共通。星空背景をここで1つだけ描画する
-    page.tsx               // スタート画面（リング演出＋ワープ）
-    not-found.tsx           // 共通404。/admin の未認証もここに来る（応答を一致させるため）
+    not-found.tsx           // 共通404（日英併記）。/admin の未認証もここに来る（応答を一致させるため）
     global.css
-    (site)/                // Header/Footer が付く本編ページのグループ
-      layout.tsx
-      home/page.tsx
-      about/page.tsx
-      portfolio/page.tsx   // ?tab= でカテゴリを切り替え
-      contact/page.tsx
+    [lang]/                // 公開ページ。lang は ja か en（それ以外は404）
+      layout.tsx           // 言語ごとのタイトル・OGP・hreflang
+      page.tsx             // スタート画面（リング演出＋ワープ）
+      (site)/              // Header/Footer が付く本編ページのグループ
+        layout.tsx
+        home/page.tsx
+        about/page.tsx
+        portfolio/page.tsx // ?tab= でカテゴリを切り替え
+        contact/page.tsx
     admin/                 // 認証必須のCMS。layout.tsx が未認証を弾く
       layout.tsx
       page.tsx             // ダッシュボード
@@ -62,7 +68,8 @@ src/
       contact/route.ts     // 問い合わせの受け口
       admin/session/route.ts // セッションCookieの発行・失効
   components/
-    layout/                // Header / Footer
+    layout/                // Header / Footer / LanguageSwitch（日英の切り替えボタン）
+    i18n/HtmlLang.tsx      // 英語ページで <html lang> を en に書き換える
     space/
       SpaceSceneProvider.tsx // 背景シーンの状態（idle→spinup→flash→warp→cruise）
       SpaceBackground.tsx    // 全ページ共通の背景ラッパ
@@ -76,10 +83,13 @@ src/
     admin/
       AdminShell.tsx       // 管理画面の外枠（ナビ・ログアウト）
       CoverUploader.tsx    // 画像アップロード共通部品（works/portfolioItems両方で使う）
+      LocalizedField.tsx   // 日本語と英語を並べて入力する欄
       ContactList.tsx / ProfileForm.tsx / WorksList.tsx / PortfolioItemsManager.tsx
     contact/ContactForm.tsx
   lib/
-    site.ts                 // 名前・リンク・ナビ・スキル・作品の単一ソース（静的既定値）
+    site.ts                 // 名前・リンク・ナビ・スキル・作品の単一ソース（静的既定値・日英）
+    i18n.ts                 // 対応言語、表示する言語の値の取り出し、/en を付ける関数
+    dictionary.ts           // 画面の固定文言（ボタン・見出し・案内文）の日英
     academicYear.ts         // 学年の自動計算
     warpTimeline.ts         // ワープ演出のタイミング定数
     useReducedMotion.ts     // prefers-reduced-motion の判定
@@ -91,8 +101,10 @@ src/
       session.ts            // 管理者セッションの発行・検証
       cookieName.ts          // Cookie名（middlewareとも共有するため独立）
       contacts.ts / portfolio.ts // 管理画面向けの読み出し
+      revalidatePublic.ts    // 保存後に公開ページ（日英とも）のキャッシュを捨てる
     content/
       types.ts               // Firestoreと静的既定値で共通の型
+      fields.ts              // 日英の値と Firestore のフィールド（title / titleEn）の変換
       defaults.ts             // site.ts から作る既定値
       getSiteContent.ts       // 公開ページ向け（profile/skillGroups/works）
       getPortfolioItems.ts    // 公開ページ向け（portfolioItems）
@@ -104,6 +116,10 @@ src/
 - 背景の Canvas は `app/layout.tsx` に1つだけ。ページ遷移で WebGL を作り直さないため世界観が途切れない。
   ページ側は `useSpaceScene()` で状態を変えるだけにする。
 - 表示テキスト・リンクはページに直書きせず `src/lib/site.ts` に置く。
+  ボタンや見出しなどの固定文言は `src/lib/dictionary.ts` に日英で置く。
+- 管理画面で編集する文章は日英で持ち、Firestore には日本語を `title`、英語を `titleEn` のように保存する。
+  英語が空の項目は、英語ページでも日本語を代わりに表示する。
+- サイト内リンクは日本語版のパスで書き、`localizePath()` で英語ページ用に `/en` を付ける。
 - `prefers-reduced-motion: reduce` のときはワープ演出とフラッシュを行わず即遷移する。
 - `/admin` は**存在自体を隠す**。未認証は redirect ではなく 404 を返し、
   `/admin` の404と存在しないパスの404は応答が完全に一致するようにしている

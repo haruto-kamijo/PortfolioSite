@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { getAdminUser } from "@/lib/admin/session";
+import { revalidatePublicPages } from "@/lib/admin/revalidatePublic";
 import { getAdminDb } from "@/lib/firebase/admin";
+import { writeLocalized } from "@/lib/content/fields";
 import { PROFILE_DOC_ID, collections } from "@/lib/content/types";
+import { LOCALES, Locale, Localized, LocalizedList } from "@/lib/i18n";
 
 /**
  * プロフィール編集の保存処理（Server Action）。
@@ -18,21 +21,36 @@ import { PROFILE_DOC_ID, collections } from "@/lib/content/types";
 
 const LIMITS = { short: 100, medium: 300, long: 2000, listItem: 60, listMax: 20 } as const;
 
-export type ProfileInput = {
-    name: string;
-    nameJa: string;
-    role: string;
-    tagline: string;
-    description: string;
-    school: string;
-    schoolShort: string;
-    program: string;
-    programJa: string;
+/** 日英で入力する文章の項目。日本語は必須、英語は空なら公開ページで日本語を代わりに出す */
+const PROFILE_TEXT_KEYS = [
+    "name",
+    "role",
+    "tagline",
+    "description",
+    "school",
+    "schoolShort",
+    "program",
+] as const;
+type ProfileTextKey = (typeof PROFILE_TEXT_KEYS)[number];
+
+export type ProfileInput = Record<ProfileTextKey, Localized> & {
     /** 空文字は「上書きなし」として保存する */
     gradeOverride: string;
-    hobbies: string[];
+    hobbies: LocalizedList;
     languages: string[];
 };
+
+const TEXT_LIMITS: Record<ProfileTextKey, [label: string, max: number]> = {
+    name: ["名前", LIMITS.short],
+    role: ["肩書き", LIMITS.medium],
+    tagline: ["キャッチコピー", LIMITS.medium],
+    description: ["紹介文", LIMITS.long],
+    school: ["学校名", LIMITS.medium],
+    schoolShort: ["学校名（略称）", LIMITS.short],
+    program: ["専攻", LIMITS.medium],
+};
+
+const LANG_LABEL: Record<Locale, string> = { ja: "日本語", en: "英語" };
 
 export type SaveResult = { ok: true } | { ok: false; error: string };
 
@@ -50,50 +68,25 @@ const cleanList = (items: string[]) =>
 export async function saveProfile(input: ProfileInput): Promise<SaveResult> {
     await requireAdmin();
 
-    const name = input.name.trim();
-    const nameJa = input.nameJa.trim();
-    const role = input.role.trim();
-    const tagline = input.tagline.trim();
-    const description = input.description.trim();
-    const school = input.school.trim();
-    const schoolShort = input.schoolShort.trim();
-    const program = input.program.trim();
-    const programJa = input.programJa.trim();
+    const texts = {} as Record<ProfileTextKey, Localized>;
+    for (const key of PROFILE_TEXT_KEYS) {
+        const [label, max] = TEXT_LIMITS[key];
+        const value = { ja: input[key].ja.trim(), en: input[key].en.trim() };
+        if (!value.ja) return { ok: false, error: `${label}（日本語）を入力してください` };
+        for (const lang of LOCALES) {
+            if (value[lang].length > max) {
+                return { ok: false, error: `${label}（${LANG_LABEL[lang]}）が長すぎます` };
+            }
+        }
+        texts[key] = value;
+    }
+
     const gradeOverride = input.gradeOverride.trim();
+    if (gradeOverride.length > LIMITS.short) return { ok: false, error: "学年の上書きが長すぎます" };
 
-    if (
-        !name ||
-        !nameJa ||
-        !role ||
-        !tagline ||
-        !description ||
-        !school ||
-        !schoolShort ||
-        !program ||
-        !programJa
-    ) {
-        return { ok: false, error: "未入力の項目があります" };
-    }
-
-    const fields: Array<[string, string, number]> = [
-        ["名前", name, LIMITS.short],
-        ["名前（日本語）", nameJa, LIMITS.short],
-        ["肩書き", role, LIMITS.medium],
-        ["キャッチコピー", tagline, LIMITS.medium],
-        ["紹介文", description, LIMITS.long],
-        ["学校名", school, LIMITS.medium],
-        ["学校名（略称）", schoolShort, LIMITS.short],
-        ["専攻", program, LIMITS.medium],
-        ["専攻（日本語）", programJa, LIMITS.medium],
-        ["学年の上書き", gradeOverride, LIMITS.short],
-    ];
-    for (const [label, value, max] of fields) {
-        if (value.length > max) return { ok: false, error: `${label}が長すぎます` };
-    }
-
-    const hobbies = cleanList(input.hobbies);
+    const hobbies = { ja: cleanList(input.hobbies.ja), en: cleanList(input.hobbies.en) };
     const languages = cleanList(input.languages);
-    for (const item of [...hobbies, ...languages]) {
+    for (const item of [...hobbies.ja, ...hobbies.en, ...languages]) {
         if (item.length > LIMITS.listItem) return { ok: false, error: "リストの項目が長すぎます" };
     }
 
@@ -105,17 +98,9 @@ export async function saveProfile(input: ProfileInput): Promise<SaveResult> {
             .collection(collections.profile)
             .doc(PROFILE_DOC_ID)
             .set({
-                name,
-                nameJa,
-                role,
-                tagline,
-                description,
-                school,
-                schoolShort,
-                program,
-                programJa,
+                ...Object.assign({}, ...PROFILE_TEXT_KEYS.map((key) => writeLocalized(key, texts[key]))),
                 gradeOverride: gradeOverride || null,
-                hobbies,
+                ...writeLocalized("hobbies", hobbies),
                 languages,
             });
     } catch (err) {
@@ -124,7 +109,7 @@ export async function saveProfile(input: ProfileInput): Promise<SaveResult> {
     }
 
     // 公開ページ側の ISR キャッシュを更新
-    revalidatePath("/home");
+    revalidatePublicPages();
     revalidatePath("/admin");
     revalidatePath("/admin/profile");
 
