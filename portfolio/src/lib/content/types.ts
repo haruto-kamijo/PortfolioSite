@@ -56,7 +56,7 @@ export type SiteContent = {
 };
 
 /** /portfolio ページのタブ */
-export const PORTFOLIO_CATEGORIES = ["sites", "games", "models", "photos", "blog"] as const;
+export const PORTFOLIO_CATEGORIES = ["sites", "games", "models", "photos", "pocs", "kaggle", "blog"] as const;
 export type PortfolioCategory = (typeof PORTFOLIO_CATEGORIES)[number];
 
 export const PORTFOLIO_CATEGORY_LABELS: Record<PortfolioCategory, Localized> = {
@@ -64,10 +64,16 @@ export const PORTFOLIO_CATEGORY_LABELS: Record<PortfolioCategory, Localized> = {
     games: { ja: "ゲーム", en: "Games" },
     models: { ja: "3Dモデル", en: "3D Models" },
     photos: { ja: "写真", en: "Photos" },
+    // アイデアを試した PoC。記事（Zenn など）と公開リポジトリへのリンクを付ける
+    pocs: { ja: "PoC", en: "PoC" },
+    kaggle: { ja: "Kaggle", en: "Kaggle" },
     // 記事本文は note 側に置いたまま、ここには一覧カードだけを手動登録する
     // （PortfolioItem.href に note の記事URLを入れる運用）
     blog: { ja: "ブログ", en: "Blog" },
 };
+
+/** カードの下に並べる補助リンク（記事とは別の GitHub リポジトリなど） */
+export type PortfolioLink = { label: Localized; href: string };
 
 /**
  * /portfolio の各カテゴリに載る個々の作品。
@@ -81,6 +87,8 @@ export type PortfolioItem = {
     caption: Localized;
     /** 外部リンクが無い作品（写真など）もあるため任意 */
     href: string | null;
+    /** href のほかに出すリンク。いまは登録スクリプト（scripts/content.ts）からだけ編集する */
+    links: PortfolioLink[];
     /** カテゴリ内での並び順。カテゴリをまたいだ比較はしない */
     order: number;
     coverUrl: string | null;

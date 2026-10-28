@@ -105,10 +105,14 @@ src/
     content/
       types.ts               // Firestoreと静的既定値で共通の型
       fields.ts              // 日英の値と Firestore のフィールド（title / titleEn）の変換
+      portfolioItem.ts       // 作品の入力チェックと変換（管理画面と登録スクリプトで共通）
       defaults.ts             // site.ts から作る既定値
       getSiteContent.ts       // 公開ページ向け（profile/skillGroups/works）
       getPortfolioItems.ts    // 公開ページ向け（portfolioItems）
+    metadata.ts               // 公開ページの OGP（各ページが自分の URL で呼ぶ）
     three/shaders/            // GLSL
+scripts/
+  content.ts                  // 登録ファイル（portfolio.json）から作品を本番に登録する
 ```
 
 ## 設計上の約束
@@ -140,7 +144,7 @@ src/
 | `profile/main` | 名前・role・tagline・学年の上書き・専攻など | ○ | 管理者のみ |
 | `skillGroups/{id}` | Skills の分野と項目（`order` で並び順） | ○ | 管理者のみ |
 | `works/{id}` | home の WORKS カード5枚（カテゴリへの入口。`ready` `order` `coverUrl`） | ○ | 管理者のみ |
-| `portfolioItems/{id}` | `/portfolio` の中身。カテゴリごとの個々の作品（`category` `order` `ready` `coverUrl`） | ○（`ready:true` のみ） | 管理者のみ |
+| `portfolioItems/{id}` | `/portfolio` の中身。カテゴリごとの個々の作品（`category` `order` `ready` `coverUrl` `links`） | ○（`ready:true` のみ） | 管理者のみ |
 | `contacts/{id}` | 問い合わせ内容 | × | サーバーのみ |
 
 works と portfolioItems は役割が違う：works は「Web Sites」などカテゴリへの入口カード（常に5枚）、
@@ -229,6 +233,60 @@ npm run dev:emulators              # エミュレータ一式 + dev サーバー
 `NEXT_PUBLIC_USE_FIREBASE_EMULATOR=false` にしても Admin SDK が本番Firestoreに繋がらず、
 既定値表示にフォールバックする）。Cloud Run 上では既定のサービスアカウントで自動的に繋がるため、
 実データでの確認はデプロイ後に行う。
+例外は下の登録スクリプトで、これだけは gcloud の認証情報で本番に繋ぐ。
+
+エミュレータは firebase-tools の都合で **Java 21 以上**が要る。
+
+### 登録スクリプトで作品を追加する
+
+PoC や Kaggle の成果を、管理画面を開かずに `/portfolio` へ載せるための道具（`scripts/content.ts`）。
+**本番への登録はこの PC からだけ行う。** 別のマシン（Mac の Playground など）では登録ファイルを
+作って GitHub に push するだけにし、この PC が gh コマンドでそれを読みに行く。
+
+```text
+Mac：PoC が終わる → 記事と公開リポジトリを出す → pocs/<PoC>/portfolio.json を書いて push
+この PC：npm run content -- pending       … 未登録・変更ありの登録ファイルを一覧
+         npm run content -- add gh:...    … 中身・リンク・差分を確認（dry-run。何も書き込まない）
+         npm run content -- add gh:... --run  … 本番に書き込む
+```
+
+初回だけ、本番に繋ぐための認証をする（鍵ファイルは作らない）：
+
+```bash
+gcloud auth application-default login
+```
+
+登録ファイル `portfolio.json`（カバー画像は同じフォルダに置く）：
+
+```json
+{
+  "id": "melody-next-note",
+  "category": "pocs",
+  "title": { "ja": "譜面エディタの「次の音」候補をモデルで出す", "en": "Suggesting the next note in a score editor" },
+  "caption": { "ja": "音楽専用モデルと判断モデルを 280 か所で比較した", "en": "" },
+  "href": "https://zenn.dev/...",
+  "links": [{ "label": { "ja": "GitHub", "en": "GitHub" }, "href": "https://github.com/haruto-kamijo/melody-next-note" }],
+  "cover": "cover.png",
+  "ready": true
+}
+```
+
+- `id` は Firestore のドキュメントIDになる。同じ `id` で再度 `add` すると更新になる（重複しない）
+- `category` は `sites` `games` `models` `photos` `pocs` `kaggle` `blog` のどれか
+- `en` を空にした項目は、英語ページでも日本語で表示される
+- `href` はカード全体のリンク（記事など）、`links` はカードの下に並べる補助リンク（5個まで）
+- `ready` は必須。`false` にすると非公開で登録され、管理画面で確認してから公開できる。
+  `ready` が効くのは新規登録のときだけで、登録済みの作品の公開・非公開は管理画面で切り替える
+  （もう一度 `add --run` しても、公開中の作品が非公開に戻らないようにするため）
+- `cover` は登録ファイルと同じフォルダにある画像のファイル名だけを書く
+- タイトル・説明文・リンク・カバー画像は登録ファイルが正。管理画面で直しても、次の `add --run` で登録ファイルの内容に戻る
+- 入力チェックは管理画面と同じ（`lib/content/portfolioItem.ts`）
+
+**公開前のチェック**として、URL を正規化（`/../` の解決など）してから、GitHub のリポジトリへのリンクは
+公開設定を gh で確かめ、非公開（playground や kaggle 本体など）なら登録を止める。ほかのリンクも開けるかを確かめる
+（接続できないときはネットワーク側の都合のこともあるので、注意を出すだけで止めない。GitHub のページだけは止める）。
+登録ファイルの場所は、誰でも読める `portfolioItems` には保存しない。
+`links` は管理画面では表示だけで編集できない（管理画面で保存しても消えない）。
 
 ### フォールバック設計
 

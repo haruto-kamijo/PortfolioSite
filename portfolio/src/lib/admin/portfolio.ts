@@ -1,7 +1,7 @@
 // src/lib/admin/portfolio.ts
 
 import { getAdminDb } from "@/lib/firebase/admin";
-import { readLocalized } from "@/lib/content/fields";
+import { readPortfolioItem } from "@/lib/content/portfolioItem";
 import { PORTFOLIO_CATEGORIES, PortfolioCategory, PortfolioItem, collections } from "@/lib/content/types";
 
 /**
@@ -22,20 +22,8 @@ export const listPortfolioItemsAdmin = async (): Promise<
         const snap = await db.collection(collections.portfolioItems).orderBy("order").get();
 
         for (const doc of snap.docs) {
-            const d = doc.data();
-            const category = d.category as PortfolioCategory;
-            if (!PORTFOLIO_CATEGORIES.includes(category)) continue;
-
-            grouped[category].push({
-                id: doc.id,
-                category,
-                title: readLocalized(d, "title"),
-                caption: readLocalized(d, "caption"),
-                href: typeof d.href === "string" && d.href ? d.href : null,
-                order: typeof d.order === "number" ? d.order : 0,
-                coverUrl: typeof d.coverUrl === "string" && d.coverUrl ? d.coverUrl : null,
-                ready: d.ready === true,
-            });
+            const item = readPortfolioItem(doc.id, doc.data());
+            if (item) grouped[item.category].push(item);
         }
 
         return grouped;

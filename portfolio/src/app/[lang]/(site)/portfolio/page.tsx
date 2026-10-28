@@ -120,6 +120,22 @@ export default async function PortfolioPage({ params, searchParams }: Props) {
                                 ) : (
                                     <div className="p-5">{body}</div>
                                 )}
+                                {/* カード全体のリンクの中にリンクは入れられないので、補助リンクは外に並べる */}
+                                {item.links.length > 0 && (
+                                    <div className="-mt-1 flex flex-wrap gap-2 px-5 pb-5">
+                                        {item.links.map((link, i) => (
+                                            <a
+                                                key={`${i}-${link.href}`}
+                                                href={link.href}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="rounded-full border border-white/15 px-3 py-1.5 text-[11px] tracking-wider text-white/70 transition-colors hover:border-cyan-200/40 hover:text-cyan-200"
+                                            >
+                                                {pick(link.label, lang)} ↗
+                                            </a>
+                                        ))}
+                                    </div>
+                                )}
                             </Panel>
                         );
                     })}
