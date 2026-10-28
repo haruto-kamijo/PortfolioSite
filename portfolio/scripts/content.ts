@@ -300,9 +300,21 @@ const toDoc = (entry: Entry) => ({
     category: entry.category,
 });
 
+/** オブジェクトのキーを並べ替えた JSON。Firestore から読んだ map はキーの順番が書いたときと違うことがある */
+const stableJson = (value: unknown): string => {
+    if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+    if (isRecord(value)) {
+        return `{${Object.keys(value)
+            .sort()
+            .map((k) => `${JSON.stringify(k)}:${stableJson(value[k])}`)
+            .join(",")}}`;
+    }
+    return JSON.stringify(value);
+};
+
 /** 比べるときは、未保存・null・空の配列を同じものとみなす（管理画面で作った作品には links が無い） */
 const comparable = (value: unknown) =>
-    JSON.stringify(value === undefined || (Array.isArray(value) && value.length === 0) ? null : value);
+    stableJson(value === undefined || (Array.isArray(value) && value.length === 0) ? null : value);
 
 /**
  * いま保存されている値と比べて、変わる項目の名前を返す。

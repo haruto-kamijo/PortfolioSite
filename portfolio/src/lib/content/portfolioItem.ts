@@ -67,11 +67,20 @@ export const toPortfolioDoc = (fields: PortfolioItemFields) => ({
 export const toPortfolioLinksDoc = (links: PortfolioLink[]) =>
     links.map((l) => ({ ...writeLocalized("label", l.label), href: l.href }));
 
+/**
+ * 読み出すときにも http(s) のリンクだけを通す。書き込み側でも確かめているが、
+ * Firestore のルールではスキームまでは縛れないため、javascript: などが入っていても公開ページに出さない
+ */
+const safeHref = (value: unknown) => {
+    const href = str(value);
+    return isHttpUrl(href) ? href : "";
+};
+
 const readLinks = (value: unknown): PortfolioLink[] =>
     Array.isArray(value)
         ? value
               .filter((v): v is Record<string, unknown> => typeof v === "object" && v !== null)
-              .map((v) => ({ label: readLocalized(v, "label"), href: str(v.href) }))
+              .map((v) => ({ label: readLocalized(v, "label"), href: safeHref(v.href) }))
               .filter((l) => l.label.ja && l.href)
         : [];
 
@@ -83,7 +92,7 @@ export const readPortfolioItem = (id: string, d: Record<string, unknown>): Portf
         category: d.category,
         title: readLocalized(d, "title"),
         caption: readLocalized(d, "caption"),
-        href: str(d.href) || null,
+        href: safeHref(d.href) || null,
         links: readLinks(d.links),
         order: typeof d.order === "number" ? d.order : 0,
         coverUrl: str(d.coverUrl) || null,
