@@ -1,7 +1,7 @@
 // src/lib/content/portfolioItem.ts
 
 import { LOCALES, Localized } from "@/lib/i18n";
-import { readLocalized, str, writeLocalized } from "./fields";
+import { readLocalized, str, strList, writeLocalized } from "./fields";
 import { PORTFOLIO_CATEGORIES, PortfolioCategory, PortfolioItem, PortfolioLink } from "./types";
 
 /**
@@ -10,7 +10,7 @@ import { PORTFOLIO_CATEGORIES, PortfolioCategory, PortfolioItem, PortfolioLink }
  * どちらから登録しても同じ決まりになるようにする。
  */
 
-export const PORTFOLIO_LIMITS = { title: 100, caption: 300, href: 500, links: 5 } as const;
+export const PORTFOLIO_LIMITS = { title: 100, caption: 300, href: 500, links: 5, tags: 8, tag: 30 } as const;
 
 /** カバー画像の上限。storage.rules と同じ値にする */
 export const MAX_COVER_BYTES = 5 * 1024 * 1024;
@@ -56,6 +56,14 @@ export const validatePortfolioLinks = (links: PortfolioLink[]): string | null =>
     return null;
 };
 
+export const validatePortfolioTags = (tags: string[]): string | null => {
+    if (tags.length > PORTFOLIO_LIMITS.tags) return `タグは${PORTFOLIO_LIMITS.tags}個までです`;
+    if (tags.some((t) => !t)) return "空のタグがあります";
+    if (tags.some((t) => t.length > PORTFOLIO_LIMITS.tag)) return `タグは${PORTFOLIO_LIMITS.tag}文字までです`;
+    if (new Set(tags).size !== tags.length) return "同じタグが2回書かれています";
+    return null;
+};
+
 /** Firestore に保存する形（title / titleEn のように平らにする）。空のリンクは null で持つ */
 export const toPortfolioDoc = (fields: PortfolioItemFields) => ({
     ...writeLocalized("title", fields.title),
@@ -84,8 +92,21 @@ const readLinks = (value: unknown): PortfolioLink[] =>
               .filter((l) => l.label.ja && l.href)
         : [];
 
-/** Firestore のドキュメントを PortfolioItem にする。カテゴリが不明なものは null */
-export const readPortfolioItem = (id: string, d: Record<string, unknown>): PortfolioItem | null => {
+const readTags = (value: unknown) =>
+    strList(value)
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .slice(0, PORTFOLIO_LIMITS.tags);
+
+/**
+ * Firestore のドキュメントを PortfolioItem にする。カテゴリが不明なものは null。
+ * createdAt にはドキュメントの作成日時（Firestore が持っている createTime）を渡す
+ */
+export const readPortfolioItem = (
+    id: string,
+    d: Record<string, unknown>,
+    createdAt?: Date
+): PortfolioItem | null => {
     if (!isPortfolioCategory(d.category)) return null;
     return {
         id,
@@ -94,8 +115,10 @@ export const readPortfolioItem = (id: string, d: Record<string, unknown>): Portf
         caption: readLocalized(d, "caption"),
         href: safeHref(d.href) || null,
         links: readLinks(d.links),
+        tags: readTags(d.tags),
         order: typeof d.order === "number" ? d.order : 0,
         coverUrl: str(d.coverUrl) || null,
         ready: d.ready === true,
+        createdAt: createdAt?.toISOString() ?? null,
     };
 };

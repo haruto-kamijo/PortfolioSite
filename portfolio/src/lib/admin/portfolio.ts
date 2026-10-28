@@ -22,7 +22,7 @@ export const listPortfolioItemsAdmin = async (): Promise<
         const snap = await db.collection(collections.portfolioItems).orderBy("order").get();
 
         for (const doc of snap.docs) {
-            const item = readPortfolioItem(doc.id, doc.data());
+            const item = readPortfolioItem(doc.id, doc.data(), doc.createTime.toDate());
             if (item) grouped[item.category].push(item);
         }
 

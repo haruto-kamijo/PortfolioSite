@@ -1,11 +1,15 @@
 // src/app/[lang]/(site)/home/page.tsx
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PortfolioCard } from "@/components/portfolio/PortfolioCard";
 import { Panel } from "@/components/ui/Panel";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { AcademicStatusLine } from "@/components/ui/AcademicStatusLine";
 import { academicStatusAt } from "@/lib/academicYear";
+import { getFeedItems } from "@/lib/content/feeds";
+import { getPortfolioItems } from "@/lib/content/getPortfolioItems";
 import { getSiteContent } from "@/lib/content/getSiteContent";
+import type { PortfolioItem } from "@/lib/content/types";
 import { getDictionary } from "@/lib/dictionary";
 import { DEFAULT_LOCALE, alternatesFor, isLocale, localizePath, pick, pickList } from "@/lib/i18n";
 import { openGraphFor } from "@/lib/metadata";
@@ -25,6 +29,19 @@ export const generateMetadata = ({ params }: Props): Metadata => {
     };
 };
 
+/** ホームの「最近の更新」に出す数 */
+const LATEST_COUNT = 3;
+
+/** 公開中の作品と RSS の記事を合わせて、新しいものから LATEST_COUNT 件 */
+const getLatest = async (): Promise<PortfolioItem[]> => {
+    const registered = Object.values(await getPortfolioItems()).flat();
+    const feed = await getFeedItems(registered);
+    return [...registered, ...feed]
+        .filter((item) => item.createdAt)
+        .sort((a, b) => b.createdAt!.localeCompare(a.createdAt!))
+        .slice(0, LATEST_COUNT);
+};
+
 /**
  * 管理画面(CMS)で更新した内容を再デプロイなしで反映させるため ISR にしている。
  * CMS の保存時には revalidatePath でも即時反映する。
@@ -34,7 +51,7 @@ export const revalidate = 300;
 export default async function HomePage({ params }: Props) {
     const lang = langOf(params);
     const t = getDictionary(lang);
-    const { profile, skillGroups, works } = await getSiteContent();
+    const [{ profile, skillGroups, works }, latest] = await Promise.all([getSiteContent(), getLatest()]);
 
     // 表示中の言語の名前を大きく、もう一方を添える
     const otherLang = lang === "ja" ? "en" : "ja";
@@ -71,16 +88,26 @@ export default async function HomePage({ params }: Props) {
                     >
                         {t.home.github}
                     </a>
-                    <a
-                        href={links.note}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                    <Link
+                        href={localizePath("/portfolio?tab=blog", lang)}
                         className="rounded-full border border-white/20 px-6 py-2.5 text-xs tracking-widest text-white/80 transition-colors hover:border-white/40 hover:text-white"
                     >
                         {t.home.blog}
-                    </a>
+                    </Link>
                 </div>
             </section>
+
+            {/* Latest。記事や作品を見に来た人に、いま動いていることが伝わるよう Skills より前に置く */}
+            {latest.length > 0 && (
+                <section className="mb-16 sm:mb-24">
+                    <SectionTitle {...t.home.latest} />
+                    <ul className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+                        {latest.map((item) => (
+                            <PortfolioCard key={item.id} item={item} lang={lang} showDate showCategory />
+                        ))}
+                    </ul>
+                </section>
+            )}
 
             {/* Skills */}
             <section className="mb-16 sm:mb-24">
