@@ -1,7 +1,7 @@
 // src/lib/content/getPortfolioItems.ts
 
 import { getAdminDb } from "@/lib/firebase/admin";
-import { readLocalized } from "./fields";
+import { readPortfolioItem } from "./portfolioItem";
 import { PORTFOLIO_CATEGORIES, PortfolioCategory, PortfolioItem, collections } from "./types";
 
 /**
@@ -27,21 +27,9 @@ export const getPortfolioItems = async (): Promise<Record<PortfolioCategory, Por
 
         const grouped = empty;
         for (const doc of snap.docs) {
-            const d = doc.data();
-            const category = d.category as PortfolioCategory;
-            if (!PORTFOLIO_CATEGORIES.includes(category)) continue;
-            if (d.ready !== true) continue; // 公開ページでは非公開の作品を出さない
-
-            grouped[category].push({
-                id: doc.id,
-                category,
-                title: readLocalized(d, "title"),
-                caption: readLocalized(d, "caption"),
-                href: typeof d.href === "string" && d.href ? d.href : null,
-                order: typeof d.order === "number" ? d.order : 0,
-                coverUrl: typeof d.coverUrl === "string" && d.coverUrl ? d.coverUrl : null,
-                ready: true,
-            });
+            const item = readPortfolioItem(doc.id, doc.data());
+            // 公開ページでは非公開の作品を出さない
+            if (item?.ready) grouped[item.category].push(item);
         }
 
         return grouped;

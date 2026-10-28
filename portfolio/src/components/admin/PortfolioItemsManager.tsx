@@ -126,6 +126,19 @@ const ItemRow = ({
                 <form onSubmit={handleSave} className="flex-1 space-y-4">
                     <ItemFields fields={fields} setFields={setFields} disabled={pending} />
 
+                    {item.links.length > 0 && (
+                        <div className={labelClass}>
+                            追加のリンク（登録スクリプトで編集。ここで保存しても消えません）
+                            <ul className="mt-1 space-y-0.5 text-white/60">
+                                {item.links.map((link) => (
+                                    <li key={link.href} className="break-all">
+                                        {link.label.ja}：{link.href}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
                     <label className="flex items-center gap-2 text-xs text-white/70">
                         <input
                             type="checkbox"

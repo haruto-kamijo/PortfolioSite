@@ -4,9 +4,15 @@ import { revalidatePath } from "next/cache";
 import { getAdminUser } from "@/lib/admin/session";
 import { revalidatePublicPages } from "@/lib/admin/revalidatePublic";
 import { getAdminBucket, getAdminDb } from "@/lib/firebase/admin";
-import { writeLocalized } from "@/lib/content/fields";
-import { PORTFOLIO_CATEGORIES, PortfolioCategory, collections } from "@/lib/content/types";
-import { LOCALES, Localized } from "@/lib/i18n";
+import {
+    PortfolioItemFields,
+    isDocId,
+    isPortfolioCategory,
+    toPortfolioDoc,
+    trimPortfolioFields,
+    validatePortfolioFields,
+} from "@/lib/content/portfolioItem";
+import { collections } from "@/lib/content/types";
 
 /**
  * /portfolio の作品(portfolioItems)管理（Server Action）。
@@ -17,8 +23,6 @@ import { LOCALES, Localized } from "@/lib/i18n";
  * （カテゴリをまたいだ順序に意味がないため）。
  */
 
-const LIMITS = { title: 100, caption: 300, href: 500 } as const;
-
 export type SaveResult = { ok: true } | { ok: false; error: string };
 
 const requireAdmin = async () => {
@@ -27,57 +31,24 @@ const requireAdmin = async () => {
 };
 
 const assertDocId = (id: string) => {
-    if (!/^[A-Za-z0-9_-]{1,128}$/.test(id)) throw new Error("IDが不正です");
+    if (!isDocId(id)) throw new Error("IDが不正です");
 };
 
-const assertCategory = (category: string): category is PortfolioCategory => {
-    if (!PORTFOLIO_CATEGORIES.includes(category as PortfolioCategory)) {
-        throw new Error("カテゴリが不正です");
-    }
-    return true;
+const assertCategory = (category: string) => {
+    if (!isPortfolioCategory(category)) throw new Error("カテゴリが不正です");
 };
 
 const coverPath = (id: string) => `portfolioItems/${id}/cover`;
 
-/** タイトル・説明文は日英で持つ。英語が空なら公開ページで日本語を代わりに出す */
-type ItemFields = { title: Localized; caption: Localized; href: string; ready: boolean };
-
-const trimFields = (input: ItemFields): ItemFields => ({
-    title: { ja: input.title.ja.trim(), en: input.title.en.trim() },
-    caption: { ja: input.caption.ja.trim(), en: input.caption.en.trim() },
-    href: input.href.trim(),
-    ready: input.ready,
-});
-
-/** Firestore に保存する形（title / titleEn のように平らにする）。空のリンクは null で持つ */
-const toDoc = (fields: ItemFields) => ({
-    ...writeLocalized("title", fields.title),
-    ...writeLocalized("caption", fields.caption),
-    href: fields.href || null,
-    ready: fields.ready,
-});
-
-/** href は空欄も許す（写真などリンクの無い作品があるため） */
-const validateFields = ({ title, caption, href }: ItemFields): string | null => {
-    if (!title.ja) return "タイトル（日本語）を入力してください";
-    if (LOCALES.some((l) => title[l].length > LIMITS.title)) return "タイトルが長すぎます";
-    if (LOCALES.some((l) => caption[l].length > LIMITS.caption)) return "説明文が長すぎます";
-    if (href.length > LIMITS.href) return "リンク先が長すぎます";
-    if (href.trim() && !/^https?:\/\//.test(href.trim())) {
-        return "リンク先は http:// か https:// から始めてください";
-    }
-    return null;
-};
-
 export async function createPortfolioItem(
     category: string,
-    input: ItemFields
+    input: PortfolioItemFields
 ): Promise<SaveResult> {
     await requireAdmin();
     assertCategory(category);
 
-    const fields = trimFields(input);
-    const error = validateFields(fields);
+    const fields = trimPortfolioFields(input);
+    const error = validatePortfolioFields(fields);
     if (error) return { ok: false, error };
 
     const db = getAdminDb();
@@ -95,7 +66,7 @@ export async function createPortfolioItem(
                 : Math.max(...sameCategory.map((d) => d.data().order ?? 0)) + 1;
 
         await db.collection(collections.portfolioItems).add({
-            ...toDoc(fields),
+            ...toPortfolioDoc(fields),
             category,
             order: nextOrder,
             coverUrl: null,
@@ -110,12 +81,12 @@ export async function createPortfolioItem(
     return { ok: true };
 }
 
-export async function updatePortfolioItem(id: string, input: ItemFields): Promise<SaveResult> {
+export async function updatePortfolioItem(id: string, input: PortfolioItemFields): Promise<SaveResult> {
     await requireAdmin();
     assertDocId(id);
 
-    const fields = trimFields(input);
-    const error = validateFields(fields);
+    const fields = trimPortfolioFields(input);
+    const error = validatePortfolioFields(fields);
     if (error) return { ok: false, error };
 
     const db = getAdminDb();
@@ -125,7 +96,7 @@ export async function updatePortfolioItem(id: string, input: ItemFields): Promis
         await db
             .collection(collections.portfolioItems)
             .doc(id)
-            .update(toDoc(fields));
+            .update(toPortfolioDoc(fields));
     } catch (err) {
         console.error("[admin] 作品の更新に失敗しました:", err);
         return { ok: false, error: "更新に失敗しました" };
