@@ -277,7 +277,7 @@ const planEntry = async (fb: Firebase, source: Source, entry = loadEntry(source)
 // ---------------------------------------------------------------- コマンド
 
 const show = (label: string, value: Localized) =>
-    console.log(`  ${label.padEnd(8)} ${value.ja}${value.en ? ` / ${value.en}` : "（英語は日本語で表示）"}`);
+    console.log(`  ${label}：${value.ja}${value.en ? ` / ${value.en}` : "（英語は日本語で表示）"}`);
 
 const add = async (arg: string, run: boolean, useEmulator: boolean) => {
     // 登録ファイルとリンクの確認は Firebase に繋ぐ前に済ませる（認証なしでも書き方の誤りが分かる）
@@ -297,15 +297,15 @@ const add = async (arg: string, run: boolean, useEmulator: boolean) => {
     const plan = await planEntry(fb, source, entry);
 
     console.log(`\n${source.label}`);
-    console.log(`  id       ${entry.id}（${plan.exists ? "登録済み → 更新" : "新規"}）`);
-    console.log(`  カテゴリ   ${entry.category}`);
+    console.log(`  id：${entry.id}（${plan.exists ? "登録済み → 更新" : "新規"}）`);
+    console.log(`  カテゴリ：${entry.category}`);
     show("タイトル", entry.fields.title);
     if (entry.fields.caption.ja) show("説明文", entry.fields.caption);
-    console.log(`  リンク     ${entry.fields.href || "なし"}`);
-    for (const l of entry.links) console.log(`             ${l.label.ja}: ${l.href}`);
-    console.log(`  カバー画像  ${entry.cover ? `${entry.cover}（${Math.round(plan.coverData!.length / 1024)}KB${plan.coverChanged ? "" : "・変更なし"}）` : "なし"}`);
-    console.log(`  公開      ${entry.fields.ready ? "する" : "しない（管理画面で確認してから公開）"}`);
-    console.log(`  公開URL   ${SITE_URL}/portfolio?tab=${entry.category}`);
+    console.log(`  リンク：${entry.fields.href || "なし"}`);
+    for (const l of entry.links) console.log(`    ${l.label.ja}：${l.href}`);
+    console.log(`  カバー画像：${entry.cover ? `${entry.cover}（${Math.round(plan.coverData!.length / 1024)}KB${plan.coverChanged ? "" : "・変更なし"}）` : "なし"}`);
+    console.log(`  公開：${entry.fields.ready ? "する" : "しない（管理画面で確認してから公開）"}`);
+    console.log(`  公開URL：${SITE_URL}/portfolio?tab=${entry.category}`);
 
     if (plan.exists && plan.changes.length === 0 && !plan.coverChanged) {
         console.log("\n登録済みの内容と同じなので、書き込むものはありません。");
