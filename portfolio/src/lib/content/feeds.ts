@@ -11,11 +11,16 @@ import type { PortfolioItem } from "./types";
  *
  * 記事を出すたびに登録しなくても載るようにするためのもの。
  * RSS は1時間ごとに読み直す。読めなかった RSS は飛ばし、ほかの記事だけで表示する
- * （失敗した結果はキャッシュしないので、次のリクエストで読み直す）。
+ * 失敗した結果はキャッシュしないが、読めなかった RSS は数分のあいだ読みに行かない
+ * （落ちている RSS のタイムアウトを、リクエストのたびに待たないようにするため）。
  */
 
 const REVALIDATE_SECONDS = 60 * 60;
-const FETCH_TIMEOUT_MS = 4000;
+const FETCH_TIMEOUT_MS = 3000;
+/** 読めなかった RSS を読み直さない時間 */
+const RETRY_AFTER_MS = 5 * 60 * 1000;
+/** これより大きい応答は RSS ではないとみなして読まない */
+const MAX_FEED_BYTES = 2 * 1024 * 1024;
 /** 1つの RSS から載せる記事の数 */
 const MAX_ITEMS_PER_FEED = 20;
 
@@ -23,10 +28,13 @@ type Feed = (typeof blogFeeds)[number];
 
 type FeedEntry = { title: string; description: string; link: string; publishedAt: string | null; imageUrl: string | null };
 
+/** 範囲外の値（&#x110000; など）は置き換え文字にする。例外にすると RSS 全体が読めなくなるため */
+const fromCodePoint = (code: number) => (code <= 0x10ffff ? String.fromCodePoint(code) : "\uFFFD");
+
 const decodeEntities = (s: string) =>
     s
-        .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
-        .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(Number(dec)))
+        .replace(/&#x([0-9a-f]{1,8});/gi, (_, hex) => fromCodePoint(parseInt(hex, 16)))
+        .replace(/&#(\d{1,10});/g, (_, dec) => fromCodePoint(Number(dec)))
         .replace(/&lt;/g, "<")
         .replace(/&gt;/g, ">")
         .replace(/&quot;/g, '"')
@@ -50,11 +58,11 @@ const attrOf = (xml: string, tag: string, attr: string) => {
     return m ? decodeEntities(m[1]) : "";
 };
 
-/** http(s) の URL だけを通す。host を渡したときは、そのドメインかサブドメインのものだけ */
+/** https の URL だけを通す。host を渡したときは、そのドメインかサブドメインのものだけ */
 const safeUrl = (value: string, host?: string) => {
     try {
         const url = new URL(value);
-        if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+        if (url.protocol !== "https:") return null;
         if (host && url.hostname !== host && !url.hostname.endsWith(`.${host}`)) return null;
         return url.href;
     } catch {
@@ -80,16 +88,34 @@ export const parseFeed = (xml: string, host: string): FeedEntry[] =>
         .filter((e): e is FeedEntry => !!e.title && !!e.link)
         .slice(0, MAX_ITEMS_PER_FEED);
 
-const fetchFeed = (feed: Feed) =>
-    unstable_cache(
-        async () => {
-            const res = await fetch(feed.url, { cache: "no-store", signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            return parseFeed(await res.text(), feed.host);
-        },
-        ["blog-feed", feed.url],
-        { revalidate: REVALIDATE_SECONDS }
-    )();
+/** RSS ごとの、最後に読めなかった時刻（このサーバーのインスタンスの中だけで覚える） */
+const failedAt = new Map<string, number>();
+
+/**
+ * fetch に cache の指定は付けない。unstable_cache の中の fetch は自動でキャッシュされない扱いになる。
+ * cache: "no-store" を付けると、ホーム（ISR）を静的に作るときに Next が例外にして、RSS が読めなくなる
+ */
+const fetchFeed = async (feed: Feed) => {
+    const last = failedAt.get(feed.url);
+    if (last !== undefined && Date.now() - last < RETRY_AFTER_MS) throw new Error("少し前に読めなかったので飛ばします");
+    try {
+        return await unstable_cache(
+            async () => {
+                const res = await fetch(feed.url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                if (Number(res.headers.get("content-length") ?? 0) > MAX_FEED_BYTES) throw new Error("応答が大きすぎます");
+                const xml = await res.text();
+                if (xml.length > MAX_FEED_BYTES) throw new Error("応答が大きすぎます");
+                return parseFeed(xml, feed.host);
+            },
+            ["blog-feed", feed.url],
+            { revalidate: REVALIDATE_SECONDS }
+        )();
+    } catch (err) {
+        failedAt.set(feed.url, Date.now());
+        throw err;
+    }
+};
 
 const truncate = (s: string, max: number) => (s.length > max ? `${s.slice(0, max - 1)}…` : s);
 

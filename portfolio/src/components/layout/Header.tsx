@@ -3,12 +3,45 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { LanguageSwitch, LanguageSwitchFallback } from "@/components/layout/LanguageSwitch";
 import { getDictionary } from "@/lib/dictionary";
 import { Locale, localizePath, stripLocale } from "@/lib/i18n";
-import { nav, site } from "@/lib/site";
+import { NavItem, nav, site } from "@/lib/site";
+
+/** ?tab= 付きの項目（ブログ → /portfolio?tab=blog）が受け持つタブ */
+const navTabs = nav.map((item) => new URL(item.href, "http://x").searchParams.get("tab")).filter(Boolean);
+
+/**
+ * 今いるページの項目か。ブログのタブを開いているときは「制作物」ではなく「ブログ」を現在地にする
+ */
+const isCurrentItem = (item: NavItem, pathname: string, tab: string | null) => {
+    if (item.external) return false;
+    const [path, query] = item.href.split("?");
+    if (pathname !== path) return false;
+    const itemTab = new URLSearchParams(query).get("tab");
+    return itemTab ? tab === itemTab : !(tab && navTabs.includes(tab));
+};
+
+type NavLinkProps = { item: NavItem; lang: Locale; pathname: string; className: string; onClick: () => void };
+
+const NavLinkView = ({ item, lang, current, className, onClick }: Omit<NavLinkProps, "pathname"> & { current: boolean }) => (
+    <Link
+        href={localizePath(item.href, lang)}
+        onClick={onClick}
+        aria-current={current ? "page" : undefined}
+        className={`${className} ${current ? "text-cyan-200" : "text-white/80 hover:text-cyan-200"}`}
+    >
+        {item.label[lang]}
+    </Link>
+);
+
+/** ?tab= を読むので、LanguageSwitch と同じく Suspense の内側で使う */
+const NavLink = ({ pathname, ...props }: NavLinkProps) => {
+    const tab = useSearchParams().get("tab");
+    return <NavLinkView {...props} current={isCurrentItem(props.item, pathname, tab)} />;
+};
 
 export const Header = ({ lang }: { lang: Locale }) => {
     const [open, setOpen] = useState(false);
@@ -56,7 +89,6 @@ export const Header = ({ lang }: { lang: Locale }) => {
                     <ul className="flex flex-col items-stretch py-2 text-right lg:flex-row lg:items-center lg:py-0">
                         {nav.map((item) => {
                             const label = item.label[lang];
-                            const isCurrent = !item.external && pathname === item.href;
 
                             // 未実装のページはリンクを張らず、実装待ちであることを明示する
                             if (!item.ready) {
@@ -101,18 +133,26 @@ export const Header = ({ lang }: { lang: Locale }) => {
                                             </svg>
                                         </a>
                                     ) : (
-                                        <Link
-                                            href={localizePath(item.href, lang)}
-                                            onClick={close}
-                                            aria-current={isCurrent ? "page" : undefined}
-                                            className={`${linkBase} ${
-                                                isCurrent
-                                                    ? "text-cyan-200"
-                                                    : "text-white/80 hover:text-cyan-200"
-                                            }`}
+                                        // クエリが読めるまでは、クエリなしで現在地を決めておく
+                                        <Suspense
+                                            fallback={
+                                                <NavLinkView
+                                                    item={item}
+                                                    lang={lang}
+                                                    current={isCurrentItem(item, pathname, null)}
+                                                    className={linkBase}
+                                                    onClick={close}
+                                                />
+                                            }
                                         >
-                                            {label}
-                                        </Link>
+                                            <NavLink
+                                                item={item}
+                                                lang={lang}
+                                                pathname={pathname}
+                                                className={linkBase}
+                                                onClick={close}
+                                            />
+                                        </Suspense>
                                     )}
                                 </li>
                             );
