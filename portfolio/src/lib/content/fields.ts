@@ -17,16 +17,23 @@ export const str = (value: unknown, fallback = "") =>
 export const strList = (value: unknown, fallback: string[] = []) =>
     Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : fallback;
 
-/** title / titleEn を { ja, en } にまとめる。無い言語は fallback で埋める */
-export const readLocalized = (data: Data, key: string, fallback?: Localized): Localized => ({
-    ja: str(data[key], fallback?.ja ?? ""),
-    en: str(data[`${key}En`], fallback?.en ?? ""),
-});
+/** 日英どちらのフィールドも保存されていないか */
+const isUnsaved = (data: Data, key: string) => data[key] === undefined && data[`${key}En`] === undefined;
 
-export const readLocalizedList = (data: Data, key: string, fallback?: LocalizedList): LocalizedList => ({
-    ja: strList(data[key], fallback?.ja ?? []),
-    en: strList(data[`${key}En`], fallback?.en ?? []),
-});
+/**
+ * title / titleEn を { ja, en } にまとめる。
+ * fallback は日英どちらも保存されていないときだけ使う。片方だけ空のときに既定値で埋めると、
+ * 「英語は空欄なら日本語を出す」（i18n.ts の pick）が効かなくなるため。
+ */
+export const readLocalized = (data: Data, key: string, fallback?: Localized): Localized =>
+    fallback && isUnsaved(data, key)
+        ? fallback
+        : { ja: str(data[key]), en: str(data[`${key}En`]) };
+
+export const readLocalizedList = (data: Data, key: string, fallback?: LocalizedList): LocalizedList =>
+    fallback && isUnsaved(data, key)
+        ? fallback
+        : { ja: strList(data[key]), en: strList(data[`${key}En`]) };
 
 /** 保存用に { ja, en } を title / titleEn に戻す */
 export const writeLocalized = <K extends string>(key: K, value: Localized | LocalizedList) =>

@@ -12,6 +12,7 @@ import {
 } from "@/lib/content/types";
 import { getDictionary } from "@/lib/dictionary";
 import { DEFAULT_LOCALE, alternatesFor, isLocale, localizePath, pick } from "@/lib/i18n";
+import { openGraphFor } from "@/lib/metadata";
 
 type Props = { params: { lang: string }; searchParams: { tab?: string } };
 
@@ -24,6 +25,7 @@ export const generateMetadata = ({ params }: Props): Metadata => {
         title: t.portfolio,
         description: t.portfolioDescription,
         alternates: alternatesFor("/portfolio", lang),
+        openGraph: openGraphFor("/portfolio", lang),
     };
 };
 

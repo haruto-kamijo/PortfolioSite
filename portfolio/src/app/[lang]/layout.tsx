@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { HtmlLang } from "@/components/i18n/HtmlLang";
 import { getDictionary } from "@/lib/dictionary";
-import { LOCALES, alternatesFor, isLocale, localizePath, ogLocale } from "@/lib/i18n";
+import { LOCALES, alternatesFor, isLocale } from "@/lib/i18n";
+import { openGraphFor } from "@/lib/metadata";
 import { site } from "@/lib/site";
 
 /**
@@ -28,15 +29,7 @@ export const generateMetadata = ({ params }: { params: { lang: string } }): Meta
         title: { absolute: title, template: `%s | ${site.name}` },
         description: site.description[lang],
         alternates: alternatesFor("/", lang),
-        openGraph: {
-            type: "website",
-            locale: ogLocale[lang],
-            alternateLocale: LOCALES.filter((l) => l !== lang).map((l) => ogLocale[l]),
-            siteName: `${site.name} Portfolio`,
-            title,
-            description: site.description[lang],
-            url: localizePath("/", lang),
-        },
+        openGraph: openGraphFor("/", lang),
     };
 };
 

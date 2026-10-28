@@ -2,6 +2,7 @@
 
 import { getAdminDb } from "@/lib/firebase/admin";
 import { defaultContent } from "./defaults";
+import type { Localized } from "@/lib/i18n";
 import { readLocalized, readLocalizedList, str, strList } from "./fields";
 import {
     PROFILE_DOC_ID,
@@ -49,19 +50,28 @@ export const getSiteContent = async (): Promise<SiteContent> => {
     }
 };
 
-/** 項目ごとに既定値へフォールバックする。日英も別々に埋める */
+/**
+ * 日英対応より前に保存したプロフィールは、name / program に英語、nameJa / programJa に日本語を
+ * 入れていた。nameEn が無いドキュメントはその形式とみなして読み替える。
+ */
+const readLegacyLocalized = (data: Record<string, unknown>, key: string, fallback: Localized): Localized =>
+    data[`${key}En`] === undefined
+        ? readLocalized({ [key]: data[`${key}Ja`], [`${key}En`]: data[key] }, key, fallback)
+        : readLocalized(data, key, fallback);
+
+/** 項目ごとに、日英どちらも保存されていなければ既定値を使う */
 const mergeProfile = (data: Record<string, unknown> | undefined): ProfileContent => {
     const base = defaultContent.profile;
     if (!data) return base;
 
     return {
-        name: readLocalized(data, "name", base.name),
+        name: readLegacyLocalized(data, "name", base.name),
         role: readLocalized(data, "role", base.role),
         tagline: readLocalized(data, "tagline", base.tagline),
         description: readLocalized(data, "description", base.description),
         school: readLocalized(data, "school", base.school),
         schoolShort: readLocalized(data, "schoolShort", base.schoolShort),
-        program: readLocalized(data, "program", base.program),
+        program: readLegacyLocalized(data, "program", base.program),
         // 空文字は「上書きなし」として扱い、年度からの自動計算に任せる
         gradeOverride: typeof data.gradeOverride === "string" && data.gradeOverride
             ? data.gradeOverride

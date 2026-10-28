@@ -8,6 +8,7 @@ import { academicStatusAt } from "@/lib/academicYear";
 import { getSiteContent } from "@/lib/content/getSiteContent";
 import { getDictionary } from "@/lib/dictionary";
 import { DEFAULT_LOCALE, alternatesFor, isLocale, localizePath, pick, pickList } from "@/lib/i18n";
+import { openGraphFor } from "@/lib/metadata";
 import { links, site } from "@/lib/site";
 
 type Props = { params: { lang: string } };
@@ -20,6 +21,7 @@ export const generateMetadata = ({ params }: Props): Metadata => {
         title: getDictionary(lang).meta.home,
         description: site.description[lang],
         alternates: alternatesFor("/home", lang),
+        openGraph: openGraphFor("/home", lang),
     };
 };
 

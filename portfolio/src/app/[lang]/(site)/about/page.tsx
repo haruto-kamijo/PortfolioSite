@@ -8,6 +8,7 @@ import { academicStatusAt } from "@/lib/academicYear";
 import { getSiteContent } from "@/lib/content/getSiteContent";
 import { getDictionary } from "@/lib/dictionary";
 import { DEFAULT_LOCALE, alternatesFor, isLocale, pick, pickList } from "@/lib/i18n";
+import { openGraphFor } from "@/lib/metadata";
 
 type Props = { params: { lang: string } };
 
@@ -20,6 +21,7 @@ export const generateMetadata = ({ params }: Props): Metadata => {
         title: t.about,
         description: t.aboutDescription,
         alternates: alternatesFor("/about", lang),
+        openGraph: openGraphFor("/about", lang),
     };
 };
 

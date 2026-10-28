@@ -5,6 +5,7 @@ import { Panel } from "@/components/ui/Panel";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { getDictionary } from "@/lib/dictionary";
 import { DEFAULT_LOCALE, alternatesFor, isLocale } from "@/lib/i18n";
+import { openGraphFor } from "@/lib/metadata";
 import { links } from "@/lib/site";
 
 type Props = { params: { lang: string } };
@@ -18,6 +19,7 @@ export const generateMetadata = ({ params }: Props): Metadata => {
         title: t.contact,
         description: t.contactDescription,
         alternates: alternatesFor("/contact", lang),
+        openGraph: openGraphFor("/contact", lang),
     };
 };
 
