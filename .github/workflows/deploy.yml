@@ -24,9 +24,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # SSR 用 Cloud Functions のランタイムは portfolio/package.json の engines.node で決まる（Node 20 は 2026-10-30 に提供終了）。
+      # ビルドも同じ版で行うよう、ここでも engines.node を読む（版を書く場所を1つにするため）
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version-file: portfolio/package.json
           cache: npm
           cache-dependency-path: portfolio/package-lock.json
 

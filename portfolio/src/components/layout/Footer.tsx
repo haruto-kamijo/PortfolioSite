@@ -17,6 +17,9 @@ export const Footer = () => {
                     <a href={links.github} target="_blank" rel="noopener noreferrer" className={linkClass}>
                         GitHub
                     </a>
+                    <a href={links.zenn} target="_blank" rel="noopener noreferrer" className={linkClass}>
+                        Zenn
+                    </a>
                     <a href={links.note} target="_blank" rel="noopener noreferrer" className={linkClass}>
                         note
                     </a>
