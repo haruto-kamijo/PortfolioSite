@@ -149,7 +149,7 @@ scripts/
 | `skillGroups/{id}` | Skills の分野と項目（`order` で並び順） | ○ | 管理者のみ |
 | `works/{id}` | home の WORKS カード5枚（カテゴリへの入口。`ready` `order` `coverUrl`） | ○ | 管理者のみ |
 | `portfolioItems/{id}` | `/portfolio` の中身。カテゴリごとの個々の作品（`category` `order` `ready` `coverUrl` `links`） | ○（`ready:true` のみ） | 管理者のみ |
-| `stats/claudeUsage` | About の Claude Code 利用状況（日ごとのトークン数・応答数・セッション数と合計） | ○ | 登録スクリプトのみ |
+| `stats/claudeUsage` | About の Claude Code 利用状況（日ごとのトークン数・応答数・セッション数と合計） | ×（サーバーが読む） | 登録スクリプトのみ |
 | `contacts/{id}` | 問い合わせ内容 | × | サーバーのみ |
 
 works と portfolioItems は役割が違う：works は「Web Sites」などカテゴリへの入口カード（常に5枚）、
@@ -319,7 +319,11 @@ Register-ScheduledTask -TaskName ClaudeUsageToPortfolio `
   -Settings (New-ScheduledTaskSettingsSet -StartWhenAvailable)
 ```
 
+1 の同期に失敗しても 2 は続ける（Mac の分が前回の同期時点のまま載るだけで、合計が減ることはないため）。
+`task.log` は追記し続けるので、大きくなったら消してよい。
+
 About ページは ISR（5 分）なので、書き込んでから 5 分以内に反映される。
+タイルの右上には最後に集計した日を出し、「直近 7 日」「今月」もその日を基準に数える。
 `stats/claudeUsage` が無い・読めないときはタイルを出さない。
 
 ### フォールバック設計

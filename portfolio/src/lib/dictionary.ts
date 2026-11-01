@@ -28,7 +28,7 @@ export type Dictionary = {
         school: string;
         hobby: string;
         language: string;
-        /** Claude Code の利用状況タイル。since の {date} は記録開始日に置き換える */
+        /** Claude Code の利用状況タイル。{date} などの差し込み先は ClaudeUsagePanel を参照 */
         usage: {
             title: string;
             since: string;
@@ -107,8 +107,8 @@ const ja: Dictionary = {
         language: "使用言語",
         usage: {
             title: "Claude Code の利用状況",
-            since: "{date} から記録",
-            heatmapLabel: "Claude Code を使った日のヒートマップ。色が濃いほど多く使った日",
+            since: "{date} から記録・{updated} 時点",
+            heatmapLabel: "Claude Code を使った日のヒートマップ（{from}〜{to}）。{days} 日使用、最も多かったのは {busiest}",
             tokensUnit: "トークン",
             noActivity: "使っていない日",
             less: "少",
@@ -118,7 +118,7 @@ const ja: Dictionary = {
             outputTokens: "出力トークン",
             thisMonth: "今月のトークン",
             last7Days: "直近 7 日のトークン",
-            note: "この PC の Claude Code のログを毎日集計しています。トークン数はキャッシュの読み書きを含みます。",
+            note: "私の PC（Windows・Mac）の Claude Code のログを毎日集計しています。トークン数はキャッシュの読み書きを含みます。",
         },
     },
     academic: { graduated: "修了" },
@@ -188,8 +188,8 @@ const en: Dictionary = {
         language: "LANGUAGE",
         usage: {
             title: "CLAUDE CODE ACTIVITY",
-            since: "Tracked since {date}",
-            heatmapLabel: "Heatmap of days using Claude Code. Darker cells mean more usage",
+            since: "Tracked since {date} · as of {updated}",
+            heatmapLabel: "Heatmap of Claude Code usage from {from} to {to}: active on {days} days, busiest on {busiest}",
             tokensUnit: "tokens",
             noActivity: "No activity",
             less: "Less",
@@ -199,7 +199,7 @@ const en: Dictionary = {
             outputTokens: "Output tokens",
             thisMonth: "Tokens this month",
             last7Days: "Tokens, last 7 days",
-            note: "Aggregated daily from my local Claude Code logs. Token counts include cache reads and writes.",
+            note: "Aggregated daily from my Claude Code logs across my machines (Windows and Mac). Token counts include cache reads and writes.",
         },
     },
     academic: { graduated: "Alumni" },

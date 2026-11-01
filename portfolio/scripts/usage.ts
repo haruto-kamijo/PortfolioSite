@@ -52,6 +52,8 @@ const runAggregator = (): Exported => {
         execFileSync(process.env.PYTHON ?? "python", ["-I", script, "--public-json", out, "--quiet"], {
             stdio: ["ignore", "ignore", "inherit"],
         });
+        // ログが 1 件も無いと usage.py は何も書き出さずに終わる
+        if (!existsSync(out)) throw new Error("集計結果がありません（Claude Code のログが見つかりませんでした）");
         return JSON.parse(readFileSync(out, "utf-8")) as Exported;
     } finally {
         rmSync(dir, { recursive: true, force: true });
@@ -110,14 +112,16 @@ const main = async () => {
     const run = args.includes("--run");
     const useEmulator = args.includes("--emulator");
     const fromIndex = args.indexOf("--from");
+    const fromValueIndex = fromIndex >= 0 ? fromIndex + 1 : -1;
+    const fromValue = fromIndex >= 0 ? args[fromValueIndex] : undefined;
     const known = new Set(["--run", "--emulator", "--from"]);
-    const unknown = args.filter((a, i) => !known.has(a) && i !== fromIndex + 1);
-    if (unknown.length > 0 || (fromIndex >= 0 && !args[fromIndex + 1])) {
+    const unknown = args.filter((a, i) => !known.has(a) && i !== fromValueIndex);
+    if (unknown.length > 0 || (fromIndex >= 0 && (!fromValue || fromValue.startsWith("--")))) {
         throw new Error(`使い方: npm run usage -- [--run] [--emulator] [--from <file>]（不明な引数: ${unknown.join(" ")}）`);
     }
 
-    const exported = fromIndex >= 0
-        ? (JSON.parse(readFileSync(args[fromIndex + 1], "utf-8")) as Exported)
+    const exported = fromValue
+        ? (JSON.parse(readFileSync(fromValue, "utf-8")) as Exported)
         : runAggregator();
     const doc = toDoc(exported);
 

@@ -60,25 +60,39 @@ const Heatmap = ({
     const dayFmt = new Intl.DateTimeFormat(lang, { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
     const numFmt = new Intl.NumberFormat(lang);
 
+    // ツールチップを見られない読み上げ環境向けに、期間・使った日数・最も多かった日を要約して渡す
+    const inRange = Array.from(tokensByDay).filter(([d]) => d >= start && d <= today);
+    const busiest = inRange.reduce<[string, number] | null>((best, cur) => (!best || cur[1] > best[1] ? cur : best), null);
+    const summary = texts.heatmapLabel
+        .replace("{from}", dayFmt.format(dateOf(start)))
+        .replace("{to}", dayFmt.format(dateOf(today)))
+        .replace("{days}", numFmt.format(inRange.filter(([, t]) => t > 0).length))
+        .replace("{busiest}", busiest ? `${dayFmt.format(dateOf(busiest[0]))} (${numFmt.format(busiest[1])} ${texts.tokensUnit})` : "-");
+
+    // 月名は、月の 1 日を含む列に出す。左端の列には始まりの月を出すが、
+    // 次の月名とぶつかる（次の月の 1 日が 3 列目より手前にある）ときは次の月を優先して出さない。
+    // 右端の 1 列に始まる月は、図の外にはみ出すので出さない
+    const labelCols: { col: number; date: Date }[] = [];
+    for (let col = 0; col < weeks - 1; col++) {
+        for (let row = 0; row < 7; row++) {
+            const ymd = addDays(start, col * 7 + row);
+            if (ymd > today) break;
+            if (dateOf(ymd).getUTCDate() === 1) labelCols.push({ col, date: dateOf(ymd) });
+        }
+    }
+    if (labelCols[0]?.col !== 0 && (labelCols[0]?.col ?? weeks) >= 3) labelCols.unshift({ col: 0, date: dateOf(start) });
+    const labels = labelCols.map(({ col, date }) => (
+        <text key={col} x={col * STEP} y={9} fontSize={9} fill="rgba(203,213,225,0.7)">
+            {monthFmt.format(date)}
+        </text>
+    ));
+
     const cells: ReactNode[] = [];
-    const labels: ReactNode[] = [];
-    let lastLabelCol = -10;
     for (let col = 0; col < weeks; col++) {
         for (let row = 0; row < 7; row++) {
             const ymd = addDays(start, col * 7 + row);
             if (ymd > today) break;
             const date = dateOf(ymd);
-            // 月の 1 日を含む列に月名を出す。左端の列にも出すが、前の月名と重なるときや、
-            // 右端に近くて図の外にはみ出すときは出さない
-            const isMonthStart = date.getUTCDate() === 1 || (col === 0 && row === 0 && date.getUTCDate() < 22);
-            if (isMonthStart && col - lastLabelCol >= 3 && col <= weeks - 3) {
-                labels.push(
-                    <text key={ymd} x={col * STEP} y={9} fontSize={9} fill="rgba(203,213,225,0.7)">
-                        {monthFmt.format(date)}
-                    </text>
-                );
-                lastLabelCol = col;
-            }
             const tokens = tokensByDay.get(ymd) ?? 0;
             cells.push(
                 <rect
@@ -101,7 +115,7 @@ const Heatmap = ({
             viewBox={`0 0 ${weeks * STEP - (STEP - CELL)} ${TOP + 7 * STEP - (STEP - CELL)}`}
             className={className}
             role="img"
-            aria-label={texts.heatmapLabel}
+            aria-label={summary}
         >
             {labels}
             {cells}
@@ -118,7 +132,10 @@ const Stat = ({ value, label }: { value: string; label: string }) => (
 
 /** About ページの「Claude Code の利用状況」。GitHub の草のような日別ヒートマップと合計値 */
 export const ClaudeUsagePanel = ({ usage, lang, texts }: { usage: ClaudeUsage; lang: Locale; texts: Texts }) => {
-    const today = todayInTokyo();
+    // 集計が止まっている（PC を起動していない日が続いた）ときに「直近 7 日」が 0 にならないよう、
+    // 最後に集計した日を基準にする。何日時点の値かは右上に出す
+    const updatedDay = todayInTokyo(new Date(usage.updatedAt));
+    const today = [todayInTokyo(), updatedDay].sort()[0];
     const tokensByDay = new Map(usage.days.map((d) => [d.d, d.t]));
     const sumSince = (from: string) => usage.days.filter((d) => d.d >= from && d.d <= today).reduce((n, d) => n + d.t, 0);
 
@@ -131,14 +148,16 @@ export const ClaudeUsagePanel = ({ usage, lang, texts }: { usage: ClaudeUsage; l
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                 <p className="text-sm tracking-[0.24em] text-cyan-200/80">{texts.title}</p>
                 <p className="text-xs text-slate-500">
-                    {texts.since.replace("{date}", dateFmt.format(dateOf(usage.totals.firstDay)))}
+                    {texts.since
+                        .replace("{date}", dateFmt.format(dateOf(usage.totals.firstDay)))
+                        .replace("{updated}", dateFmt.format(dateOf(updatedDay)))}
                 </p>
             </div>
 
             <div className="mt-4">
-                {/* スマホでは半年分、それより広い画面では 1 年分を出す */}
-                <Heatmap weeks={26} today={today} tokensByDay={tokensByDay} lang={lang} texts={texts} className="w-full sm:hidden" />
-                <Heatmap weeks={53} today={today} tokensByDay={tokensByDay} lang={lang} texts={texts} className="hidden w-full sm:block" />
+                {/* 狭い画面では半年分、md 以上では 1 年分を出す（sm 幅で 1 年分にすると文字が小さくなりすぎる） */}
+                <Heatmap weeks={26} today={today} tokensByDay={tokensByDay} lang={lang} texts={texts} className="w-full md:hidden" />
+                <Heatmap weeks={53} today={today} tokensByDay={tokensByDay} lang={lang} texts={texts} className="hidden w-full md:block" />
                 <div className="mt-2 flex items-center justify-end gap-1 text-[10px] text-slate-500" aria-hidden>
                     <span className="mr-1">{texts.less}</span>
                     {LEVEL_FILLS.map((fill) => (

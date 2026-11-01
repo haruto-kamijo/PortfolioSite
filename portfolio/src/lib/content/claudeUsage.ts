@@ -41,12 +41,15 @@ export const CLAUDE_USAGE_DOC_ID = "claudeUsage";
 export const CLAUDE_USAGE_KEEP_DAYS = 371;
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** 形だけでなく、実在する日付か（2026-13-01 などは表示の Intl で例外になるため弾く） */
+const isDate = (v: unknown): v is string =>
+    typeof v === "string" && DATE_RE.test(v) && !Number.isNaN(dateOf(v).getTime()) && ymdOf(dateOf(v)) === v;
 const isCount = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v) && v >= 0;
 
 const parseDay = (v: unknown): ClaudeUsageDay | null => {
     if (typeof v !== "object" || v === null) return null;
     const { d, t, o, m, s } = v as Record<string, unknown>;
-    if (typeof d !== "string" || !DATE_RE.test(d)) return null;
+    if (!isDate(d)) return null;
     if (!isCount(t) || !isCount(o) || !isCount(m) || !isCount(s)) return null;
     return { d, t, o, m, s };
 };
@@ -56,7 +59,7 @@ export const parseClaudeUsage = (data: unknown): ClaudeUsage | null => {
     if (typeof data !== "object" || data === null) return null;
     const { days, totals, updatedAt } = data as Record<string, unknown>;
     if (!Array.isArray(days) || typeof totals !== "object" || totals === null) return null;
-    if (typeof updatedAt !== "string") return null;
+    if (typeof updatedAt !== "string" || Number.isNaN(new Date(updatedAt).getTime())) return null;
 
     const parsedDays = days.map(parseDay);
     if (parsedDays.some((d) => d === null)) return null;
@@ -64,7 +67,7 @@ export const parseClaudeUsage = (data: unknown): ClaudeUsage | null => {
     const tt = totals as Record<string, unknown>;
     const counts = ["activeDays", "sessions", "messages", "totalTokens", "outputTokens"] as const;
     if (!counts.every((k) => isCount(tt[k]))) return null;
-    if (typeof tt.firstDay !== "string" || !DATE_RE.test(tt.firstDay)) return null;
+    if (!isDate(tt.firstDay)) return null;
 
     return {
         days: (parsedDays as ClaudeUsageDay[]).sort((a, b) => a.d.localeCompare(b.d)),
@@ -74,7 +77,7 @@ export const parseClaudeUsage = (data: unknown): ClaudeUsage | null => {
             messages: tt.messages as number,
             totalTokens: tt.totalTokens as number,
             outputTokens: tt.outputTokens as number,
-            firstDay: tt.firstDay,
+            firstDay: tt.firstDay as string,
         },
         updatedAt,
     };

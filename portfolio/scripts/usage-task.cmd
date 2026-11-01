@@ -10,3 +10,5 @@ rem 1. Save this PC's daily totals and push them to claude-usage-log (merged wit
 python -I "%USERPROFILE%\.claude\skills\claude-usage\usage.py" --sync --quiet >> "%LOGDIR%\task.log" 2>&1
 rem 2. Write the merged totals to the portfolio (stats/claudeUsage)
 call npm run usage -- --run >> "%LOGDIR%\task.log" 2>&1
+rem Report step 2's result to Task Scheduler (Last Run Result)
+exit /b %errorlevel%

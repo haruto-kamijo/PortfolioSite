@@ -40,10 +40,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // 集計値（About ページの Claude Code の利用状況など）。書き込みは登録スクリプト（Admin SDK）から
+    // ---- 集計値 ----
+    // About ページの Claude Code の利用状況など。読むのはサーバー（Admin SDK）だけで、
+    // 書くのも登録スクリプト（Admin SDK）だけなので、クライアントからは一切触れない。
+    // （画面に出していない日別の応答数なども入っているため、公開読み取りにはしない）
     match /stats/{docId} {
-      allow read: if true;
-      allow write: if isAdmin();
+      allow read, write: if false;
     }
 
     // ---- 問い合わせ ----
