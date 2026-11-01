@@ -1,10 +1,12 @@
 // src/app/[lang]/(site)/about/page.tsx
 import type { Metadata } from "next";
 import Image from "next/image";
+import { ClaudeUsagePanel } from "@/components/about/ClaudeUsagePanel";
 import { AcademicStatusLine } from "@/components/ui/AcademicStatusLine";
 import { Panel } from "@/components/ui/Panel";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { academicStatusAt } from "@/lib/academicYear";
+import { getClaudeUsage } from "@/lib/content/getClaudeUsage";
 import { getSiteContent } from "@/lib/content/getSiteContent";
 import { getDictionary } from "@/lib/dictionary";
 import { DEFAULT_LOCALE, alternatesFor, isLocale, pick, pickList } from "@/lib/i18n";
@@ -45,7 +47,7 @@ export default async function AboutPage({ params }: Props) {
     const lang = langOf(params);
     const otherLang = lang === "ja" ? "en" : "ja";
     const t = getDictionary(lang);
-    const { profile } = await getSiteContent();
+    const [{ profile }, usage] = await Promise.all([getSiteContent(), getClaudeUsage()]);
 
     return (
         <div className="mx-auto max-w-4xl px-5 py-12 sm:py-24">
@@ -101,6 +103,9 @@ export default async function AboutPage({ params }: Props) {
                         <TagList items={profile.languages} />
                     </div>
                 </Panel>
+
+                {/* まだ登録していない・読めないときは出さない */}
+                {usage && <ClaudeUsagePanel usage={usage} lang={lang} texts={t.about.usage} />}
             </div>
         </div>
     );

@@ -109,10 +109,14 @@ src/
       defaults.ts             // site.ts から作る既定値
       getSiteContent.ts       // 公開ページ向け（profile/skillGroups/works）
       getPortfolioItems.ts    // 公開ページ向け（portfolioItems）
+      claudeUsage.ts          // About の Claude Code 利用状況の型・検査（画面と登録スクリプトで共通）
+      getClaudeUsage.ts       // 公開ページ向け（stats/claudeUsage）
     metadata.ts               // 公開ページの OGP（各ページが自分の URL で呼ぶ）
     three/shaders/            // GLSL
 scripts/
   content.ts                  // 登録ファイル（portfolio.json）から作品を本番に登録する
+  usage.ts                    // Claude Code の利用状況を集計して本番に書き込む
+  usage-task.cmd              // usage.ts を毎日動かすためのタスクスケジューラ用
 ```
 
 ## 設計上の約束
@@ -145,6 +149,7 @@ scripts/
 | `skillGroups/{id}` | Skills の分野と項目（`order` で並び順） | ○ | 管理者のみ |
 | `works/{id}` | home の WORKS カード5枚（カテゴリへの入口。`ready` `order` `coverUrl`） | ○ | 管理者のみ |
 | `portfolioItems/{id}` | `/portfolio` の中身。カテゴリごとの個々の作品（`category` `order` `ready` `coverUrl` `links`） | ○（`ready:true` のみ） | 管理者のみ |
+| `stats/claudeUsage` | About の Claude Code 利用状況（日ごとのトークン数・応答数・セッション数と合計） | ○ | 登録スクリプトのみ |
 | `contacts/{id}` | 問い合わせ内容 | × | サーバーのみ |
 
 works と portfolioItems は役割が違う：works は「Web Sites」などカテゴリへの入口カード（常に5枚）、
@@ -287,6 +292,35 @@ gcloud auth application-default login
 （接続できないときはネットワーク側の都合のこともあるので、注意を出すだけで止めない。GitHub のページだけは止める）。
 登録ファイルの場所は、誰でも読める `portfolioItems` には保存しない。
 `links` は管理画面では表示だけで編集できない（管理画面で保存しても消えない）。
+
+### Claude Code の利用状況を更新する
+
+About ページの「Claude Code の利用状況」（日別ヒートマップと合計値）は、この PC の Claude Code のログ
+（`~/.claude/projects/**/*.jsonl`）を集計して `stats/claudeUsage` に書いたものを表示する。
+集計は `~/.claude/skills/claude-usage/usage.py`（Claude Code の skill。実体は非公開リポジトリ `claude-usage-log`）が行い、
+Mac の分も合算する（各 PC が毎日 `machines/<PC 名>.json` を push し、それを読んで足す）。
+公開するのは日ごとの数と合計だけ（プロジェクト名や会話の内容は書かない）。
+Claude Code は古いログを消すため、usage.py は日ごとの集計を `~/.claude/usage-history.json` に積み上げて残す。
+
+```bash
+npm run usage           # 集計して書き込む内容を表示（dry-run）
+npm run usage -- --run  # 本番に書き込む（認証は登録スクリプトと同じ gcloud の認証情報）
+```
+
+毎日 23:30 に Windows のタスクスケジューラ（タスク名 `ClaudeUsageToPortfolio`）が
+`scripts/usage-task.cmd` を実行する（この PC の集計を push → 合算して本番に書き込む）。PC が止まっていた日は次に起動したときに実行される。
+結果は `%LOCALAPPDATA%\claude-usage\task.log` に残る。登録し直すときは PowerShell で：
+
+```powershell
+$f = "<このリポジトリ>\portfolio\scripts\usage-task.cmd"
+Register-ScheduledTask -TaskName ClaudeUsageToPortfolio `
+  -Action (New-ScheduledTaskAction -Execute cmd.exe -Argument "/c `"$f`"") `
+  -Trigger (New-ScheduledTaskTrigger -Daily -At 23:30) `
+  -Settings (New-ScheduledTaskSettingsSet -StartWhenAvailable)
+```
+
+About ページは ISR（5 分）なので、書き込んでから 5 分以内に反映される。
+`stats/claudeUsage` が無い・読めないときはタイルを出さない。
 
 ### フォールバック設計
 

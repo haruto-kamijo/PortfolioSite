@@ -23,7 +23,28 @@ export type Dictionary = {
         contactLead: string;
         contactButton: string;
     };
-    about: { heading: Heading; school: string; hobby: string; language: string };
+    about: {
+        heading: Heading;
+        school: string;
+        hobby: string;
+        language: string;
+        /** Claude Code の利用状況タイル。since の {date} は記録開始日に置き換える */
+        usage: {
+            title: string;
+            since: string;
+            heatmapLabel: string;
+            tokensUnit: string;
+            noActivity: string;
+            less: string;
+            more: string;
+            activeDays: string;
+            sessions: string;
+            outputTokens: string;
+            thisMonth: string;
+            last7Days: string;
+            note: string;
+        };
+    };
     academic: { graduated: string };
     portfolio: { heading: Heading; tabsLabel: string; empty: string; noImage: string };
     contact: {
@@ -84,6 +105,21 @@ const ja: Dictionary = {
         school: "所属",
         hobby: "趣味",
         language: "使用言語",
+        usage: {
+            title: "Claude Code の利用状況",
+            since: "{date} から記録",
+            heatmapLabel: "Claude Code を使った日のヒートマップ。色が濃いほど多く使った日",
+            tokensUnit: "トークン",
+            noActivity: "使っていない日",
+            less: "少",
+            more: "多",
+            activeDays: "使った日数",
+            sessions: "セッション",
+            outputTokens: "出力トークン",
+            thisMonth: "今月のトークン",
+            last7Days: "直近 7 日のトークン",
+            note: "この PC の Claude Code のログを毎日集計しています。トークン数はキャッシュの読み書きを含みます。",
+        },
     },
     academic: { graduated: "修了" },
     portfolio: {
@@ -150,6 +186,21 @@ const en: Dictionary = {
         school: "SCHOOL",
         hobby: "HOBBY",
         language: "LANGUAGE",
+        usage: {
+            title: "CLAUDE CODE ACTIVITY",
+            since: "Tracked since {date}",
+            heatmapLabel: "Heatmap of days using Claude Code. Darker cells mean more usage",
+            tokensUnit: "tokens",
+            noActivity: "No activity",
+            less: "Less",
+            more: "More",
+            activeDays: "Active days",
+            sessions: "Sessions",
+            outputTokens: "Output tokens",
+            thisMonth: "Tokens this month",
+            last7Days: "Tokens, last 7 days",
+            note: "Aggregated daily from my local Claude Code logs. Token counts include cache reads and writes.",
+        },
     },
     academic: { graduated: "Alumni" },
     portfolio: {
