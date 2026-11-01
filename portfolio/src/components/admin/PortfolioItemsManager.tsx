@@ -139,6 +139,12 @@ const ItemRow = ({
                         </div>
                     )}
 
+                    {item.tags.length > 0 && (
+                        <p className={labelClass}>
+                            タグ（登録スクリプトで編集）：<span className="text-white/60">{item.tags.join(", ")}</span>
+                        </p>
+                    )}
+
                     <label className="flex items-center gap-2 text-xs text-white/70">
                         <input
                             type="checkbox"

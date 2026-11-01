@@ -28,8 +28,18 @@ export const site = {
 export const links = {
     github: "https://github.com/haruto-kamijo",
     note: "https://note.com/pon20020929/",
+    zenn: "https://zenn.dev/kamijoharuto",
     mail: "kamijoharuto@gmail.com",
 };
+
+/**
+ * /portfolio のブログのタブに自動で並べる記事の RSS。
+ * name はカードのタグに出す。記事の URL が host 以外を指していたら載せない
+ */
+export const blogFeeds = [
+    { name: "Zenn", url: "https://zenn.dev/kamijoharuto/feed", host: "zenn.dev" },
+    { name: "note", url: "https://note.com/pon20020929/rss", host: "note.com" },
+] as const;
 
 export type NavItem = {
     label: Localized;
@@ -49,7 +59,7 @@ export const nav: readonly NavItem[] = [
     { label: { ja: "ホーム", en: "Home" }, href: "/home", ready: true },
     { label: { ja: "プロフィール", en: "About" }, href: "/about", ready: true },
     { label: { ja: "制作物", en: "Works" }, href: "/portfolio", ready: true },
-    { label: { ja: "ブログ", en: "Blog" }, href: links.note, ready: true, external: true },
+    { label: { ja: "ブログ", en: "Blog" }, href: "/portfolio?tab=blog", ready: true },
     { label: { ja: "お問い合わせ", en: "Contact" }, href: "/contact", ready: true },
 ];
 

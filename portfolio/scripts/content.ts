@@ -27,6 +27,7 @@ import {
     trimPortfolioFields,
     validatePortfolioFields,
     validatePortfolioLinks,
+    validatePortfolioTags,
 } from "../src/lib/content/portfolioItem";
 import { PORTFOLIO_CATEGORIES, PortfolioCategory, PortfolioLink, collections } from "../src/lib/content/types";
 import type { Localized } from "../src/lib/i18n";
@@ -55,6 +56,7 @@ type Entry = {
     category: PortfolioCategory;
     fields: PortfolioItemFields;
     links: PortfolioLink[];
+    tags: string[];
     /** 登録ファイルと同じフォルダからの相対パス */
     cover: string | null;
 };
@@ -149,6 +151,14 @@ const parseEntry = (raw: unknown): Entry => {
     if (linkError) throw new Error(linkError);
     for (const link of links) link.href = normalizeUrl(link.href);
 
+    if (raw.tags !== undefined && !Array.isArray(raw.tags)) throw new Error("tags は文字列の配列で書いてください");
+    const tags = ((raw.tags as unknown[]) ?? []).map((t, i) => {
+        if (typeof t !== "string") throw new Error(`tags[${i}] は文字列で書いてください`);
+        return t.trim();
+    });
+    const tagError = validatePortfolioTags(tags);
+    if (tagError) throw new Error(tagError);
+
     // 登録ファイルと同じフォルダの画像だけを許す（../ で別の場所のファイルを公開バケットに上げないため）
     const cover = typeof raw.cover === "string" && raw.cover ? raw.cover : null;
     if (cover && (/[/\\]/.test(cover) || cover.startsWith("."))) {
@@ -158,7 +168,7 @@ const parseEntry = (raw: unknown): Entry => {
         throw new Error(`cover は ${Object.keys(COVER_TYPES).join(" / ")} の画像にしてください`);
     }
 
-    return { id, category: raw.category, fields, links, cover };
+    return { id, category: raw.category, fields, links, tags, cover };
 };
 
 const loadEntry = (source: Source): Entry => {
@@ -297,6 +307,7 @@ const uploadCover = async ({ bucket }: Firebase, id: string, data: Buffer, fileN
 const toDoc = (entry: Entry) => ({
     ...toPortfolioDoc(entry.fields),
     links: toPortfolioLinksDoc(entry.links),
+    tags: entry.tags,
     category: entry.category,
 });
 
@@ -382,6 +393,7 @@ const add = async (arg: string, run: boolean, useEmulator: boolean) => {
     if (entry.fields.caption.ja) show("説明文", entry.fields.caption);
     console.log(`  リンク：${entry.fields.href || "なし"}`);
     for (const l of entry.links) console.log(`    ${l.label.ja}：${l.href}`);
+    console.log(`  タグ：${entry.tags.length > 0 ? entry.tags.join(", ") : "なし"}`);
     console.log(`  カバー画像：${entry.cover ? `${entry.cover}（${Math.round(plan.coverData!.length / 1024)}KB${plan.coverChanged ? "" : "・変更なし"}）` : "なし"}`);
     console.log(
         plan.exists
