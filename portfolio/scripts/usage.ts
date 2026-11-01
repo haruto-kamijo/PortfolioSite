@@ -87,10 +87,12 @@ const toDoc = (ex: Exported): ClaudeUsage => {
     if (!generatedAt) {
         throw new Error("集計結果の generated_at（集計した日時）が無いか、正しい日時ではありません。usage.py --public-json の出力を使ってください");
     }
-    const from = addDays(todayInTokyo(generatedAt), -(CLAUDE_USAGE_KEEP_DAYS - 1));
+    const to = todayInTokyo(generatedAt);
+    const from = addDays(to, -(CLAUDE_USAGE_KEEP_DAYS - 1));
     const doc: ClaudeUsage = {
         days: ex.daily
-            .filter((d) => d.date >= from && d.messages > 0)
+            // 集計日より後の日付は（PC の時計がずれていた場合など）保存しない
+            .filter((d) => d.date >= from && d.date <= to && d.messages > 0)
             .map((d) => ({ d: d.date, t: d.total_tokens, o: d.output_tokens, m: d.messages, s: d.sessions })),
         totals: {
             activeDays: ex.totals.active_days,

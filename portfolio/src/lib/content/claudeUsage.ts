@@ -63,6 +63,8 @@ export const parseClaudeUsage = (data: unknown): ClaudeUsage | null => {
 
     const parsedDays = days.map(parseDay);
     if (parsedDays.some((d) => d === null)) return null;
+    // 同じ日が 2 回あると、合計では二重に数え、ヒートマップでは片方が消える。崩れたデータとして扱う
+    if (new Set(parsedDays.map((d) => d!.d)).size !== parsedDays.length) return null;
 
     const tt = totals as Record<string, unknown>;
     const counts = ["activeDays", "sessions", "messages", "totalTokens", "outputTokens"] as const;
