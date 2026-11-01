@@ -24,9 +24,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # firebase-tools は、ここで動かす Node のバージョンを SSR 用 Cloud Functions のランタイムにする。
+      # Cloud Functions で提供が終わったバージョン（Node 20 は 2026-10-30 に終了）にするとデプロイが止まる
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: portfolio/package-lock.json
 
