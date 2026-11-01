@@ -24,7 +24,28 @@ export type Dictionary = {
         contactLead: string;
         contactButton: string;
     };
-    about: { heading: Heading; school: string; hobby: string; language: string };
+    about: {
+        heading: Heading;
+        school: string;
+        hobby: string;
+        language: string;
+        /** Claude Code の利用状況タイル。{date} などの差し込み先は ClaudeUsagePanel を参照 */
+        usage: {
+            title: string;
+            since: string;
+            heatmapLabel: string;
+            tokensUnit: string;
+            noActivity: string;
+            less: string;
+            more: string;
+            activeDays: string;
+            sessions: string;
+            outputTokens: string;
+            thisMonth: string;
+            last7Days: string;
+            note: string;
+        };
+    };
     academic: { graduated: string };
     portfolio: { heading: Heading; tabsLabel: string; tagsLabel: string; empty: string; noImage: string };
     contact: {
@@ -86,6 +107,21 @@ const ja: Dictionary = {
         school: "所属",
         hobby: "趣味",
         language: "使用言語",
+        usage: {
+            title: "Claude Code の利用状況",
+            since: "{date} から記録・{updated} 時点",
+            heatmapLabel: "Claude Code を使った日のヒートマップ（{from}〜{to}）。{days} 日使用、最も多かったのは {busiest}",
+            tokensUnit: "トークン",
+            noActivity: "使っていない日",
+            less: "少",
+            more: "多",
+            activeDays: "使った日数",
+            sessions: "セッション",
+            outputTokens: "出力トークン",
+            thisMonth: "今月のトークン",
+            last7Days: "直近 7 日のトークン",
+            note: "私の PC（Windows・Mac）の Claude Code のログを毎日集計しています。トークン数はキャッシュの読み書きを含みます。",
+        },
     },
     academic: { graduated: "修了" },
     portfolio: {
@@ -154,6 +190,21 @@ const en: Dictionary = {
         school: "SCHOOL",
         hobby: "HOBBY",
         language: "LANGUAGE",
+        usage: {
+            title: "CLAUDE CODE ACTIVITY",
+            since: "Tracked since {date} · as of {updated}",
+            heatmapLabel: "Heatmap of Claude Code usage from {from} to {to}: active on {days} days, busiest on {busiest}",
+            tokensUnit: "tokens",
+            noActivity: "No activity",
+            less: "Less",
+            more: "More",
+            activeDays: "Active days",
+            sessions: "Sessions",
+            outputTokens: "Output tokens",
+            thisMonth: "Tokens this month",
+            last7Days: "Tokens, last 7 days",
+            note: "Aggregated daily from my Claude Code logs across my machines (Windows and Mac). Token counts include cache reads and writes.",
+        },
     },
     academic: { graduated: "Alumni" },
     portfolio: {
