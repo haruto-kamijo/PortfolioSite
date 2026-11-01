@@ -60,13 +60,32 @@ const runAggregator = (): Exported => {
     }
 };
 
+const ISO_DATETIME = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+
+/**
+ * usage.py の generated_at（例：2026-11-02T00:12:00+09:00）を読む。
+ * new Date() は 2026-02-30 のような実在しない日を 3 月 2 日に読み替えてしまうので、
+ * 形式と実在する暦日・時刻かを先に確かめる。だめなら null
+ */
+const parseGeneratedAt = (value: unknown): Date | null => {
+    if (typeof value !== "string") return null;
+    const m = ISO_DATETIME.exec(value);
+    if (!m) return null;
+    const [y, mo, d, h, mi, s] = m.slice(1, 7).map(Number);
+    const day = new Date(Date.UTC(y, mo - 1, d));
+    const realDay = day.getUTCFullYear() === y && day.getUTCMonth() === mo - 1 && day.getUTCDate() === d;
+    if (!realDay || h > 23 || mi > 59 || s > 59) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+};
+
 /** 書き込む形にする。直近 CLAUDE_USAGE_KEEP_DAYS 日のうち、使った日だけを残す */
 const toDoc = (ex: Exported): ClaudeUsage => {
     if (!ex.totals.first_day) throw new Error("集計結果が空です");
     // 集計した日時を基準にする（--from で前に書き出した JSON を使ったとき、実行日を集計日として扱わないため）
-    const generatedAt = new Date(ex.generated_at);
-    if (typeof ex.generated_at !== "string" || Number.isNaN(generatedAt.getTime())) {
-        throw new Error("集計結果に generated_at（集計した日時）がありません。usage.py --public-json の出力を使ってください");
+    const generatedAt = parseGeneratedAt(ex.generated_at);
+    if (!generatedAt) {
+        throw new Error("集計結果の generated_at（集計した日時）が無いか、正しい日時ではありません。usage.py --public-json の出力を使ってください");
     }
     const from = addDays(todayInTokyo(generatedAt), -(CLAUDE_USAGE_KEEP_DAYS - 1));
     const doc: ClaudeUsage = {
