@@ -63,7 +63,12 @@ const runAggregator = (): Exported => {
 /** 書き込む形にする。直近 CLAUDE_USAGE_KEEP_DAYS 日のうち、使った日だけを残す */
 const toDoc = (ex: Exported): ClaudeUsage => {
     if (!ex.totals.first_day) throw new Error("集計結果が空です");
-    const from = addDays(todayInTokyo(), -(CLAUDE_USAGE_KEEP_DAYS - 1));
+    // 集計した日時を基準にする（--from で前に書き出した JSON を使ったとき、実行日を集計日として扱わないため）
+    const generatedAt = new Date(ex.generated_at);
+    if (typeof ex.generated_at !== "string" || Number.isNaN(generatedAt.getTime())) {
+        throw new Error("集計結果に generated_at（集計した日時）がありません。usage.py --public-json の出力を使ってください");
+    }
+    const from = addDays(todayInTokyo(generatedAt), -(CLAUDE_USAGE_KEEP_DAYS - 1));
     const doc: ClaudeUsage = {
         days: ex.daily
             .filter((d) => d.date >= from && d.messages > 0)
@@ -76,7 +81,7 @@ const toDoc = (ex: Exported): ClaudeUsage => {
             outputTokens: ex.totals.output_tokens,
             firstDay: ex.totals.first_day,
         },
-        updatedAt: new Date().toISOString(),
+        updatedAt: generatedAt.toISOString(),
     };
     // 画面側と同じ検査に通らないものは書かない（書いても表示されないため）
     if (!parseClaudeUsage(doc)) throw new Error("集計結果の形が想定と違います。usage.py の出力を確認してください");
@@ -125,6 +130,7 @@ const main = async () => {
         : runAggregator();
     const doc = toDoc(exported);
 
+    console.log(`集計日時 ${doc.updatedAt}`);
     console.log(`記録開始 ${doc.totals.firstDay} / 使った日 ${doc.totals.activeDays} 日 / セッション ${doc.totals.sessions}`);
     console.log(`トークン合計 ${fmt(doc.totals.totalTokens)}（出力 ${fmt(doc.totals.outputTokens)}）`);
     console.log(`書き込む日数 ${doc.days.length} 日（${doc.days[0]?.d ?? "-"} 〜 ${doc.days.at(-1)?.d ?? "-"}）`);
