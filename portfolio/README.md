@@ -16,7 +16,7 @@ npm run lint
 Firebase Hosting（プロジェクト: `portfoliosite-b12da`）。
 
 main に push すると GitHub Actions（`.github/workflows/deploy.yml`）が自動でデプロイする。
-SSR 用 Cloud Functions の Node のバージョンは `package.json` の `engines.node` で決まる。Cloud Functions で提供が終わると（Node 20 は 2026-10-30 に終了）デプロイが止まるので、そのときは `engines.node` と `deploy.yml` の `node-version` を一緒に上げる。
+SSR 用 Cloud Functions の Node のバージョンは `package.json` の `engines.node` で決まる。Cloud Functions で提供が終わると（Node 20 は 2026-10-30 に終了）デプロイが止まるので、そのときは `engines.node` を上げる（`deploy.yml` もここから Node の版を読む）。
 
 手元からデプロイする場合：
 
