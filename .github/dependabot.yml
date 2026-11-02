@@ -50,7 +50,8 @@ updates:
         update-types: [version-update:semver-major]
       # firebase-tools はデプロイのときに firebase-frameworks を足す。その peer が firebase ^12・firebase-admin ^13 までなので、
       # それより上のメジャーにするとデプロイの npm install が ERESOLVE で止まる（CI では分からない）。
-      # firebase-frameworks が新しいメジャーに対応したら外す（npm view firebase-frameworks peerDependencies で確かめる）。
+      # 外すのは、deploy.yml で固定した firebase-tools が足す範囲（今は firebase-frameworks ^0.11.0）の中に、新しいメジャーに対応した版が出てから。
+      # 範囲の外の版でしか対応していなければ、先に deploy.yml の firebase-tools を上げて、足される範囲を確かめる。
       # firebase 13 はさらに engines で Node 24.12 以上を求めるので、engines.node を 24（24.12 以上）に上げることも条件
       - dependency-name: firebase
         update-types: [version-update:semver-major]

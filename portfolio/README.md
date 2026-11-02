@@ -50,7 +50,7 @@ firebase deploy
   - minor・patch の更新は、1つの PR にまとめる。ただし `three`・`@types/three` は 0.x で壊れやすいので、まとめずに別の PR にする。
   - Next.js・React・Tailwind・ESLint などのメジャー更新は、作り直しを伴うので出さない。
   - TypeScript（Next 14 では 7 が使えない）のメジャー更新も出さない。Next を上げるときに手で上げる。
-  - firebase・firebase-admin のメジャー更新も出さない。デプロイのときに firebase-tools が足す `firebase-frameworks` が firebase 12・firebase-admin 13 までしか対応しておらず、それより上ではデプロイが止まる（PR の CI では分からない）。対応したら外す。firebase 13 は Node 24.12 以上も求めるので、`engines.node` を 24 に上げることも条件。
+  - firebase・firebase-admin のメジャー更新も出さない。デプロイのときに firebase-tools が足す `firebase-frameworks` が firebase 12・firebase-admin 13 までしか対応しておらず、それより上ではデプロイが止まる（PR の CI では分からない）。外すのは、`deploy.yml` で固定した firebase-tools が足す範囲（今は `firebase-frameworks ^0.11.0`）の中に、対応した版が出てから。範囲の外の版でしか対応していなければ、先に firebase-tools を上げる。firebase 13 は Node 24.12 以上も求めるので、`engines.node` を 24 に上げることも条件。
   - この除外が効くのは、毎週の通常の更新だけ。リポジトリで Dependabot のセキュリティ更新を有効にしていると、脆弱性を直すためのメジャー更新は除外していても PR が出る。
 - **サポート期限の確認**（`.github/workflows/lifecycle.yml`）：毎週月曜に、次の期限や遅れを確かめる。
   - Cloud Functions の Node のランタイム：期限は firebase-tools の対応表から読む。
