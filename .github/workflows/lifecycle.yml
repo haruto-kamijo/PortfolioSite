@@ -1,0 +1,40 @@
+# サポート期限が近いもの・切れたもの（Cloud Functions の Node のランタイム・Node.js・Next.js・firebase-tools）を
+# 毎週確かめ、対応が必要なものがあれば Issue で知らせる。中身は .github/scripts/check-lifecycle.mjs
+name: Lifecycle check
+
+on:
+  schedule:
+    # 毎週月曜 9:00（日本時間）。Dependabot の PR と同じ日にそろえる
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+  # このワークフローとスクリプトを変える PR では、Issue を触らずに結果だけ出して動作を確かめる
+  pull_request:
+    paths:
+      - ".github/workflows/lifecycle.yml"
+      - ".github/scripts/check-lifecycle.mjs"
+
+concurrency:
+  group: lifecycle-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: portfolio/package.json
+
+      - name: Check support dates
+        run: node .github/scripts/check-lifecycle.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ github.event_name == 'pull_request' && '1' || '' }}

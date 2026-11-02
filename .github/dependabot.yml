@@ -1,0 +1,52 @@
+# 依存パッケージと GitHub Actions の更新を、毎週 PR で知らせる。
+# マージは本人が行う（PR には CodeRabbit のレビューと CI・E2E が付く）。
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /portfolio
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "[chore]"
+    # 小さな更新（minor・patch）は1つの PR にまとめる
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    # 土台のフレームワークのメジャー更新は、作り直しを伴うので自動では出さない。
+    # サポート期限は lifecycle.yml が毎週確かめて、切れそうなら Issue で知らせる
+    ignore:
+      - dependency-name: next
+        update-types: [version-update:semver-major]
+      - dependency-name: eslint-config-next
+        update-types: [version-update:semver-major]
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major]
+      - dependency-name: "@types/react"
+        update-types: [version-update:semver-major]
+      - dependency-name: "@types/react-dom"
+        update-types: [version-update:semver-major]
+      - dependency-name: "@react-three/*"
+        update-types: [version-update:semver-major]
+      - dependency-name: tailwindcss
+        update-types: [version-update:semver-major]
+      - dependency-name: eslint
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    commit-message:
+      prefix: "[chore]"
+    groups:
+      actions:
+        patterns: ["*"]

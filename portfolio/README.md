@@ -44,6 +44,20 @@ npm run build
 firebase deploy
 ```
 
+### 更新とサポート期限の通知
+
+- **Dependabot**（`.github/dependabot.yml`）：毎週月曜に、npm の依存と GitHub Actions の更新を PR で出す。
+  - minor・patch の更新は、1つの PR にまとめる。
+  - Next.js・React・Tailwind・ESLint などのメジャー更新は、作り直しを伴うので出さない。
+- **サポート期限の確認**（`.github/workflows/lifecycle.yml`）：毎週月曜に、次の期限や遅れを確かめる。
+  - Cloud Functions の Node のランタイム：期限は firebase-tools の対応表から読む。
+  - Node.js・Next.js：期限は endoflife.date から読む。
+  - Next.js の同じ系列の新しいパッチ。
+  - `deploy.yml` で固定している firebase-tools の版の遅れ。
+
+  期限まで半年を切ったものや切れたものがあれば、Issue「サポート期限の確認：対応が必要なものがあります」を作るか更新し、無くなったら閉じる。
+  手で動かすときは Actions の画面から `workflow_dispatch` で実行する。
+
 ## 画面構成
 
 | ルート  | 内容                                             |
