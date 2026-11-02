@@ -104,10 +104,24 @@ const readRuntimeTable = async (spec) => {
     return { version: packed.version, runtimes };
 };
 
-const getJson = async (url) => {
+/**
+ * endoflife.date の系列の一覧を読む。形が想定と違えば例外にして、「読めなかった」として出す
+ * （eol や latest が欠けたまま判定すると、黙って「問題なし」になったり、パッチの知らせが出なくなったりするため）
+ */
+const getCycles = async (url) => {
     const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
     if (!res.ok) throw new Error(`${url} を読めませんでした（HTTP ${res.status}）`);
-    return res.json();
+    const cycles = await res.json();
+    if (!Array.isArray(cycles) || cycles.length === 0) throw new Error(`${url} の応答が系列の一覧ではありませんでした`);
+    for (const c of cycles) {
+        const ok =
+            (typeof c?.cycle === "string" || typeof c?.cycle === "number") &&
+            (typeof c.eol === "boolean" || isValidDate(c.eol)) &&
+            typeof c.latest === "string" &&
+            /^\d+(\.\d+)*$/.test(c.latest);
+        if (!ok) throw new Error(`${url} の系列 ${c?.cycle ?? "?"} の形が想定と違いました`);
+    }
+    return cycles;
 };
 
 const settle = async (fn) => {
@@ -120,8 +134,8 @@ const settle = async (fn) => {
 // 順番に読む（npm pack の待ち時間で、fetch のタイムアウトを使い切らないように）
 const latestTable = await settle(() => readRuntimeTable("firebase-tools@latest"));
 const pinnedTable = pinnedFirebaseTools ? await settle(() => readRuntimeTable(`firebase-tools@${pinnedFirebaseTools}`)) : null;
-const nodeCycles = await settle(() => getJson("https://endoflife.date/api/nodejs.json"));
-const nextCycles = await settle(() => getJson("https://endoflife.date/api/nextjs.json"));
+const nodeCycles = await settle(() => getCycles("https://endoflife.date/api/nodejs.json"));
+const nextCycles = await settle(() => getCycles("https://endoflife.date/api/nextjs.json"));
 
 // ---- 確かめる ----
 
@@ -288,6 +302,8 @@ if (DRY_RUN) {
     } else if (needsAction) {
         console.log(await run("gh", ["issue", "create", "--title", ISSUE_TITLE, "--label", ISSUE_LABEL, "--body-file", bodyFile]));
     } else if (open) {
+        // 閉じる前に、問題が無くなった週の結果を本文に残す
+        await run("gh", ["issue", "edit", String(open.number), "--body-file", bodyFile]);
         await run("gh", ["issue", "close", String(open.number), "--comment", "対応が必要なものは無くなりました。"]);
         console.log(`Issue #${open.number} を閉じた`);
     }
