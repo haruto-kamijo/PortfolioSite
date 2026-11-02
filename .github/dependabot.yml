@@ -48,7 +48,8 @@ updates:
       # TypeScript 7 は Next 14 が使う Compiler API を持たず、ビルドが止まる。Next を上げるときに合わせて上げる
       - dependency-name: typescript
         update-types: [version-update:semver-major]
-      # firebase 13 は Node 24.12 以上が必要。engines.node（Cloud Functions のランタイム）を 24 に上げるときに手で上げる
+      # firebase 13 は engines で Node 24.12 以上を求め、Node 22（Cloud Functions のランタイム）は動作保証の外になる。
+      # engines.node を 24 に上げるときに手で上げる（そのとき Cloud Functions の Node 24 が 24.12 以上かを確かめる）
       - dependency-name: firebase
         update-types: [version-update:semver-major]
 
