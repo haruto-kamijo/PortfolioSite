@@ -8,7 +8,7 @@ import type { Locale } from "@/lib/i18n";
 type Heading = { title: string; sub: string };
 
 export type Dictionary = {
-    meta: { siteTitle: string; home: string; about: string; aboutDescription: string; portfolio: string; portfolioDescription: string; contact: string; contactDescription: string };
+    meta: { siteTitle: string; home: string; about: string; aboutDescription: string; portfolio: string; portfolioDescription: string; contact: string; contactDescription: string; catalog: string; catalogDescription: string; catalogParts: string; catalogPartsDescription: string };
     start: { kicker: string; cta: string; hintPointer: string; hintTouch: string };
     header: { openMenu: string; soon: string; switchTo: string; switchLabel: string };
     home: {
@@ -48,6 +48,35 @@ export type Dictionary = {
     };
     academic: { graduated: string };
     portfolio: { heading: Heading; tabsLabel: string; tagsLabel: string; empty: string; noImage: string };
+    /** デザインカタログ（/catalog）。{n} などの差し込み先は各ページを参照 */
+    catalog: {
+        heading: Heading;
+        lead: string;
+        viewsLabel: string;
+        pages: string;
+        parts: string;
+        partsHeading: Heading;
+        partsLead: string;
+        partsIndexLabel: string;
+        purpose: string;
+        style: string;
+        font: string;
+        palette: string;
+        fictional: string;
+        open: string;
+        partsCount: string;
+        previewLabel: string;
+        hintPointer: string;
+        hintTouch: string;
+        partsOnPage: string;
+        openInParts: string;
+        aliases: string;
+        usedIn: string;
+        viewOnPage: string;
+        back: string;
+        prev: string;
+        next: string;
+    };
     contact: {
         heading: Heading;
         lead: string;
@@ -81,6 +110,10 @@ const ja: Dictionary = {
         portfolioDescription: "上條遥都の制作物一覧。Webサイト・ゲーム・3Dモデル・写真。",
         contact: "お問い合わせ",
         contactDescription: "上條遥都へのお問い合わせフォーム。制作のご相談はこちらから。",
+        catalog: "デザインカタログ",
+        catalogDescription: "目的の違う架空のサイトを、見た目の流派ごとにデザインした見本集。UI パーツの名前と見本を紐づけて見られる。",
+        catalogParts: "パーツ図鑑",
+        catalogPartsDescription: "Web ページの UI パーツの名前と役割を、デザインカタログの4つの見本と一緒に引ける図鑑。",
     },
     start: {
         kicker: "ポートフォリオサイト",
@@ -131,6 +164,34 @@ const ja: Dictionary = {
         empty: "準備中です",
         noImage: "画像なし",
     },
+    catalog: {
+        heading: { title: "デザインカタログ", sub: "DESIGN CATALOG" },
+        lead: "目的の違う架空のサイトを、見た目の流派ごとにデザインしました。ページの中のパーツを指すと名前が出て、押すとパーツ図鑑でその役割と、ほかのページでの見え方を比べられます。",
+        viewsLabel: "表示の切り替え",
+        pages: "ページ",
+        parts: "パーツ図鑑",
+        partsHeading: { title: "パーツ図鑑", sub: "UI PARTS" },
+        partsLead: "Web ページでよく使う UI パーツの名前と役割です。同じパーツでも、流派によって見た目が大きく変わります。",
+        partsIndexLabel: "パーツの一覧",
+        purpose: "目的",
+        style: "流派",
+        font: "書体",
+        palette: "配色",
+        fictional: "実在しない架空のサイトです",
+        open: "ページを見る",
+        partsCount: "{n} 個のパーツ",
+        previewLabel: "{name} のデザイン見本",
+        hintPointer: "パーツにカーソルを合わせると名前が出ます。クリックするとパーツ図鑑に移ります。",
+        hintTouch: "パーツをタップすると名前が出ます。もう一度タップするとパーツ図鑑に移ります。",
+        partsOnPage: "このページのパーツ",
+        openInParts: "図鑑で見る",
+        aliases: "別名：",
+        usedIn: "使っているページ",
+        viewOnPage: "ページで見る",
+        back: "カタログの一覧へ",
+        prev: "前のページ：",
+        next: "次のページ：",
+    },
     contact: {
         heading: { title: "お問い合わせ", sub: "CONTACT" },
         lead: "制作のご相談・ご依頼、その他のご連絡はこちらからお願いします。内容を確認のうえ、ご記入いただいたメールアドレスに返信します。",
@@ -164,6 +225,10 @@ const en: Dictionary = {
         portfolioDescription: "Works by Kamijo Haruto: websites, games, 3D models, and photos.",
         contact: "Contact",
         contactDescription: "Contact form for Kamijo Haruto. Feel free to reach out about projects.",
+        catalog: "Design Catalog",
+        catalogDescription: "Fictional websites for different purposes, each designed in a different visual style, with every UI part named and linked.",
+        catalogParts: "Parts Guide",
+        catalogPartsDescription: "A field guide to web UI parts: names, roles and samples from the four sites in the design catalog.",
     },
     start: {
         kicker: "PORTFOLIO SITE",
@@ -213,6 +278,34 @@ const en: Dictionary = {
         tagsLabel: "Built with",
         empty: "Coming soon...",
         noImage: "No image",
+    },
+    catalog: {
+        heading: { title: "DESIGN CATALOG", sub: "Pages & UI parts" },
+        lead: "Fictional websites for different purposes, each designed in its own visual style. Point at a part of a page to see its name, and click to open the parts guide, where you can compare how it looks on the other pages.",
+        viewsLabel: "Switch view",
+        pages: "Pages",
+        parts: "Parts Guide",
+        partsHeading: { title: "PARTS GUIDE", sub: "UI parts" },
+        partsLead: "Names and roles of common web UI parts. The same part can look very different depending on the style.",
+        partsIndexLabel: "All parts",
+        purpose: "Purpose",
+        style: "Style",
+        font: "Type",
+        palette: "Colors",
+        fictional: "This is a fictional website",
+        open: "View page",
+        partsCount: "{n} parts",
+        previewLabel: "Design sample of {name}",
+        hintPointer: "Hover over a part to see its name. Click it to open the parts guide.",
+        hintTouch: "Tap a part to see its name. Tap it again to open the parts guide.",
+        partsOnPage: "Parts on this page",
+        openInParts: "Open in guide",
+        aliases: "Also called: ",
+        usedIn: "Used on",
+        viewOnPage: "View on page",
+        back: "Back to catalog",
+        prev: "Previous: ",
+        next: "Next: ",
     },
     contact: {
         heading: { title: "CONTACT", sub: "Get in touch" },

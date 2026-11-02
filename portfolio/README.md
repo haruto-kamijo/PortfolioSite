@@ -34,6 +34,9 @@ firebase deploy
 | `/about` | プロフィール（写真・所属・学年・趣味・使用言語） |
 | `/portfolio?tab=` | 作品一覧。`sites` / `games` / `models` / `photos` / `pocs` / `kaggle` / `blog` をタブで切り替え。`blog` には Zenn・note の記事を RSS から自動で並べる |
 | `/contact` | お問い合わせフォーム |
+| `/catalog` | デザインカタログ。目的の違う架空のサイト4つを、見た目の流派ごとに作った見本の一覧。制作物の `sites` タブの先頭にもカードを出す |
+| `/catalog/<見本>` | 見本のページ（`kissa` / `saas` / `magazine` / `studio`）。パーツを指すと名前が出て、押すとパーツ図鑑のその項目へ移る |
+| `/catalog/parts` | パーツ図鑑。UI パーツの名前・別名・役割と、各見本での見え方。「ページで見る」で `/catalog/<見本>?part=<パーツ>` に戻る |
 | `/og.png` | リンクを貼ったときに出る画像（OGP、ビルド時に生成） |
 | `/login` | 管理者ログイン（Googleサインイン） |
 | `/admin` | CMS。受信箱・プロフィール編集・TOPカード・ポートフォリオ管理 |
@@ -62,6 +65,7 @@ src/
         about/page.tsx
         portfolio/page.tsx // ?tab= でカテゴリを切り替え
         contact/page.tsx
+        catalog/           // デザインカタログ（page.tsx・[concept]/page.tsx・parts/page.tsx）
     admin/                 // 認証必須のCMS。layout.tsx が未認証を弾く
       layout.tsx
       page.tsx             // ダッシュボード
@@ -71,6 +75,7 @@ src/
       portfolio/           // /portfolio の中身（カテゴリ別の個々の作品）の管理
     login/page.tsx         // 管理者ログイン。有効なセッションがあれば /admin へ即リダイレクト
     og.png/route.tsx       // OGP 画像（1200×630）。拡張子付きなので middleware を通らない
+    catalog-cover.png/route.tsx // デザインカタログのカードのカバー画像
     api/
       contact/route.ts     // 問い合わせの受け口
       admin/session/route.ts // セッションCookieの発行・失効
@@ -88,6 +93,11 @@ src/
     ui/
       Panel.tsx / SectionTitle.tsx / AcademicStatusLine.tsx
     portfolio/PortfolioCard.tsx // 作品1件のカード（/portfolio とホームの Latest で共通）
+    catalog/
+      concepts/            // 見本のページ4つ（Kissa / Saas / Magazine / Studio）。パーツは <Part id> で印を付ける
+      Part.tsx             // パーツの印（data-part）
+      CatalogViewer.tsx    // 見本をブラウザの枠に入れ、指す・押す・一覧との連動を受け持つ
+      CatalogNav.tsx / HashHighlight.tsx
     admin/
       AdminShell.tsx       // 管理画面の外枠（ナビ・ログアウト）
       CoverUploader.tsx    // 画像アップロード共通部品（works/portfolioItems両方で使う）
@@ -120,6 +130,10 @@ src/
       feeds.ts                // Zenn・note の RSS からブログのカードを作る（1時間キャッシュ）
       claudeUsage.ts          // About の Claude Code 利用状況の型・検査（画面と登録スクリプトで共通）
       getClaudeUsage.ts       // 公開ページ向け（stats/claudeUsage）
+    catalog/
+      parts.ts                // パーツ図鑑の項目（名前・別名・役割）。見本の <Part id> はここの id
+      concepts.ts             // 見本のページの説明（目的・流派・書体・配色）。どれも架空のサイト
+      portfolioItem.ts        // 制作物の sites タブに出すカタログのカード（Firestore には置かない）
     metadata.ts               // 公開ページの OGP（各ページが自分の URL で呼ぶ）
     three/shaders/            // GLSL
 scripts/
