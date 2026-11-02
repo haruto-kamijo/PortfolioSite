@@ -1,0 +1,69 @@
+# サポート期限が近いもの・切れたもの（Cloud Functions の Node のランタイム・Node.js・Next.js・firebase-tools）を
+# 毎週確かめ、対応が必要なものがあれば Issue で知らせる。中身は .github/scripts/check-lifecycle.mjs
+name: Lifecycle check
+
+on:
+  schedule:
+    # 毎週月曜 9:00（日本時間）。Dependabot の PR と同じ日にそろえる
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+  # このワークフローとスクリプトを変える PR では、Issue を触らずに結果だけ出して動作を確かめる（dry-run のジョブ）
+  pull_request:
+    paths:
+      - ".github/workflows/lifecycle.yml"
+      - ".github/scripts/check-lifecycle.mjs"
+      # 確かめる対象（engines.node・next の版・deploy.yml の firebase-tools の版）を変える PR でも結果を出す
+      - "portfolio/package.json"
+      - "portfolio/package-lock.json"
+      - ".github/workflows/deploy.yml"
+
+# Issue を書いている途中で止めないよう、重なったら後のものを待たせる
+concurrency:
+  group: lifecycle-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # PR：PR のコードを動かすので、Issue を書ける権限もトークンも渡さず、結果をサマリーに出すだけにする
+  dry-run:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: portfolio/package.json
+
+      - name: Check support dates (dry run)
+        run: node .github/scripts/check-lifecycle.mjs
+        env:
+          DRY_RUN: "1"
+
+  # 定期実行・手動実行：既定のブランチ（main）のコードだけを動かし、Issue を作る・更新する。
+  # 手動実行は別のブランチも選べるので、そのときは動かさない（別のブランチの設定で Issue を書き換えないように）
+  report:
+    if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.repository.default_branch }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: portfolio/package.json
+
+      - name: Check support dates
+        run: node .github/scripts/check-lifecycle.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
