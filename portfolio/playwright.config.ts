@@ -31,7 +31,8 @@ export default defineConfig({
     webServer: {
         command: `npm run start -- -p ${PORT}`,
         url: `http://localhost:${PORT}/catalog`,
-        reuseExistingServer: !process.env.CI,
+        // 立ち上げ済みのサーバーは使わない（BLOG_FEEDS_DISABLED が付いているとは限らないため）。3100 番が使われていたら止めてから動かす
+        reuseExistingServer: false,
         timeout: 60_000,
         // 外の RSS（Zenn・note）を読まない。ビルドのときも同じ値にする（e2e.yml・README）
         env: { BLOG_FEEDS_DISABLED: "true" },
