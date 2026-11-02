@@ -84,16 +84,24 @@ export const CatalogViewer = ({
         setReady(true);
 
         // 図鑑から来たとき：そのパーツを囲み、最初の1つが見えるところまで動かす。
-        // 別のページから移ってきたときは、この effect のあとに URL が書き換わることがあるので、少し待ってから読む
-        const timer = window.setTimeout(() => {
-            const id = new URLSearchParams(window.location.search).get("part");
-            const first = id ? stageRef.current?.querySelector<HTMLElement>(`[data-part="${CSS.escape(id)}"]`) : null;
-            if (id && first) {
-                setPinnedId(id);
-                const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-                first.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
-            }
-        }, 0);
+        // 別のページから移ってきたときは、この effect のあとに URL が書き換わることがあるので、少し待ってから読む。
+        // 同じページのまま戻る・進むで ?part= が変わったとき（popstate）も読み直し、無ければ囲みを外す。
+        // useSearchParams を使うと、静的に作るこのページで見本ごとサーバーで描かれなくなるため、URL を直接読む
+        let timer = 0;
+        const syncFromQuery = () => {
+            window.clearTimeout(timer);
+            timer = window.setTimeout(() => {
+                const id = new URLSearchParams(window.location.search).get("part");
+                const first = id ? stageRef.current?.querySelector<HTMLElement>(`[data-part="${CSS.escape(id)}"]`) : null;
+                setPinnedId(id && first ? id : null);
+                if (first) {
+                    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                    first.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+                }
+            }, 0);
+        };
+        syncFromQuery();
+        window.addEventListener("popstate", syncFromQuery);
 
         // 一覧に無いパーツがページにあると、押しても図鑑に何も出ない。作る途中で気づけるように知らせる
         if (process.env.NODE_ENV !== "production" && stageRef.current) {
@@ -105,7 +113,10 @@ export const CatalogViewer = ({
                 console.warn("[catalog] samples とページのパーツが一致しません", { missing, unused });
             }
         }
-        return () => window.clearTimeout(timer);
+        return () => {
+            window.clearTimeout(timer);
+            window.removeEventListener("popstate", syncFromQuery);
+        };
     }, [parts]);
 
     const partAt = (target: EventTarget | null) => {

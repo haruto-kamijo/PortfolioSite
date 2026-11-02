@@ -62,6 +62,24 @@ test.describe("PC", () => {
         await expect(label(page)).toContainText("価格リスト");
     });
 
+    test("同じページのまま戻る・進むで ?part= が変わると、囲みもそれに合わせる", async ({ page }) => {
+        await openConcept(page, "/catalog/kissa?part=menu-list");
+        await page.mouse.move(1, 1);
+        await expect(boxes(page)).toHaveCount(1);
+        // ?part= の無い URL を履歴に足してから戻る・進む
+        await page.evaluate(() => window.history.pushState(null, "", "/catalog/kissa"));
+        await page.goBack();
+        await expect.poll(() => pathOf(page)).toBe("/catalog/kissa?part=menu-list");
+        await expect(boxes(page)).toHaveCount(1);
+        await page.goForward();
+        await expect.poll(() => pathOf(page)).toBe("/catalog/kissa");
+        await expect(boxes(page)).toHaveCount(0);
+        // 一覧を指して外れても、古い囲みは戻ってこない
+        await partsList(page).getByRole("link", { name: "特徴グリッド", exact: true }).hover();
+        await page.mouse.move(1, 1);
+        await expect(boxes(page)).toHaveCount(0);
+    });
+
     test("横の一覧を指すと、ページの中の同じパーツが全部囲まれる", async ({ page }) => {
         await openConcept(page, "/catalog/magazine");
         const tags = await stage(page).locator('[data-part="tag"]').count();
