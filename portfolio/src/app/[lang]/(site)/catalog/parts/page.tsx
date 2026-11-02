@@ -93,7 +93,7 @@ export default function CatalogPartsPage({ params }: Props) {
                             <p className="mt-4 max-w-3xl text-sm leading-relaxed text-slate-300">{pick(part.description, lang)}</p>
 
                             <p className="mb-3 mt-6 text-xs tracking-[0.2em] text-cyan-100/60">{t.usedIn}</p>
-                            <ul className={`grid gap-4 ${WIDE_PARTS.has(id) ? "" : "md:grid-cols-2"}`}>
+                            <ul className={`grid grid-cols-[minmax(0,1fr)] gap-4 ${WIDE_PARTS.has(id) ? "" : "md:grid-cols-2"}`}>
                                 {usedIn.map((c) => {
                                     const { Frame, samples } = CONCEPT_VIEWS[c];
                                     const Sample = samples[id]!;

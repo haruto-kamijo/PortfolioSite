@@ -31,10 +31,14 @@ const Ticker = ({ lang }: { lang: Locale }) => {
         </span>
     ));
     return (
-        <Part id="ticker" className="overflow-hidden border-b-[3px] border-[#111] bg-[#ffe500] py-1.5 text-xs font-bold">
+        // 動きを減らす設定では流さず、2回目の列を隠して横にスクロールして読めるようにする
+        <Part
+            id="ticker"
+            className="overflow-hidden border-b-[3px] border-[#111] bg-[#ffe500] py-1.5 text-xs font-bold motion-reduce:overflow-x-auto"
+        >
             <div className="flex w-max animate-marquee whitespace-nowrap motion-reduce:animate-none">
                 {row}
-                <span aria-hidden className="contents">
+                <span aria-hidden className="contents motion-reduce:hidden">
                     {row}
                 </span>
             </div>

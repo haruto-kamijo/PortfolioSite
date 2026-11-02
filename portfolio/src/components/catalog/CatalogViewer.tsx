@@ -131,8 +131,9 @@ export const CatalogViewer = ({
 
     const active = boxes.length > 0 ? byId.get(boxes[0].id) : null;
 
+    // 列の幅を中身（流れ続けるティッカーなど）で広げないよう、スマホでも minmax(0,1fr) にする
     return (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_15rem]">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_15rem]">
             <div>
                 <p className="mb-3 text-xs text-slate-400">{isTouch ? texts.hintTouch : texts.hintPointer}</p>
 
