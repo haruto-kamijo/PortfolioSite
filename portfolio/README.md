@@ -47,7 +47,7 @@ firebase deploy
 ### 更新とサポート期限の通知
 
 - **Dependabot**（`.github/dependabot.yml`）：毎週月曜に、npm の依存と GitHub Actions の更新を PR で出す。
-  - minor・patch の更新は、1つの PR にまとめる。
+  - minor・patch の更新は、1つの PR にまとめる。ただし `three`・`@types/three` は 0.x で壊れやすいので、まとめずに別の PR にする。
   - Next.js・React・Tailwind・ESLint などのメジャー更新は、作り直しを伴うので出さない。
 - **サポート期限の確認**（`.github/workflows/lifecycle.yml`）：毎週月曜に、次の期限や遅れを確かめる。
   - Cloud Functions の Node のランタイム：期限は firebase-tools の対応表から読む。
@@ -61,10 +61,10 @@ firebase deploy
   - firebase-tools がメジャーで遅れた。
   - 情報を読めなかった。
 
-  開いている Issue は毎週本文を書き換える。前回から状態が変わったものがあるときはコメントを付けるので、通知が届く。
+  開いている Issue は毎週本文を書き換える。要対応・注意の項目のうち、前回から状態が変わったもの（新しく出た・重くなった・軽くなった）があるときはコメントを付けるので、通知が届く（問題なしに戻っただけのものはコメントしない）。
   対応が必要なものが無くなったら閉じる。Next.js 14 はすでにサポートが終わっているので、Next.js 15 以降に移るまで Issue は開いたままになる。
   手で動かすときは Actions の画面から `workflow_dispatch` で実行する。
-  公開リポジトリでは、60 日間コミットが無いと GitHub が schedule を止めるので、Issue の日付が古いままなら Actions の画面で有効に戻す。
+  公開リポジトリでは、60 日間リポジトリに活動が無いと GitHub が schedule を止めるので、Issue の日付が古いままなら Actions の画面で有効に戻す。
 - Dependabot のコミットと PR のタイトルは、`[chore]` の後ろに Dependabot がコロンを足して `[chore]: Bump ...` になることがある。
 
 ## 画面構成

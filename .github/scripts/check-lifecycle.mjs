@@ -81,9 +81,12 @@ const pinnedFirebaseTools = readFileSync(".github/workflows/deploy.yml", "utf8")
 const readRuntimeTable = async (spec) => {
     const dir = mkdtempSync(join(tmpdir(), "firebase-tools-"));
     // Windows の npm は .cmd なので shell を通す（引数に空白は無い）
-    const packed = JSON.parse(await run("npm", ["pack", spec, "--json", "--pack-destination", dir], { shell: process.platform === "win32" }))[0];
+    // npm が応答しないままジョブの制限時間まで待つと、「読めなかった」を Issue に出す前に止まるので、2分で打ち切る
+    const packed = JSON.parse(
+        await run("npm", ["pack", spec, "--json", "--pack-destination", dir], { shell: process.platform === "win32", timeout: 120_000 })
+    )[0];
     // 絶対パスを渡すと、Windows の GNU tar が「C:」を接続先のホスト名と読むので、その場所で相対パスで展開する
-    await run("tar", ["-xzf", packed.filename], { cwd: dir });
+    await run("tar", ["-xzf", packed.filename], { cwd: dir, timeout: 60_000 });
     const source = readFileSync(join(dir, "package", "lib", "deploy", "functions", "runtimes", "supported", "types.js"), "utf8");
     const runtimes = {};
     for (const [, name, body] of source.matchAll(/\b(nodejs\d+):\s*\{([^}]*)\}/g)) {
@@ -132,6 +135,9 @@ if (!nodeMajor) {
             detail: `firebase-tools ${latestTable.value.version} の対応表に nodejs${nodeMajor} が無い`,
             action: "engines.node を Cloud Functions が対応している版にする",
         });
+    } else if (!runtime.deprecationDate || !runtime.decommissionDate) {
+        // 日付を読めないと期限の判定が「問題なし」に倒れるので、読めなかったものとして出す
+        unreadable(runtimeName, new Error(`firebase-tools ${latestTable.value.version} の対応表から nodejs${nodeMajor} の期限を読めませんでした`));
     } else {
         // 提供終了の日を過ぎたら要対応。非推奨の期間に入ったか、提供終了が近ければ注意
         const decommission = levelFor(runtime.decommissionDate);
