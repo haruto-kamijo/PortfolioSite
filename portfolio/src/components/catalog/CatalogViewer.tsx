@@ -36,8 +36,12 @@ export const CatalogViewer = ({
 
     /** 指している1つの要素 */
     const [hovered, setHovered] = useState<HTMLElement | null>(null);
-    /** 一覧やクエリで選んだパーツ（ページの中の同じパーツを全部囲む） */
-    const [selectedId, setSelectedId] = useState<string | null>(null);
+    /** ?part= で選んだパーツ。一覧から指を離したら、これに戻す */
+    const [pinnedId, setPinnedId] = useState<string | null>(null);
+    /** 横の一覧で指しているパーツ */
+    const [listId, setListId] = useState<string | null>(null);
+    /** ページの中の同じパーツを全部囲むもの */
+    const selectedId = listId ?? pinnedId;
     const [boxes, setBoxes] = useState<{ id: string; box: Box }[]>([]);
     /** 指を使う機器か。(hover: none) の機器に加え、タッチもできるノート PC で指を使ったときも true にする */
     const [isTouch, setIsTouch] = useState(false);
@@ -82,7 +86,7 @@ export const CatalogViewer = ({
             const id = new URLSearchParams(window.location.search).get("part");
             const first = id ? stageRef.current?.querySelector<HTMLElement>(`[data-part="${CSS.escape(id)}"]`) : null;
             if (id && first) {
-                setSelectedId(id);
+                setPinnedId(id);
                 const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
                 first.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
             }
@@ -122,7 +126,8 @@ export const CatalogViewer = ({
         if (!part) return;
         // タッチは指しただけの状態が無いので、1回目は名前を出すだけにする
         if (pointerType.current === "touch" && hovered !== el) {
-            setSelectedId(null);
+            setPinnedId(null);
+            setListId(null);
             setHovered(el);
             return;
         }
@@ -169,6 +174,7 @@ export const CatalogViewer = ({
                             <div
                                 key={`${id}-${i}`}
                                 aria-hidden
+                                data-testid="catalog-part-box"
                                 className="pointer-events-none absolute rounded-[3px] outline outline-2 outline-offset-[-2px] outline-cyan-300 transition-all duration-150 motion-reduce:transition-none"
                                 style={box}
                             />
@@ -177,6 +183,7 @@ export const CatalogViewer = ({
                         {active && boxes[0] && (
                             <div
                                 aria-hidden
+                                data-testid="catalog-part-label"
                                 className="pointer-events-none absolute z-10 flex max-w-[calc(100%-8px)] items-center gap-2 overflow-hidden whitespace-nowrap rounded-md bg-cyan-300 px-2.5 py-1 text-[11px] font-medium text-slate-950 shadow-lg"
                                 style={{
                                     // 右半分にあるパーツは右端に揃えて、名前が枠の外で切れないようにする
@@ -216,14 +223,14 @@ export const CatalogViewer = ({
                                 href={p.href}
                                 onMouseEnter={() => {
                                     setHovered(null);
-                                    setSelectedId(p.id);
+                                    setListId(p.id);
                                 }}
-                                onMouseLeave={() => setSelectedId(null)}
+                                onMouseLeave={() => setListId(null)}
                                 onFocus={() => {
                                     setHovered(null);
-                                    setSelectedId(p.id);
+                                    setListId(p.id);
                                 }}
-                                onBlur={() => setSelectedId(null)}
+                                onBlur={() => setListId(null)}
                                 className={`block rounded-full border px-3 py-1.5 text-xs transition-colors lg:rounded-lg lg:border-transparent ${
                                     selectedId === p.id
                                         ? "border-cyan-200/50 bg-cyan-200/10 text-cyan-200"
