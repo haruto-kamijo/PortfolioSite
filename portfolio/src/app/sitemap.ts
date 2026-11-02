@@ -1,5 +1,6 @@
 // src/app/sitemap.ts
 import type { MetadataRoute } from "next";
+import { CATALOG_CONCEPT_IDS } from "@/lib/catalog/concepts";
 import { LOCALES, localizePath } from "@/lib/i18n";
 import { site } from "@/lib/site";
 
@@ -14,6 +15,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
         { path: "/about", priority: 0.7 },
         { path: "/portfolio", priority: 0.7 },
         { path: "/contact", priority: 0.6 },
+        { path: "/catalog", priority: 0.6 },
+        { path: "/catalog/parts", priority: 0.5 },
+        ...CATALOG_CONCEPT_IDS.map((id) => ({ path: `/catalog/${id}`, priority: 0.5 })),
     ];
 
     return routes.flatMap(({ path, priority }) =>

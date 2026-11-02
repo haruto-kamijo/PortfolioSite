@@ -4,6 +4,7 @@ import Link from "next/link";
 import { PortfolioCard } from "@/components/portfolio/PortfolioCard";
 import { Panel } from "@/components/ui/Panel";
 import { SectionTitle } from "@/components/ui/SectionTitle";
+import { CATALOG_PORTFOLIO_ITEM } from "@/lib/catalog/portfolioItem";
 import { getFeedItems } from "@/lib/content/feeds";
 import { getPortfolioItems } from "@/lib/content/getPortfolioItems";
 import {
@@ -47,11 +48,14 @@ export default async function PortfolioPage({ params, searchParams }: Props) {
     const t = getDictionary(lang).portfolio;
     const items = await getPortfolioItems();
     const category = isCategory(searchParams.tab) ? searchParams.tab : "sites";
-    // ブログのタブは、手動で登録したカードのあとに RSS の記事を新しい順に並べる
+    // ブログのタブは、手動で登録したカードのあとに RSS の記事を新しい順に並べる。
+    // Webサイトのタブは、コードに置いたデザインカタログのカードを先頭に出す
     const list =
         category === "blog"
             ? [...items.blog, ...(await getFeedItems(Object.values(items).flat()))]
-            : items[category];
+            : category === "sites"
+              ? [CATALOG_PORTFOLIO_ITEM, ...items.sites]
+              : items[category];
 
     return (
         <div className="mx-auto max-w-6xl px-5 py-12 sm:py-24">

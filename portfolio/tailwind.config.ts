@@ -18,11 +18,17 @@ const config: Config = {
           "0%, 100%": { opacity: "0.65" },
           "50%": { opacity: "0.9" },
         },
+        // デザインカタログのティッカー。同じ列を2回並べ、半分動かしたところで最初に戻す
+        marquee: {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-50%)" },
+        },
       },
       animation: {
         "spin-slow": "spin-slow 18s linear infinite",
         "spin-slower-reverse": "spin-slower-reverse 28s linear infinite",
         "pulse-soft": "pulse-soft 3.8s ease-in-out infinite",
+        marquee: "marquee 24s linear infinite",
       },
     },
   },

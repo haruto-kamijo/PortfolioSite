@@ -1,9 +1,10 @@
 // src/components/portfolio/PortfolioCard.tsx
 import Image from "next/image";
+import Link from "next/link";
 import { Panel } from "@/components/ui/Panel";
 import { PORTFOLIO_CATEGORY_LABELS, PortfolioItem } from "@/lib/content/types";
 import { getDictionary } from "@/lib/dictionary";
-import { Locale, pick } from "@/lib/i18n";
+import { Locale, localizePath, pick } from "@/lib/i18n";
 
 /** 日付は日本時間で出す（UTC のまま切ると、朝に出した記事が前の日になる） */
 const formatDate = (iso: string) =>
@@ -69,7 +70,12 @@ export const PortfolioCard = ({
 
     return (
         <Panel as="li" className={item.href ? "transition-colors hover:border-cyan-200/40" : ""}>
-            {item.href ? (
+            {/* サイト内のページ（/catalog など）は同じタブで、表示中の言語のまま開く */}
+            {item.href?.startsWith("/") && !item.href.startsWith("//") ? (
+                <Link href={localizePath(item.href, lang)} className="block p-5">
+                    {body}
+                </Link>
+            ) : item.href ? (
                 <a href={item.href} target="_blank" rel="noopener noreferrer" className="block p-5">
                     {body}
                 </a>
