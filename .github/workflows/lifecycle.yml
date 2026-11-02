@@ -12,10 +12,15 @@ on:
     paths:
       - ".github/workflows/lifecycle.yml"
       - ".github/scripts/check-lifecycle.mjs"
+      # 確かめる対象（engines.node・next の版・deploy.yml の firebase-tools の版）を変える PR でも結果を出す
+      - "portfolio/package.json"
+      - "portfolio/package-lock.json"
+      - ".github/workflows/deploy.yml"
 
+# Issue を書いている途中で止めないよう、重なったら後のものを待たせる
 concurrency:
   group: lifecycle-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   check:

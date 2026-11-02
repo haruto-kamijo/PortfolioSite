@@ -10,12 +10,17 @@ updates:
       time: "09:00"
       timezone: Asia/Tokyo
     open-pull-requests-limit: 5
+    # 公開された直後の版は、数日おいてから出す（取り下げや乗っ取られた版を避ける）
+    cooldown:
+      default-days: 3
     commit-message:
       prefix: "[chore]"
-    # 小さな更新（minor・patch）は1つの PR にまとめる
+    # 小さな更新（minor・patch）は1つの PR にまとめる。
+    # three は 0.x で、minor でも作りが変わり @react-three/* と合わなくなることがあるので、まとめずに別の PR にする
     groups:
       minor-and-patch:
         update-types: [minor, patch]
+        exclude-patterns: ["three", "@types/three"]
     # 土台のフレームワークのメジャー更新は、作り直しを伴うので自動では出さない。
     # サポート期限は lifecycle.yml が毎週確かめて、切れそうなら Issue で知らせる
     ignore:
@@ -36,6 +41,9 @@ updates:
       - dependency-name: tailwindcss
         update-types: [version-update:semver-major]
       - dependency-name: eslint
+        update-types: [version-update:semver-major]
+      # 型は engines.node の Node と合わせて、engines を上げるときに手で上げる
+      - dependency-name: "@types/node"
         update-types: [version-update:semver-major]
 
   - package-ecosystem: github-actions
