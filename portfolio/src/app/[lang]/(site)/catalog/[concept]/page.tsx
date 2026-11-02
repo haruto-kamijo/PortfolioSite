@@ -26,7 +26,7 @@ export const generateMetadata = ({ params }: Props): Metadata => {
     const concept = CATALOG_CONCEPTS[params.concept];
     const path = `/catalog/${params.concept}`;
     return {
-        title: `${pick(concept.name, lang)}（${pick(concept.style, lang)}） | ${getDictionary(lang).meta.catalog}`,
+        title: `${pick(concept.name, lang)}${lang === "ja" ? `（${pick(concept.style, lang)}）` : ` (${pick(concept.style, lang)})`} | ${getDictionary(lang).meta.catalog}`,
         description: pick(concept.summary, lang),
         alternates: alternatesFor(path, lang),
         openGraph: openGraphFor(path, lang),
@@ -44,7 +44,7 @@ export default function CatalogConceptPage({ params }: Props) {
     // 横の一覧と、ページの中の名前の吹き出しに出す文言。英語のページでは英語名だけにする
     const parts = (Object.keys(samples) as CatalogPartId[]).map((partId) => ({
         id: partId,
-        name: CATALOG_PARTS[partId].name[lang],
+        name: pick(CATALOG_PARTS[partId].name, lang),
         sub: lang === "ja" ? CATALOG_PARTS[partId].name.en : "",
         href: localizePath(`/catalog/parts#${partId}`, lang),
     }));

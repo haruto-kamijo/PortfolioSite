@@ -12,7 +12,13 @@ export const HashHighlight = () => {
         let current: Element | null = null;
         const apply = () => {
             current?.removeAttribute("data-highlight");
-            const id = decodeURIComponent(window.location.hash.slice(1));
+            const raw = window.location.hash.slice(1);
+            let id = raw;
+            try {
+                id = decodeURIComponent(raw);
+            } catch {
+                // %E0 のような壊れた値はそのまま使う（該当する要素が無いだけで済む）
+            }
             current = id ? document.getElementById(id) : null;
             current?.setAttribute("data-highlight", "");
         };

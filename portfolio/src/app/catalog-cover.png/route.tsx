@@ -2,14 +2,14 @@
 import { ImageResponse } from "next/og";
 
 /**
- * 制作物のカードに出す、デザインカタログのカバー画像（800×400。カードの画像の枠と同じ 2:1）。ビルド時に1回だけ作る。
+ * 制作物のカードに出す、デザインカタログのカバー画像（800×400。カードの画像の枠に近い 2:1 にして、上下が切れすぎないようにする）。ビルド時に1回だけ作る。
  * 4つの見本のページの配色を田の字に並べる。標準のフォントは日本語を含まないため、文字は英語だけにしている
  */
 export const dynamic = "force-static";
 
 const SIZE = { width: 800, height: 400 };
 
-// 見本のページ（lib/catalog/concepts.ts）の背景・文字・差し色と揃える
+// 見本のページ（lib/catalog/concepts.ts）の配色から取る。ブルータリズムは白より目立つ差し色の黄色を背景にしている
 const TILES = [
     { label: "Japanese modern", bg: "#f4efe6", fg: "#2b2622", accent: "#b5452c" },
     { label: "Glassmorphism", bg: "linear-gradient(135deg, #312e81, #7c3aed 55%, #ec4899)", fg: "#ffffff", accent: "#f9a8d4" },

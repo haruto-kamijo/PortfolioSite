@@ -247,7 +247,7 @@ const Footer = ({ lang }: { lang: Locale }) => {
                     </div>
                 ))}
             </div>
-            <p className="mt-6 text-[10px] text-white/40">© Tasklane, Inc.</p>
+            <p className="mt-6 text-[10px] text-white/40">© Tasklane</p>
         </Part>
     );
 };

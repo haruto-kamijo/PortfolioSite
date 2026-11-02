@@ -83,7 +83,7 @@ export default function CatalogPartsPage({ params }: Props) {
                             className="scroll-mt-24 rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition-shadow data-[highlight]:border-cyan-200/60 data-[highlight]:shadow-[0_0_40px_rgba(103,232,249,0.15)] sm:p-8"
                         >
                             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                                <h2 className="text-lg text-white">{part.name[lang]}</h2>
+                                <h2 className="text-lg text-white">{pick(part.name, lang)}</h2>
                                 {lang === "ja" && <span className="text-xs tracking-wider text-cyan-100/50">{part.name.en}</span>}
                             </div>
                             <p className="mt-1 text-[11px] text-white/40">

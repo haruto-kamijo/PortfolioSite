@@ -39,7 +39,9 @@ export const CatalogViewer = ({
     /** 一覧やクエリで選んだパーツ（ページの中の同じパーツを全部囲む） */
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [boxes, setBoxes] = useState<{ id: string; box: Box }[]>([]);
+    /** 指を使う機器か。(hover: none) の機器に加え、タッチもできるノート PC で指を使ったときも true にする */
     const [isTouch, setIsTouch] = useState(false);
+    const [stageWidth, setStageWidth] = useState(0);
 
     const byId = new Map(parts.map((p) => [p.id, p]));
 
@@ -47,6 +49,7 @@ export const CatalogViewer = ({
         const stage = stageRef.current;
         if (!stage) return;
         const base = stage.getBoundingClientRect();
+        setStageWidth(base.width);
         const toBox = (el: Element): Box => {
             const r = el.getBoundingClientRect();
             return { top: r.top - base.top, left: r.left - base.left, width: r.width, height: r.height };
@@ -54,16 +57,20 @@ export const CatalogViewer = ({
         const targets: HTMLElement[] = hovered
             ? [hovered]
             : selectedId
-              ? Array.from(stage.querySelectorAll<HTMLElement>(`[data-part="${selectedId}"]`))
+              ? Array.from(stage.querySelectorAll<HTMLElement>(`[data-part="${CSS.escape(selectedId)}"]`))
               : [];
         setBoxes(targets.map((el) => ({ id: el.dataset.part ?? "", box: toBox(el) })));
     }, [hovered, selectedId]);
 
     useLayoutEffect(measure, [measure]);
 
+    // 見本の大きさが変わったら測り直す（窓の大きさのほか、フォントの読み込みやスクロールバーの出入りでも変わる）
     useEffect(() => {
-        window.addEventListener("resize", measure);
-        return () => window.removeEventListener("resize", measure);
+        const stage = stageRef.current;
+        if (!stage) return;
+        const observer = new ResizeObserver(measure);
+        observer.observe(stage);
+        return () => observer.disconnect();
     }, [measure]);
 
     useEffect(() => {
@@ -76,7 +83,8 @@ export const CatalogViewer = ({
             const first = id ? stageRef.current?.querySelector<HTMLElement>(`[data-part="${CSS.escape(id)}"]`) : null;
             if (id && first) {
                 setSelectedId(id);
-                first.scrollIntoView({ block: "center", behavior: "smooth" });
+                const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                first.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
             }
         }, 0);
 
@@ -147,7 +155,10 @@ export const CatalogViewer = ({
                         aria-label={texts.previewLabel}
                         className="relative cursor-pointer"
                         onPointerMove={onPointerMove}
-                        onPointerDown={(e) => (pointerType.current = e.pointerType)}
+                        onPointerDown={(e) => {
+                            pointerType.current = e.pointerType;
+                            if (e.pointerType === "touch") setIsTouch(true);
+                        }}
                         onPointerLeave={() => pointerType.current !== "touch" && setHovered(null)}
                         onClick={onClick}
                     >
@@ -157,7 +168,7 @@ export const CatalogViewer = ({
                             <div
                                 key={`${id}-${i}`}
                                 aria-hidden
-                                className="pointer-events-none absolute rounded-[3px] outline outline-2 outline-offset-2 outline-cyan-300 transition-all duration-150"
+                                className="pointer-events-none absolute rounded-[3px] outline outline-2 outline-offset-[-2px] outline-cyan-300 transition-all duration-150 motion-reduce:transition-none"
                                 style={box}
                             />
                         ))}
@@ -165,9 +176,12 @@ export const CatalogViewer = ({
                         {active && boxes[0] && (
                             <div
                                 aria-hidden
-                                className="pointer-events-none absolute z-10 flex items-center gap-2 whitespace-nowrap rounded-md bg-cyan-300 px-2.5 py-1 text-[11px] font-medium text-slate-950 shadow-lg"
+                                className="pointer-events-none absolute z-10 flex max-w-[calc(100%-8px)] items-center gap-2 overflow-hidden whitespace-nowrap rounded-md bg-cyan-300 px-2.5 py-1 text-[11px] font-medium text-slate-950 shadow-lg"
                                 style={{
-                                    left: Math.max(boxes[0].box.left, 4),
+                                    // 右半分にあるパーツは右端に揃えて、名前が枠の外で切れないようにする
+                                    ...(boxes[0].box.left + boxes[0].box.width / 2 > stageWidth / 2
+                                        ? { right: Math.max(stageWidth - boxes[0].box.left - boxes[0].box.width, 4) }
+                                        : { left: Math.max(boxes[0].box.left, 4) }),
                                     // 上に余白が無いときは枠の内側に出す
                                     top: boxes[0].box.top >= 30 ? boxes[0].box.top - 30 : boxes[0].box.top + 6,
                                 }}

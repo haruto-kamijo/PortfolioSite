@@ -68,7 +68,7 @@ export default function CatalogPage({ params }: Props) {
                                     <p className="mt-2 text-xs leading-relaxed text-slate-400">{pick(concept.summary, lang)}</p>
                                     <p className="mt-4 flex items-center justify-between text-xs text-white/60">
                                         {t.partsCount.replace("{n}", String(Object.keys(samples).length))}
-                                        <span className="tracking-wider text-cyan-200/80 transition-transform group-hover:translate-x-1">
+                                        <span className="tracking-wider text-cyan-200/80 transition-transform group-hover:translate-x-1 motion-reduce:transition-none">
                                             {t.open} →
                                         </span>
                                     </p>
