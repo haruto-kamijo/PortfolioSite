@@ -52,10 +52,10 @@ const levelFor = (date) => {
 const eolLevel = (eol) => (eol === true ? "error" : typeof eol === "string" ? levelFor(eol) : "ok");
 const eolText = (eol) => (eol === true ? "終了済み" : typeof eol === "string" ? when(eol) : "未定");
 
-/** 1.2.3 どうしを数で比べる（a が新しければ正） */
+/** 1.2.3 どうしを数で比べる（a が新しければ正）。区切りの数が違っても、すべての桁を見る */
 const compareVersions = (a, b) => {
     const [x, y] = [a, b].map((v) => v.split(".").map(Number));
-    for (let i = 0; i < 3; i++) if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) - (y[i] ?? 0);
+    for (let i = 0; i < Math.max(x.length, y.length); i++) if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) - (y[i] ?? 0);
     return 0;
 };
 
