@@ -48,9 +48,14 @@ updates:
       # TypeScript 7 は Next 14 が使う Compiler API を持たず、ビルドが止まる。Next を上げるときに合わせて上げる
       - dependency-name: typescript
         update-types: [version-update:semver-major]
-      # firebase 13 は engines で Node 24.12 以上を求め、Node 22（Cloud Functions のランタイム）は動作保証の外になる。
-      # engines.node を 24 に上げるときに手で上げる（そのとき Cloud Functions の Node 24 が 24.12 以上かを確かめる）
+      # firebase-tools はデプロイのときに firebase-frameworks を足す。その peer が firebase ^12・firebase-admin ^13 までなので、
+      # それより上のメジャーにするとデプロイの npm install が ERESOLVE で止まる（CI では分からない）。
+      # 外すのは、deploy.yml で固定した firebase-tools が足す範囲（今は firebase-frameworks ^0.11.0）の中に、新しいメジャーに対応した版が出てから。
+      # 範囲の外の版でしか対応していなければ、先に deploy.yml の firebase-tools を上げて、足される範囲を確かめる。
+      # firebase 13 はさらに engines で Node 24.12 以上を求めるので、engines.node を 24（24.12 以上）に上げることも条件
       - dependency-name: firebase
+        update-types: [version-update:semver-major]
+      - dependency-name: firebase-admin
         update-types: [version-update:semver-major]
 
   - package-ecosystem: github-actions
