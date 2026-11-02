@@ -7,7 +7,7 @@ on:
     # 毎週月曜 9:00（日本時間）。Dependabot の PR と同じ日にそろえる
     - cron: "0 0 * * 1"
   workflow_dispatch:
-  # このワークフローとスクリプトを変える PR では、Issue を触らずに結果だけ出して動作を確かめる
+  # このワークフローとスクリプトを変える PR では、Issue を触らずに結果だけ出して動作を確かめる（dry-run のジョブ）
   pull_request:
     paths:
       - ".github/workflows/lifecycle.yml"
@@ -23,7 +23,30 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  check:
+  # PR：PR のコードを動かすので、Issue を書ける権限もトークンも渡さず、結果をサマリーに出すだけにする
+  dry-run:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: portfolio/package.json
+
+      - name: Check support dates (dry run)
+        run: node .github/scripts/check-lifecycle.mjs
+        env:
+          DRY_RUN: "1"
+
+  # 定期実行・手動実行：main のコードだけを動かし、Issue を作る・更新する
+  report:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -42,4 +65,3 @@ jobs:
         run: node .github/scripts/check-lifecycle.mjs
         env:
           GH_TOKEN: ${{ github.token }}
-          DRY_RUN: ${{ github.event_name == 'pull_request' && '1' || '' }}

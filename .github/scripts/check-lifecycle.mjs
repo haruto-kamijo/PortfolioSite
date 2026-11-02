@@ -35,9 +35,14 @@ const today = new Date();
 const daysUntil = (date) => Math.ceil((new Date(date).getTime() - today.getTime()) / 86_400_000);
 const when = (date) => (date ? `${date}（${daysUntil(date) > 0 ? `あと ${daysUntil(date)} 日` : `${-daysUntil(date)} 日前に終了`}）` : "未定");
 
-/** 期限の近さで、要対応（error）・注意（warn）・問題なし（ok）に分ける */
+/** YYYY-MM-DD の形で、暦にある日か（2028-13-31 などを弾く） */
+const isValidDate = (date) =>
+    typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(Date.parse(date)) && new Date(date).toISOString().slice(0, 10) === date;
+
+/** 期限の近さで、要対応（error）・注意（warn）・問題なし（ok）に分ける。読めない日付は「問題なし」に倒さず注意にする */
 const levelFor = (date) => {
     if (!date) return "ok";
+    if (!isValidDate(date)) return "warn";
     const days = daysUntil(date);
     if (days <= 0) return "error";
     return days <= WARN_DAYS ? "warn" : "ok";
@@ -135,8 +140,8 @@ if (!nodeMajor) {
             detail: `firebase-tools ${latestTable.value.version} の対応表に nodejs${nodeMajor} が無い`,
             action: "engines.node を Cloud Functions が対応している版にする",
         });
-    } else if (!runtime.deprecationDate || !runtime.decommissionDate) {
-        // 日付を読めないと期限の判定が「問題なし」に倒れるので、読めなかったものとして出す
+    } else if (!isValidDate(runtime.deprecationDate) || !isValidDate(runtime.decommissionDate)) {
+        // 日付を読めない・暦に無い日だと期限の判定が狂うので、読めなかったものとして出す
         unreadable(runtimeName, new Error(`firebase-tools ${latestTable.value.version} の対応表から nodejs${nodeMajor} の期限を読めませんでした`));
     } else {
         // 提供終了の日を過ぎたら要対応。非推奨の期間に入ったか、提供終了が近ければ注意
