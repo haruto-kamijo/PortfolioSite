@@ -22,3 +22,7 @@ jobs:
       run-all: ${{ github.event_name == 'workflow_dispatch' }}
       # ビルドは e2e.yml で行う（秘密の値なしでビルドし、画面のテストまで動かす）。portfolio/ に触れない PR ではビルドしない
       run-build: false
+      # 共通 CI の既定は Node 20。portfolio/package.json の engines.node（Cloud Functions のランタイム）と合わせる。
+      # 20 のままだと、Node 22 以上を求める任意の依存（firebase-admin 14 の @google-cloud/firestore）が入らず、型が欠ける。
+      # engines.node を上げるときは、ここも上げる
+      node-version: "22"
