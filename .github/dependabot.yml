@@ -45,6 +45,12 @@ updates:
       # 型は engines.node の Node と合わせて、engines を上げるときに手で上げる
       - dependency-name: "@types/node"
         update-types: [version-update:semver-major]
+      # TypeScript 7 は Next 14 が使う Compiler API を持たず、ビルドが止まる。Next を上げるときに合わせて上げる
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+      # firebase 13 は Node 24.12 以上が必要。engines.node（Cloud Functions のランタイム）を 24 に上げるときに手で上げる
+      - dependency-name: firebase
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: github-actions
     directory: /
