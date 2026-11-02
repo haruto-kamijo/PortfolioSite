@@ -10,7 +10,9 @@
     "emulators": "firebase emulators:start --only auth,firestore,storage --project portfoliosite-b12da",
     "dev:emulators": "cross-env NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true concurrently -k -n emulators,next -c yellow,cyan \"npm:emulators\" \"next dev\"",
     "content": "tsx scripts/content.ts",
-    "usage": "tsx scripts/usage.ts"
+    "usage": "tsx scripts/usage.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:edge": "cross-env PW_CHANNEL=msedge playwright test"
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",
@@ -23,6 +25,7 @@
     "three": "^0.181.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.48.2",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
