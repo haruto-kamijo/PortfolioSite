@@ -80,8 +80,13 @@ test("画像の最適化はサイト内の画像だけを受け付ける", async
     const optimize = (url: string) => request.get(`/_next/image?url=${encodeURIComponent(url)}&w=64&q=75`);
     expect((await optimize("/logo.png")).status()).toBe(200);
     // 外部の URL は、取りに行く前に 400 で断られる（next.config.mjs に remotePatterns を置かない）
-    const remote = await optimize("https://firebasestorage.googleapis.com/v0/b/example.appspot.com/o/x.png?alt=media");
-    expect(remote.status()).toBe(400);
+    for (const url of [
+        "https://firebasestorage.googleapis.com/v0/b/example.appspot.com/o/x.png?alt=media",
+        "https://example.com/x.png",
+        "//example.com/x.png",
+    ]) {
+        expect((await optimize(url)).status(), url).toBe(400);
+    }
 });
 
 test("ページに OGP の画像とカードの指定がある", async ({ page }) => {
