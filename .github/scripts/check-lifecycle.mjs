@@ -167,7 +167,7 @@ if (!nodeMajor) {
             name: runtimeName,
             detail: `非推奨 ${when(runtime.deprecationDate)}・提供終了 ${when(runtime.decommissionDate)}。提供終了の日を過ぎるとデプロイが止まる`,
             action:
-                level === "ok" ? undefined : "portfolio/package.json の engines.node を新しい版に上げる（deploy.yml・e2e.yml もここから版を読む）",
+                level === "ok" ? undefined : "portfolio/package.json の engines.node を新しい版に上げる（deploy.yml・e2e.yml もここから版を読む。.github/workflows/ci.yml の node-version は手で合わせる）",
         });
     }
 }
