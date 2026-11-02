@@ -24,14 +24,25 @@ for (const path of PAGES) {
     for (const prefix of ["", "/en"]) {
         const url = `${prefix}${path}`;
         test(`${url} が開ける`, async ({ page, baseURL }) => {
-            // 外のサイト（ブログの RSS のサムネイルなど）は読まない。届くかどうかで結果が変わらないように
+            // 外のサイトは読まない。届くかどうかで結果が変わらないように（サーバーの RSS 取得は BLOG_FEEDS_DISABLED で止めている）
             const origin = new URL(baseURL!).origin;
             await page.route((u) => u.origin !== origin, (route) => route.abort());
 
             const errors: string[] = [];
             page.on("pageerror", (e) => errors.push(e.message));
+            // 読み込みの失敗は、文面ではなく相手で分ける。このサイトのファイル（_next の JS や画像）の失敗は拾い、上で止めた外のものは除く
+            page.on("requestfailed", (r) => {
+                const u = new URL(r.url());
+                if (u.origin !== origin) return;
+                // リンク先の先読み（?_rsc=）は、ページの読み込みが進むとブラウザが取り消すことがあるので除く
+                if (u.searchParams.has("_rsc") && r.failure()?.errorText.includes("ERR_ABORTED")) return;
+                errors.push(`読み込みに失敗：${r.url()}（${r.failure()?.errorText}）`);
+            });
+            page.on("response", (r) => {
+                if (new URL(r.url()).origin === origin && r.status() >= 400) errors.push(`${r.status()}：${r.url()}`);
+            });
             page.on("console", (m) => {
-                // 上で止めた外の読み込みの失敗は除く
+                // 読み込みの失敗はブラウザが console にも出すが、上の2つで相手を見て拾っているので、ここでは数えない
                 if (m.type() === "error" && !m.text().startsWith("Failed to load resource")) errors.push(m.text());
             });
 

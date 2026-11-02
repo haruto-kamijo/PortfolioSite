@@ -151,6 +151,9 @@ export const articleKey = (href: string) => {
  * registered（公開中の作品）のリンク先と同じ記事は除く。PoC のカードに付けた検証記事が二重に並ばないようにするため
  */
 export const getFeedItems = async (registered: PortfolioItem[]): Promise<PortfolioItem[]> => {
+    // E2E テストでは外の RSS を読まない（届くかどうかや記事の有無で、結果や時間が変わらないように）
+    if (process.env.BLOG_FEEDS_DISABLED === "true") return [];
+
     const known = new Set(
         registered.flatMap((item) => [item.href, ...item.links.map((l) => l.href)]).filter(Boolean).map((h) => articleKey(h!))
     );

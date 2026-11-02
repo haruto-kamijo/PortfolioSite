@@ -33,5 +33,7 @@ export default defineConfig({
         url: `http://localhost:${PORT}/catalog`,
         reuseExistingServer: !process.env.CI,
         timeout: 60_000,
+        // 外の RSS（Zenn・note）を読まない。ビルドのときも同じ値にする（e2e.yml・README）
+        env: { BLOG_FEEDS_DISABLED: "true" },
     },
 });

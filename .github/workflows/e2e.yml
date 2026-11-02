@@ -24,6 +24,9 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+    env:
+      # 外の RSS（Zenn・note）を読まない。ビルド（ホームの最近の更新）とテストのどちらでも効かせる
+      BLOG_FEEDS_DISABLED: "true"
     defaults:
       run:
         working-directory: portfolio
