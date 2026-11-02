@@ -8,7 +8,7 @@ import { defineConfig, devices } from "@playwright/test";
  * Firebase の環境変数が無くても、サイトは静的な既定値で表示されるので、CI では秘密の値を使わずに動かす。
  *
  * 手元では Playwright のブラウザを入れずに、Edge で動かせる：
- *   PW_CHANNEL=msedge npm run test:e2e
+ *   npm run test:e2e:edge（PW_CHANNEL=msedge を付けて動かす）
  */
 const PORT = 3100;
 
@@ -21,7 +21,7 @@ export default defineConfig({
     // next start 1つに多く同時に繋ぐと、ページの切り替えが遅れて時間切れになるので絞る
     workers: process.env.CI ? 2 : 3,
     expect: { timeout: 10_000 },
-    reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
+    reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : [["list"], ["html", { open: "never" }]],
     use: {
         baseURL: `http://localhost:${PORT}`,
         channel: process.env.PW_CHANNEL || undefined,

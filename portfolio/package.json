@@ -11,7 +11,8 @@
     "dev:emulators": "cross-env NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true concurrently -k -n emulators,next -c yellow,cyan \"npm:emulators\" \"next dev\"",
     "content": "tsx scripts/content.ts",
     "usage": "tsx scripts/usage.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:edge": "cross-env PW_CHANNEL=msedge playwright test"
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",

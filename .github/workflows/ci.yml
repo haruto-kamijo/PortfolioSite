@@ -20,5 +20,5 @@ jobs:
     with:
       # 手動実行のときは、変更ファイルに関係なくすべてのチェックを走らせる
       run-all: ${{ github.event_name == 'workflow_dispatch' }}
-      # ビルドには Firebase の秘密の環境変数が要るので、CI では行わない（ビルドは deploy.yml で確認される）
+      # ビルドは e2e.yml で行う（秘密の値なしでビルドし、画面のテストまで動かす）。portfolio/ に触れない PR ではビルドしない
       run-build: false

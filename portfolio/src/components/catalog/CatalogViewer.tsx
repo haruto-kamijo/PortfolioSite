@@ -14,7 +14,7 @@ type Box = { top: number; left: number; width: number; height: number };
  *
  * - パーツ（data-part の付いた要素）を指すと、枠と名前を出す
  * - クリックするとパーツ図鑑のその項目へ移る。タッチでは1回目のタップで名前を出し、同じパーツをもう一度タップで移る
- * - 横の一覧を指すと、そのパーツをページの中で全部囲む（キーボードではフォーカスで同じことが起きる）
+ * - 横の一覧を指すと、そのパーツをページの中で全部囲む（キーボードではフォーカスで同じことが起きる）。一覧から外れると ?part= の囲みに戻る
  * - ?part=<id> 付きで開くと、そのパーツを囲んで見える位置までスクロールする（図鑑の「ページで見る」から来たとき）
  *
  * 見本の中身はサーバーで描いた children で、押せる要素は持たない。ここではクリックを横取りするだけ
@@ -36,7 +36,7 @@ export const CatalogViewer = ({
 
     /** 指している1つの要素 */
     const [hovered, setHovered] = useState<HTMLElement | null>(null);
-    /** ?part= で選んだパーツ。一覧から指を離したら、これに戻す */
+    /** ?part= で選んだパーツ。一覧から外れたら（mouseleave・blur）、これに戻す */
     const [pinnedId, setPinnedId] = useState<string | null>(null);
     /** 横の一覧で指しているパーツ */
     const [listId, setListId] = useState<string | null>(null);
@@ -46,6 +46,8 @@ export const CatalogViewer = ({
     /** 指を使う機器か。(hover: none) の機器に加え、タッチもできるノート PC で指を使ったときも true にする */
     const [isTouch, setIsTouch] = useState(false);
     const [stageWidth, setStageWidth] = useState(0);
+    /** 動かせるようになったか（E2E テストが、ハイドレーションの前に操作しないための目印） */
+    const [ready, setReady] = useState(false);
 
     const byId = new Map(parts.map((p) => [p.id, p]));
 
@@ -79,6 +81,7 @@ export const CatalogViewer = ({
 
     useEffect(() => {
         setIsTouch(window.matchMedia("(hover: none)").matches);
+        setReady(true);
 
         // 図鑑から来たとき：そのパーツを囲み、最初の1つが見えるところまで動かす。
         // 別のページから移ってきたときは、この effect のあとに URL が書き換わることがあるので、少し待ってから読む
@@ -157,6 +160,8 @@ export const CatalogViewer = ({
 
                     <div
                         ref={stageRef}
+                        data-testid="catalog-stage"
+                        data-ready={ready ? "" : undefined}
                         role="img"
                         aria-label={texts.previewLabel}
                         className="relative cursor-pointer"

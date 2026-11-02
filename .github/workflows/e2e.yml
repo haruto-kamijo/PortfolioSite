@@ -29,6 +29,9 @@ jobs:
         working-directory: portfolio
     steps:
       - uses: actions/checkout@v4
+        with:
+          # npm ci で依存のスクリプトが動くので、GitHub のトークンを .git に残さない
+          persist-credentials: false
 
       # 本番（deploy.yml）と同じく engines.node の版で動かす
       - uses: actions/setup-node@v4

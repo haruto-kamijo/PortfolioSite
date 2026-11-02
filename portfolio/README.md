@@ -15,16 +15,19 @@ npm run lint
 
 `e2e/` に、ブラウザで画面を操作して確かめるテスト（Playwright）がある。
 公開ページが日英とも開けること、デザインカタログでパーツを指す・押す・図鑑と行き来すること、スマホの幅で画面からはみ出さないことなどを確かめる。
-PR を出すと GitHub Actions（`.github/workflows/e2e.yml`）で自動で動く。Firebase の秘密の値は使わず、静的な既定値で表示されたサイトを確かめる。
+`portfolio/` か `e2e.yml` を変える PR と、main への push で、GitHub Actions（`.github/workflows/e2e.yml`）が自動で動かす。
+Firebase の秘密の値は使わず、静的な既定値で表示されたサイトを確かめる（Firestore の中身・問い合わせの送信・管理画面は対象外）。
 
 ```bash
 npm run build                          # テストは next start でビルド済みのものを動かす
-PW_CHANNEL=msedge npm run test:e2e     # Windows では Edge で動かせる（Playwright のブラウザを入れなくてよい）
+npm run test:e2e:edge                  # Windows では Edge で動かせる（Playwright のブラウザを入れなくてよい）
 npx playwright install chromium && npm run test:e2e   # Playwright の Chromium で動かす場合
 ```
 
-落ちたときは `npx playwright show-report` で、どの操作で何が起きたかを見られる。
-見本のパーツの名前のラベルと囲み枠には `data-testid`（`catalog-part-label` / `catalog-part-box`）を付けてあり、テストはこれを目印にする。
+落ちたときは `npx playwright show-report` で、どの操作で何が起きたかを見られる（手元で動かしたあと）。
+CI で落ちたときは、ワークフローの artifact（`playwright-report`）を落として、同じコマンドで開く。
+デザインカタログの見本には `data-testid`（`catalog-stage` / `catalog-part-label` / `catalog-part-box`）を付けてあり、テストはこれを目印にする。
+見本は動かせるようになると `data-ready` が付くので、テストはそれを待ってから操作する（ハイドレーションの前に指しても反応しないため）。
 
 ## デプロイ
 
