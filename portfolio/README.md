@@ -49,6 +49,8 @@ firebase deploy
 - **Dependabot**（`.github/dependabot.yml`）：毎週月曜に、npm の依存と GitHub Actions の更新を PR で出す。
   - minor・patch の更新は、1つの PR にまとめる。ただし `three`・`@types/three` は 0.x で壊れやすいので、まとめずに別の PR にする。
   - Next.js・React・Tailwind・ESLint などのメジャー更新は、作り直しを伴うので出さない。
+  - TypeScript（Next 14 では 7 が使えない）と firebase（13 は Node 24.12 以上が必要）のメジャー更新も出さない。Next や Node を上げるときに手で上げる。
+  - この除外が効くのは、毎週の通常の更新だけ。リポジトリで Dependabot のセキュリティ更新を有効にしていると、脆弱性を直すためのメジャー更新は除外していても PR が出る。
 - **サポート期限の確認**（`.github/workflows/lifecycle.yml`）：毎週月曜に、次の期限や遅れを確かめる。
   - Cloud Functions の Node のランタイム：期限は firebase-tools の対応表から読む。
   - Node.js・Next.js：期限は endoflife.date から読む。
