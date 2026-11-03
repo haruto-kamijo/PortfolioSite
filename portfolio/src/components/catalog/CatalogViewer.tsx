@@ -99,7 +99,8 @@ export const CatalogViewer = ({
     }, [mode]);
 
     // ?view=parts・?part= で開いたときは、画面に出す前に名前を見るモードにする（下の effect の読み直しを待つあいだに、部品を押せないように）。
-    // サーバーで描くときは URL のクエリが分からないので、初めの値は "page" のままにして、ここで切り替える
+    // サーバーで描くときは URL のクエリが分からないので、初めの値は "page" のままにして、ここで切り替える。
+    // 中身はサーバーから inert で届き、ページを操作するモードなら上の effect が外す
     useLayoutEffect(() => {
         const query = new URLSearchParams(window.location.search);
         const id = query.get("part");
@@ -277,7 +278,11 @@ export const CatalogViewer = ({
                         onPointerLeave={() => pointerType.current !== "touch" && setHovered(null)}
                         onClick={onClick}
                     >
-                        <div ref={contentRef}>{children}</div>
+                        {/* サーバーで描くときは見方が分からないので、inert で出しておき、動かせるようになってから外す
+                            （ハイドレーションの前に、名前を見るモードの見本を押せないように。React 18 は inert を属性として扱わないので文字列で渡す） */}
+                        <div ref={contentRef} {...({ inert: "" } as object)}>
+                            {children}
+                        </div>
 
                         {boxes.map(({ id, box }, i) => (
                             <div

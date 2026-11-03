@@ -31,6 +31,9 @@ test.describe("ページを操作するモード", () => {
         await openConcept(page, "/catalog/saas");
         await expect(stage(page)).toHaveAttribute("data-mode", "page");
         await expect(page.getByRole("button", { name: "ページを操作する" })).toHaveAttribute("aria-pressed", "true");
+        // サーバーからは inert で届き、動かせるようになったら外れる
+        expect(await (await page.request.get("/catalog/saas")).text()).toMatch(/data-catalog-page=""[^>]*><div inert=""/);
+        await expect(stage(page).locator("[inert]")).toHaveCount(0);
         await stage(page).locator('[data-part="pricing-table"]').click({ position: { x: 10, y: 10 }, force: true });
         await stage(page).locator('[data-part="feature-grid"]').hover({ force: true });
         await expect(label(page)).toHaveCount(0);
