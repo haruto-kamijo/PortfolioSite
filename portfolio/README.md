@@ -11,6 +11,10 @@ npm run build   # 本番ビルド（型チェックとLintも走る）
 npm run lint
 ```
 
+Windows の新しい Node（22.23 など）では、Next 14 に同梱の `@vercel/og` がフォントや wasm の場所を読めず、ビルドや dev で `/og.png` などを作るところが `Invalid URL` で止まる。
+`npm install` のあとに `scripts/patch-vercel-og.mjs`（`postinstall`）がそこを書き換えるので、ふつうは何もしなくてよい。Windows 以外（CI・本番の Linux）では書き換えない。
+それでも止まるときは、`node scripts/patch-vercel-og.mjs` を実行して、出たメッセージを見る。
+
 ### E2E テスト
 
 `e2e/` に、ブラウザで画面を操作して確かめるテスト（Playwright）がある。
