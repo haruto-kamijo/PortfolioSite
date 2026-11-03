@@ -25,6 +25,9 @@ npm run test:e2e:edge                  # Windows では Edge で動かせる（P
 npx playwright install chromium && npm run test:e2e   # Playwright の Chromium で動かす場合
 ```
 
+Windows の新しい Node（22.23 など）では、Next 14 に同梱の `@vercel/og` がフォントの場所を読めず、ビルドで `/og.png` などを作るところが `Invalid URL` で止まる。
+`npm install` のあとに `scripts/patch-vercel-og.mjs`（`postinstall`）がそこを書き換えるので、ふつうは何もしなくてよい。Linux（CI・本番）では書き換えない。
+
 落ちたときは `npx playwright show-report` で、どの操作で何が起きたかを見られる（手元で動かしたあと）。
 CI で落ちたときは、ワークフローの artifact（`playwright-report`）を落として、同じコマンドで開く。
 デザインカタログの見本には `data-testid`（`catalog-stage` / `catalog-part-label` / `catalog-part-box`）を付けてあり、テストはこれを目印にする。
