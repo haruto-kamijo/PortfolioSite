@@ -1,5 +1,6 @@
 // src/components/catalog/concepts/Magazine.tsx
 import React from "react";
+import { DemoForm, FilterItem, FilterScope, FilterTabs, JumpButton, JumpNav, NumberPager } from "@/components/catalog/Interactive";
 import { Part, textFor } from "@/components/catalog/Part";
 import type { Locale } from "@/lib/i18n";
 import type { ConceptView } from "./types";
@@ -48,22 +49,20 @@ const Ticker = ({ lang }: { lang: Locale }) => {
 
 const GlobalNav = ({ lang }: { lang: Locale }) => {
     const t = textFor(lang);
-    const items = [t("ニュース", "NEWS"), t("カルチャー", "CULTURE"), t("音楽", "MUSIC"), t("街", "CITY")];
+    // 見本のページには各部門のページが無いので、押すと選んだ見た目だけが変わる
     return (
         <Part id="global-nav" as="header" className="flex flex-wrap items-stretch justify-between border-b-[3px] border-[#111]">
             <p className="px-4 py-3 text-2xl tracking-tighter" style={{ fontFamily: HEAVY }}>
                 THE GRID
             </p>
-            <ul className="flex text-xs font-bold">
-                {items.map((item, i) => (
-                    <li
-                        key={item}
-                        className={`flex items-center border-l-[3px] border-[#111] px-3 ${i === 1 ? "bg-[#111] text-[#ffe500]" : ""}`}
-                    >
-                        {item}
-                    </li>
-                ))}
-            </ul>
+            <JumpNav
+                items={[{ label: t("ニュース", "NEWS") }, { label: t("カルチャー", "CULTURE") }, { label: t("音楽", "MUSIC") }, { label: t("街", "CITY") }]}
+                defaultIndex={1}
+                className="flex text-xs font-bold"
+                itemClassName="flex items-center border-l-[3px] border-[#111] px-3"
+                activeClassName="bg-[#111] text-[#ffe500]"
+                inactiveClassName="hover:bg-[#ffe500]"
+            />
         </Part>
     );
 };
@@ -98,12 +97,13 @@ const Tag = ({ label }: { label: string }) => (
 );
 
 const CtaButton = ({ lang }: { lang: Locale }) => (
-    <Part
-        id="cta-button"
-        as="span"
-        className="inline-block border-[3px] border-[#111] bg-[#ffe500] px-5 py-2.5 text-sm font-bold shadow-[5px_5px_0_#111]"
-    >
-        {textFor(lang)("特集を読む →", "READ THE STORY →")}
+    <Part id="cta-button" as="span" className="inline-block">
+        <JumpButton
+            target="card"
+            className="border-[3px] border-[#111] bg-[#ffe500] px-5 py-2.5 text-sm font-bold shadow-[5px_5px_0_#111] active:translate-x-[3px] active:translate-y-[3px] active:shadow-[2px_2px_0_#111]"
+        >
+            {textFor(lang)("特集を読む →", "READ THE STORY →")}
+        </JumpButton>
     </Part>
 );
 
@@ -155,20 +155,25 @@ const Hero = ({ lang }: { lang: Locale }) => {
 
 const Tabs = ({ lang }: { lang: Locale }) => {
     const t = textFor(lang);
-    const items = [t("すべて", "ALL"), t("特集", "FEATURES"), t("インタビュー", "INTERVIEWS"), t("コラム", "COLUMNS")];
     return (
         <Part id="tabs" as="nav" className="mx-4 mt-4 flex overflow-x-auto border-[3px] border-[#111] text-xs font-bold">
-            {items.map((item, i) => (
-                <span
-                    key={item}
-                    className={`flex-1 whitespace-nowrap px-3 py-2 text-center ${i > 0 ? "border-l-[3px] border-[#111]" : ""} ${i === 1 ? "bg-[#ffe500]" : ""}`}
-                >
-                    {item}
-                </span>
-            ))}
+            <FilterTabs
+                items={[
+                    { label: t("すべて", "ALL"), value: "all" },
+                    { label: t("特集", "FEATURES"), value: "features" },
+                    { label: t("インタビュー", "INTERVIEWS"), value: "interviews" },
+                    { label: t("コラム", "COLUMNS"), value: "columns" },
+                ]}
+                itemClassName="flex-1 whitespace-nowrap border-[#111] px-3 py-2 text-center [&:not(:first-child)]:border-l-[3px]"
+                activeClassName="bg-[#ffe500]"
+                inactiveClassName="hover:bg-[#ffe500]/40"
+            />
         </Part>
     );
 };
+
+/** カードの記事の種類。上のタブで絞り込む（FilterScope） */
+const CARD_KINDS = ["interviews", "features", "columns"];
 
 const Card = ({ lang, index }: { lang: Locale; index: number }) => {
     const t = textFor(lang);
@@ -192,16 +197,17 @@ const Card = ({ lang, index }: { lang: Locale; index: number }) => {
     );
 };
 
-const Pagination = () => (
+const Pagination = ({ lang }: { lang: Locale }) => (
     <Part id="pagination" as="nav" className="flex justify-center gap-0 px-4 py-8 text-xs font-bold">
-        {["←", "1", "2", "3", "…", "12", "→"].map((label, i) => (
-            <span
-                key={i}
-                className={`flex h-9 min-w-9 items-center justify-center border-[3px] border-[#111] px-2 ${i > 0 ? "-ml-[3px]" : ""} ${label === "2" ? "bg-[#111] text-[#ffe500]" : "bg-white"}`}
-            >
-                {label}
-            </span>
-        ))}
+        <NumberPager
+            total={12}
+            initial={2}
+            prevLabel={textFor(lang)("前のページ", "Previous page")}
+            nextLabel={textFor(lang)("次のページ", "Next page")}
+            itemClassName="flex h-9 min-w-9 items-center justify-center border-[3px] border-[#111] px-2 [&:not(:first-child)]:-ml-[3px]"
+            activeClassName="bg-[#111] text-[#ffe500]"
+            inactiveClassName="bg-white enabled:hover:bg-[#ffe500] disabled:text-[#111]/30"
+        />
     </Part>
 );
 
@@ -212,12 +218,22 @@ const Newsletter = ({ lang }: { lang: Locale }) => {
             <p className="text-lg leading-none" style={{ fontFamily: HEAVY }}>
                 {t("毎週金曜、街の話を。", "CITY STORIES, EVERY FRIDAY.")}
             </p>
-            <div className="mt-3 flex">
-                <span className="flex-1 border-[3px] border-[#111] bg-white px-3 py-2 text-xs text-[#111]/50">you@example.com</span>
-                <span className="-ml-[3px] border-[3px] border-[#111] bg-[#111] px-4 py-2 text-xs font-bold text-[#ffe500]">
+            <DemoForm
+                className="mt-3 flex flex-wrap"
+                sentMessage={t("購読を受け付けました（見本なので、どこにも送っていません）", "SUBSCRIBED (THIS IS A SAMPLE, NOTHING WAS SENT)")}
+                sentClassName="mt-2 w-full text-[11px] font-bold"
+            >
+                <input
+                    type="email"
+                    required
+                    aria-label={t("メールアドレス", "Email address")}
+                    placeholder="you@example.com"
+                    className="min-w-0 flex-1 rounded-none border-[3px] border-[#111] bg-white px-3 py-2 text-xs text-[#111] outline-none placeholder:text-[#111]/50 focus:bg-[#fffbd6]"
+                />
+                <button type="submit" className="-ml-[3px] border-[3px] border-[#111] bg-[#111] px-4 py-2 text-xs font-bold text-[#ffe500] hover:bg-[#333]">
                     {t("購読", "SUBSCRIBE")}
-                </span>
-            </div>
+                </button>
+            </DemoForm>
         </Part>
     );
 };
@@ -247,13 +263,17 @@ const Page: ConceptView["Page"] = ({ lang }) => (
         <GlobalNav lang={lang} />
         <Breadcrumb lang={lang} />
         <Hero lang={lang} />
-        <Tabs lang={lang} />
-        <div className="grid gap-5 p-4 pt-6 sm:grid-cols-3">
-            {[0, 1, 2].map((i) => (
-                <Card key={i} lang={lang} index={i} />
-            ))}
-        </div>
-        <Pagination />
+        <FilterScope>
+            <Tabs lang={lang} />
+            <div className="grid gap-5 p-4 pt-6 sm:grid-cols-3">
+                {[0, 1, 2].map((i) => (
+                    <FilterItem key={i} value={CARD_KINDS[i]}>
+                        <Card lang={lang} index={i} />
+                    </FilterItem>
+                ))}
+            </div>
+        </FilterScope>
+        <Pagination lang={lang} />
         <Newsletter lang={lang} />
         <Footer lang={lang} />
     </Frame>

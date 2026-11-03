@@ -9,15 +9,22 @@ type PartLabel = { id: string; name: string; sub: string; href: string };
 
 type Box = { top: number; left: number; width: number; height: number };
 
+type Mode = "page" | "parts";
+
 /**
- * デザインカタログの見本のページを、ブラウザの枠に入れて表示する。
+ * デザインカタログの見本のページを、ブラウザの枠に入れて表示する。見方は2つあり、枠の上のボタンで切り替える。
  *
+ * ページを操作するモード（既定）
+ * - 見本の中のボタン・タブ・アコーディオン・フォームが、ページの中で動く（Interactive.tsx）。図鑑へは移らない
+ *
+ * パーツの名前を見るモード
  * - パーツ（data-part の付いた要素）を指すと、枠と名前を出す
- * - クリックするとパーツ図鑑のその項目へ移る。タッチでは1回目のタップで名前を出し、同じパーツをもう一度タップで移る
- * - 横の一覧を指すと、そのパーツをページの中で全部囲む（キーボードではフォーカスで同じことが起きる）。一覧から外れると ?part= の囲みに戻る
- * - ?part=<id> 付きで開くと、そのパーツを囲んで見える位置までスクロールする（図鑑の「ページで見る」から来たとき）
+ * - クリックするとパーツ図鑑のその項目へ移る。タッチでは1回目のタップで名前を出し、同じパーツをもう一度タップで移る。
+ *   見本の中の部品が動かないよう、クリックはここで先に止める
+ * - ?part=<id> 付きで開くと、このモードになり、そのパーツを囲んで見える位置までスクロールする（図鑑の「ページで見る」から来たとき）
  *
- * 見本の中身はサーバーで描いた children で、押せる要素は持たない。ここではクリックを横取りするだけ
+ * どちらのモードでも、横の一覧を指すと、そのパーツをページの中で全部囲む（キーボードではフォーカスで同じことが起きる）。
+ * 一覧から外れると ?part= の囲みに戻る
  */
 export const CatalogViewer = ({
     domain,
@@ -27,21 +34,32 @@ export const CatalogViewer = ({
 }: {
     domain: string;
     parts: PartLabel[];
-    texts: { previewLabel: string; hintPointer: string; hintTouch: string; partsOnPage: string; openInParts: string };
+    texts: {
+        previewLabel: string;
+        modeLabel: string;
+        modePage: string;
+        modeParts: string;
+        hintPage: string;
+        hintPointer: string;
+        hintTouch: string;
+        partsOnPage: string;
+        openInParts: string;
+    };
     children: React.ReactNode;
 }) => {
     const router = useRouter();
     const stageRef = useRef<HTMLDivElement>(null);
     const pointerType = useRef<string>("mouse");
 
-    /** 指している1つの要素 */
+    const [mode, setMode] = useState<Mode>("page");
+    /** 指している1つの要素（パーツの名前を見るモードのときだけ） */
     const [hovered, setHovered] = useState<HTMLElement | null>(null);
     /** ?part= で選んだパーツ。一覧から外れたら（mouseleave・blur）、これに戻す */
     const [pinnedId, setPinnedId] = useState<string | null>(null);
     /** 横の一覧で指しているパーツ */
     const [listId, setListId] = useState<string | null>(null);
     /** ページの中の同じパーツを全部囲むもの */
-    const selectedId = listId ?? pinnedId;
+    const selectedId = listId ?? (mode === "parts" ? pinnedId : null);
     const [boxes, setBoxes] = useState<{ id: string; box: Box }[]>([]);
     /** 指を使う機器か。(hover: none) の機器に加え、タッチもできるノート PC で指を使ったときも true にする */
     const [isTouch, setIsTouch] = useState(false);
@@ -65,7 +83,9 @@ export const CatalogViewer = ({
             : selectedId
               ? Array.from(stage.querySelectorAll<HTMLElement>(`[data-part="${CSS.escape(selectedId)}"]`))
               : [];
-        setBoxes(targets.map((el) => ({ id: el.dataset.part ?? "", box: toBox(el) })));
+        // タブで絞り込まれて隠れているもの（大きさが無いもの）は囲まない
+        const shown = targets.filter((el) => el.getClientRects().length > 0);
+        setBoxes(shown.map((el) => ({ id: el.dataset.part ?? "", box: toBox(el) })));
     }, [hovered, selectedId]);
 
     useLayoutEffect(measure, [measure]);
@@ -95,6 +115,7 @@ export const CatalogViewer = ({
                 const first = id ? stageRef.current?.querySelector<HTMLElement>(`[data-part="${CSS.escape(id)}"]`) : null;
                 setPinnedId(id && first ? id : null);
                 if (first) {
+                    setMode("parts");
                     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
                     first.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
                 }
@@ -125,15 +146,24 @@ export const CatalogViewer = ({
         return el && stage?.contains(el) ? el : null;
     };
 
+    const changeMode = (next: Mode) => {
+        setHovered(null);
+        setMode(next);
+    };
+
     const onPointerMove = (e: React.PointerEvent) => {
         pointerType.current = e.pointerType;
-        if (e.pointerType === "touch") return;
+        if (mode !== "parts" || e.pointerType === "touch") return;
         const el = partAt(e.target);
         if (el !== hovered) setHovered(el);
     };
 
-    const onClick = (e: React.MouseEvent) => {
+    // パーツの名前を見るモードでは、見本の中の部品より先にクリックを受け取り、そこで止める
+    // （アコーディオンが開いたり、フォームが送られたりしないように）
+    const onClickCapture = (e: React.MouseEvent) => {
+        if (mode !== "parts") return;
         e.preventDefault();
+        e.stopPropagation();
         const el = partAt(e.target);
         if (!el) return;
         const part = byId.get(el.dataset.part ?? "");
@@ -154,7 +184,29 @@ export const CatalogViewer = ({
     return (
         <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_15rem]">
             <div>
-                <p className="mb-3 text-xs text-slate-400">{isTouch ? texts.hintTouch : texts.hintPointer}</p>
+                <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <div role="group" aria-label={texts.modeLabel} className="flex rounded-full border border-white/15 p-0.5 text-xs">
+                        {(
+                            [
+                                ["page", texts.modePage],
+                                ["parts", texts.modeParts],
+                            ] as const
+                        ).map(([m, label]) => (
+                            <button
+                                key={m}
+                                type="button"
+                                aria-pressed={mode === m}
+                                onClick={() => changeMode(m)}
+                                className={`rounded-full px-3 py-1.5 transition-colors ${
+                                    mode === m ? "bg-cyan-200/15 text-cyan-200" : "text-white/60 hover:text-white"
+                                }`}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                    <p className="text-xs text-slate-400">{mode === "page" ? texts.hintPage : isTouch ? texts.hintTouch : texts.hintPointer}</p>
+                </div>
 
                 {/* ブラウザの枠 */}
                 <div className="overflow-hidden rounded-xl border border-white/15 bg-black/40 shadow-[0_0_40px_rgba(120,255,255,0.06)]">
@@ -173,16 +225,21 @@ export const CatalogViewer = ({
                         ref={stageRef}
                         data-testid="catalog-stage"
                         data-ready={ready ? "" : undefined}
-                        role="img"
+                        data-mode={mode}
+                        data-catalog-page=""
+                        // 名前を見るモードでは中身を押せないので、1枚の絵として読み上げる
+                        role={mode === "parts" ? "img" : "region"}
                         aria-label={texts.previewLabel}
-                        className="relative cursor-pointer"
+                        className={`relative ${mode === "parts" ? "cursor-pointer" : ""}`}
                         onPointerMove={onPointerMove}
                         onPointerDown={(e) => {
                             pointerType.current = e.pointerType;
                             if (e.pointerType === "touch") setIsTouch(true);
                         }}
+                        // 名前を見るモードでは、入力欄にフォーカスが移らないようにする
+                        onMouseDownCapture={(e) => mode === "parts" && e.preventDefault()}
                         onPointerLeave={() => pointerType.current !== "touch" && setHovered(null)}
-                        onClick={onClick}
+                        onClickCapture={onClickCapture}
                     >
                         {children}
 
@@ -218,7 +275,7 @@ export const CatalogViewer = ({
                 </div>
 
                 {/* タッチで名前を出したあとの、図鑑へのボタン（2回目のタップの代わりにも押せる） */}
-                {isTouch && hovered && byId.get(hovered.dataset.part ?? "") && (
+                {mode === "parts" && isTouch && hovered && byId.get(hovered.dataset.part ?? "") && (
                     <div className="sticky bottom-4 mt-3 flex justify-center">
                         <Link
                             href={byId.get(hovered.dataset.part ?? "")!.href}

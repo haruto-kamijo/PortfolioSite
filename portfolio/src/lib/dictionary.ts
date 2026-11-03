@@ -66,6 +66,10 @@ export type Dictionary = {
         open: string;
         partsCount: string;
         previewLabel: string;
+        modeLabel: string;
+        modePage: string;
+        modeParts: string;
+        hintPage: string;
         hintPointer: string;
         hintTouch: string;
         partsOnPage: string;
@@ -181,6 +185,10 @@ const ja: Dictionary = {
         open: "ページを見る",
         partsCount: "{n} 個のパーツ",
         previewLabel: "{name} のデザイン見本",
+        modeLabel: "見本の見方",
+        modePage: "ページを操作する",
+        modeParts: "パーツの名前を見る",
+        hintPage: "ボタンやタブを押すと、ページの中で動きます。パーツの名前は「パーツの名前を見る」に切り替えると出ます。",
         hintPointer: "パーツにカーソルを合わせると名前が出ます。クリックするとパーツ図鑑に移ります。",
         hintTouch: "パーツをタップすると名前が出ます。もう一度タップするとパーツ図鑑に移ります。",
         partsOnPage: "このページのパーツ",
@@ -296,6 +304,10 @@ const en: Dictionary = {
         open: "View page",
         partsCount: "{n} parts",
         previewLabel: "Design sample of {name}",
+        modeLabel: "How to view the sample",
+        modePage: "Use the page",
+        modeParts: "Show part names",
+        hintPage: "Buttons and tabs work inside the page. Switch to “Show part names” to see what each part is called.",
         hintPointer: "Hover over a part to see its name. Click it to open the parts guide.",
         hintTouch: "Tap a part to see its name. Tap it again to open the parts guide.",
         partsOnPage: "Parts on this page",

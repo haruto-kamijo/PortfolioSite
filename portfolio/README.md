@@ -80,8 +80,8 @@ firebase deploy
 | `/portfolio?tab=` | 作品一覧。`sites` / `games` / `models` / `photos` / `pocs` / `kaggle` / `blog` をタブで切り替え。`blog` には Zenn・note の記事を RSS から自動で並べる |
 | `/contact` | お問い合わせフォーム |
 | `/catalog` | デザインカタログ。目的の違う架空のサイト4つを、見た目の流派ごとに作った見本の一覧。制作物の `sites` タブの先頭にもカードを出す |
-| `/catalog/<見本>` | 見本のページ（`kissa` / `saas` / `magazine` / `studio`）。パーツを指すと名前が出て、押すとパーツ図鑑のその項目へ移る |
-| `/catalog/parts` | パーツ図鑑。UI パーツの名前・別名・役割と、各見本での見え方。「ページで見る」で `/catalog/<見本>?part=<パーツ>` に戻る |
+| `/catalog/<見本>` | 見本のページ（`kissa` / `saas` / `magazine` / `studio`）。見方は2つで、枠の上のボタンで切り替える。既定の「ページを操作する」では、ナビ・タブ・アコーディオン・ページ送り・フォームがページの中で動く（フォームはどこにも送らない）。「パーツの名前を見る」では、パーツを指すと名前が出て、押すとパーツ図鑑のその項目へ移る |
+| `/catalog/parts` | パーツ図鑑。UI パーツの名前・別名・役割と、各見本での見え方。「ページで見る」で `/catalog/<見本>?part=<パーツ>` に戻る（「パーツの名前を見る」で開く） |
 | `/og.png` | リンクを貼ったときに出る画像（OGP、ビルド時に生成） |
 | `/login` | 管理者ログイン（Googleサインイン） |
 | `/admin` | CMS。受信箱・プロフィール編集・TOPカード・ポートフォリオ管理 |
@@ -141,7 +141,8 @@ src/
     catalog/
       concepts/            // 見本のページ4つ（Kissa / Saas / Magazine / Studio）。パーツは <Part id> で印を付ける
       Part.tsx             // パーツの印（data-part）
-      CatalogViewer.tsx    // 見本をブラウザの枠に入れ、指す・押す・一覧との連動を受け持つ
+      CatalogViewer.tsx    // 見本をブラウザの枠に入れ、2つの見方の切り替え・指す・押す・一覧との連動を受け持つ
+      Interactive.tsx      // 見本の中で動く部品（ナビ・タブの絞り込み・ページ送り・フォーム）
       CatalogNav.tsx / HashHighlight.tsx
     admin/
       AdminShell.tsx       // 管理画面の外枠（ナビ・ログアウト）

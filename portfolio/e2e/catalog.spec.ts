@@ -1,7 +1,7 @@
 // e2e/catalog.spec.ts
 import { expect, test, type Page } from "@playwright/test";
 
-/** デザインカタログ：見本のパーツと図鑑の行き来、スマホでの表示 */
+/** デザインカタログ：見本のページの操作、パーツと図鑑の行き来、スマホでの表示 */
 
 const CONCEPTS = ["kissa", "saas", "magazine", "studio"];
 
@@ -17,9 +17,85 @@ const openConcept = async (page: Page, path: string) => {
     await expect(stage(page)).toHaveAttribute("data-ready", "");
 };
 
+/** パーツの名前を見るモードに切り替える（既定はページを操作するモード） */
+const showPartNames = async (page: Page, name = "パーツの名前を見る") => {
+    await page.getByRole("button", { name }).click();
+    await expect(stage(page)).toHaveAttribute("data-mode", "parts");
+};
+
+test.describe("ページを操作するモード", () => {
+    test("既定はこのモードで、パーツを押しても図鑑へ移らない", async ({ page }) => {
+        await openConcept(page, "/catalog/saas");
+        await expect(stage(page)).toHaveAttribute("data-mode", "page");
+        await expect(page.getByRole("button", { name: "ページを操作する" })).toHaveAttribute("aria-pressed", "true");
+        await stage(page).locator('[data-part="pricing-table"]').click({ position: { x: 10, y: 10 } });
+        await stage(page).locator('[data-part="feature-grid"]').hover();
+        await expect(label(page)).toHaveCount(0);
+        expect(pathOf(page)).toBe("/catalog/saas");
+    });
+
+    test("アコーディオンが開け閉めでき、ナビとボタンはページの中の場所へ動く", async ({ page }) => {
+        await openConcept(page, "/catalog/saas");
+        const item = stage(page).locator('[data-part="accordion"] details').nth(1);
+        await expect(item).not.toHaveAttribute("open");
+        await item.locator("summary").click();
+        await expect(item).toHaveAttribute("open", "");
+
+        await stage(page).locator('[data-part="global-nav"]').getByRole("button", { name: "導入事例" }).click();
+        await expect(stage(page).locator('[data-part="testimonial"]')).toBeInViewport();
+        await stage(page).locator('[data-part="cta-button"]').getByRole("button").click();
+        await expect(stage(page).locator('[data-part="pricing-table"]')).toBeInViewport();
+        expect(pathOf(page)).toBe("/catalog/saas");
+    });
+
+    test("タブで中身が絞り込まれ、絞り込まれたパーツは囲まない", async ({ page }) => {
+        await openConcept(page, "/catalog/studio");
+        const figures = stage(page).locator('[data-part="gallery"] figure');
+        await expect(figures.filter({ visible: true })).toHaveCount(6);
+        await stage(page).locator('[data-part="tabs"]').getByRole("button", { name: "人物" }).click();
+        await expect(figures.filter({ visible: true })).toHaveCount(2);
+        // 横の一覧でタグを指すと、見えているタグだけを囲む
+        await partsList(page).getByRole("link", { name: "タグ", exact: true }).hover();
+        await expect(boxes(page)).toHaveCount(2);
+    });
+
+    test("フォームは入力して送信でき、どこにも送らずに知らせだけが出る", async ({ page }) => {
+        await openConcept(page, "/catalog/studio");
+        const form = stage(page).locator('[data-part="form"]');
+        await form.getByLabel("お名前").fill("霞 太郎");
+        await form.getByLabel("メール").fill("taro@example.com");
+        await form.getByLabel("ご相談の内容").fill("撮影の相談です");
+        await form.getByRole("button", { name: "送信" }).click();
+        await expect(form.getByRole("status")).toContainText("どこにも送っていません");
+        expect(pathOf(page)).toBe("/catalog/studio");
+    });
+
+    test("ページ送りで今のページが変わる", async ({ page }) => {
+        await openConcept(page, "/catalog/magazine");
+        const pager = stage(page).locator('[data-part="pagination"]');
+        await expect(pager.locator('[aria-current="page"]')).toHaveText("2");
+        await pager.getByRole("button", { name: "次のページ" }).click();
+        await expect(pager.locator('[aria-current="page"]')).toHaveText("3");
+        await pager.getByRole("button", { name: "12" }).click();
+        await expect(pager.getByRole("button", { name: "次のページ" })).toBeDisabled();
+    });
+});
+
 test.describe("PC", () => {
+    test("名前を見るモードでは、見本の中の部品は動かず、押すと図鑑へ移る", async ({ page }) => {
+        await openConcept(page, "/catalog/saas");
+        await showPartNames(page);
+        const item = stage(page).locator('[data-part="accordion"] details').nth(1);
+        await item.locator("summary").click();
+        await expect.poll(() => pathOf(page)).toBe("/catalog/parts#accordion");
+        await page.goBack();
+        await expect(stage(page)).toHaveAttribute("data-ready", "");
+        await expect(stage(page).locator('[data-part="accordion"] details').nth(1)).not.toHaveAttribute("open");
+    });
+
     test("パーツを指すと名前が出て、入れ子のパーツは内側の名前が出る", async ({ page }) => {
         await openConcept(page, "/catalog/kissa");
+        await showPartNames(page);
         await stage(page).locator('[data-part="feature-grid"]').hover();
         await expect(label(page)).toContainText("特徴グリッド");
         await stage(page).locator('[data-part="cta-button"]').first().hover();
@@ -28,6 +104,7 @@ test.describe("PC", () => {
 
     test("パーツを押すと図鑑のその項目に移り、項目が強調される", async ({ page }) => {
         await openConcept(page, "/catalog/saas");
+        await showPartNames(page);
         await stage(page).locator('[data-part="pricing-table"]').click({ position: { x: 10, y: 10 } });
         await expect.poll(() => pathOf(page)).toBe("/catalog/parts#pricing-table");
         await expect(page.locator("#pricing-table")).toHaveAttribute("data-highlight", "");
@@ -39,6 +116,8 @@ test.describe("PC", () => {
         await page.locator("#menu-list").getByRole("link", { name: /ページで見る/ }).first().click();
         await expect.poll(() => pathOf(page)).toBe("/catalog/kissa?part=menu-list");
         await expect(stage(page)).toHaveAttribute("data-ready", "");
+        // 図鑑から来たときは、名前を見るモードで開く
+        await expect(stage(page)).toHaveAttribute("data-mode", "parts");
         // 押した位置にカーソルが残ると、そこにあるパーツの名前が優先されるので外へ動かす
         await page.mouse.move(1, 1);
         await expect(boxes(page)).toHaveCount(1);
@@ -103,6 +182,7 @@ test.describe("PC", () => {
     test("英語のページは英語の名前とタイトルになる", async ({ page }) => {
         await openConcept(page, "/en/catalog/kissa");
         await expect(page).toHaveTitle(/^Kissa Hoshizuki \(Japanese modern\) \| Design Catalog/);
+        await showPartNames(page, "Show part names");
         await stage(page).locator('[data-part="feature-grid"]').hover();
         await expect(label(page)).toHaveText("Feature grid");
     });
@@ -131,6 +211,8 @@ test.describe("スマホ（タッチ）", () => {
 
     test("1回目のタップで名前、2回目のタップで図鑑へ", async ({ page }) => {
         await openConcept(page, "/catalog/saas");
+        await page.getByRole("button", { name: "パーツの名前を見る" }).tap();
+        await expect(stage(page)).toHaveAttribute("data-mode", "parts");
         const part = stage(page).locator('[data-part="pricing-table"]');
         await part.scrollIntoViewIfNeeded();
         await part.tap({ position: { x: 20, y: 20 } });
