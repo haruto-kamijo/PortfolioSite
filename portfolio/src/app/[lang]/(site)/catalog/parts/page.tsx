@@ -105,6 +105,9 @@ export default function CatalogPartsPage({ params }: Props) {
                                                     role="img"
                                                     aria-label={`${pick(concept.name, lang)} — ${pick(part.name, lang)}`}
                                                     className="overflow-hidden border-b border-white/10"
+                                                    // 見本の中のボタンや入力欄は、見本のページで動かすもの。ここでは絵として見せ、押せないようにする
+                                                    // （React 18 は inert を属性として扱わず、true では出力されないので、空の文字列で渡す）
+                                                    {...({ inert: "" } as object)}
                                                 >
                                                     <Frame>
                                                         <Sample lang={lang} />

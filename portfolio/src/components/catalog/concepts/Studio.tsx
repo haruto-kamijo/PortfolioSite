@@ -55,7 +55,7 @@ const Breadcrumb = ({ lang }: { lang: Locale }) => (
 );
 
 const CtaButton = ({ lang }: { lang: Locale }) => (
-    <Part id="cta-button" as="span" className="inline-block">
+    <Part id="cta-button" as="span" className="inline-flex">
         <JumpButton target="form" className="border-b border-[#1c1917] pb-1 text-xs tracking-[0.25em] hover:opacity-60">
             {textFor(lang)("撮影のご相談", "Book a shoot")} →
         </JumpButton>

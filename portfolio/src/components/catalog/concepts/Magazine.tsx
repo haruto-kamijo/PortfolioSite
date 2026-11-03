@@ -97,7 +97,7 @@ const Tag = ({ label }: { label: string }) => (
 );
 
 const CtaButton = ({ lang }: { lang: Locale }) => (
-    <Part id="cta-button" as="span" className="inline-block">
+    <Part id="cta-button" as="span" className="inline-flex">
         <JumpButton
             target="card"
             className="border-[3px] border-[#111] bg-[#ffe500] px-5 py-2.5 text-sm font-bold shadow-[5px_5px_0_#111] active:translate-x-[3px] active:translate-y-[3px] active:shadow-[2px_2px_0_#111]"
@@ -204,9 +204,10 @@ const Pagination = ({ lang }: { lang: Locale }) => (
             initial={2}
             prevLabel={textFor(lang)("前のページ", "Previous page")}
             nextLabel={textFor(lang)("次のページ", "Next page")}
-            itemClassName="flex h-9 min-w-9 items-center justify-center border-[3px] border-[#111] px-2 [&:not(:first-child)]:-ml-[3px]"
+            // 真ん中のページでは9つ並ぶので、狭いスマホ（360px）でも収まる大きさにする
+            itemClassName="flex h-8 min-w-8 items-center justify-center border-[3px] border-[#111] px-1.5 [&:not(:first-child)]:-ml-[3px]"
             activeClassName="bg-[#111] text-[#ffe500]"
-            inactiveClassName="bg-white enabled:hover:bg-[#ffe500] disabled:text-[#111]/30"
+            inactiveClassName="bg-white hover:bg-[#ffe500] aria-disabled:text-[#111]/30 aria-disabled:hover:bg-white"
         />
     </Part>
 );

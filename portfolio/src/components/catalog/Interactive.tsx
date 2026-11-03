@@ -8,15 +8,20 @@ import React, { createContext, useContext, useState } from "react";
  * 見た目は見本ごとに違うので、クラスは呼ぶ側から文字列で渡す（サーバーからは関数を渡せないため）。
  *
  * どれも見本の中だけで完結し、URL も変えず、どこにも送らない。
- * パーツの名前を見るモードでは、CatalogViewer がクリックを先に止めるので、ここの部品は動かない
+ * パーツの名前を見るモードとパーツ図鑑では、見本の中身が inert になるので、ここの部品は動かない
  */
 
-/** 見本のページ（CatalogViewer の枠）の中から、そのパーツの最初の1つを探して見える位置まで動かす */
+/**
+ * 見本のページ（CatalogViewer の枠）の中から、そのパーツの最初の1つを探して見える位置まで動かす。
+ * キーボードで押した人が続きから進めるよう、フォーカスも移す
+ */
 const scrollToPart = (from: HTMLElement, target: string) => {
     const el = from.closest("[data-catalog-page]")?.querySelector<HTMLElement>(`[data-part="${CSS.escape(target)}"]`);
     if (!el) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     el.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+    if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "-1");
+    el.focus({ preventScroll: true });
 };
 
 type Classes = { className?: string; itemClassName?: string; activeClassName?: string; inactiveClassName?: string };
@@ -118,7 +123,8 @@ export const FilterItem = ({
 };
 
 /**
- * 番号のページ送り。今のページの前後と、最初・最後のページを出し、間は … で詰める
+ * 番号のページ送り。今のページの前後と、最初・最後のページを出し、間は … で詰める。
+ * 端の矢印は、disabled にするとフォーカスが外れるので aria-disabled にして、押しても何もしない
  */
 export const NumberPager = ({
     total,
@@ -138,7 +144,7 @@ export const NumberPager = ({
     });
     return (
         <>
-            <button type="button" aria-label={prevLabel} disabled={page === 1} className={`${itemClassName} ${inactiveClassName}`} onClick={() => setPage(page - 1)}>
+            <button type="button" aria-label={prevLabel} aria-disabled={page === 1} className={`${itemClassName} ${inactiveClassName}`} onClick={() => page > 1 && setPage(page - 1)}>
                 ←
             </button>
             {cells.map((cell, i) =>
@@ -158,14 +164,14 @@ export const NumberPager = ({
                     </button>
                 )
             )}
-            <button type="button" aria-label={nextLabel} disabled={page === total} className={`${itemClassName} ${inactiveClassName}`} onClick={() => setPage(page + 1)}>
+            <button type="button" aria-label={nextLabel} aria-disabled={page === total} className={`${itemClassName} ${inactiveClassName}`} onClick={() => page < total && setPage(page + 1)}>
                 →
             </button>
         </>
     );
 };
 
-/** 「01 / 06」の形のページ送り。端では、その向きのボタンを押せなくする */
+/** 「01 / 06」の形のページ送り。端では、その向きのボタンを押せなくする（disabled にするとフォーカスが外れるので aria-disabled にする） */
 export const CounterPager = ({
     total,
     activeClassName = "",
@@ -175,13 +181,13 @@ export const CounterPager = ({
     const pad = (n: number) => String(n).padStart(2, "0");
     return (
         <>
-            <button type="button" disabled={page === 1} className={page === 1 ? inactiveClassName : activeClassName} onClick={() => setPage(page - 1)}>
+            <button type="button" aria-disabled={page === 1} className={page === 1 ? inactiveClassName : activeClassName} onClick={() => page > 1 && setPage(page - 1)}>
                 ← Prev
             </button>
             <span aria-live="polite">
                 <span className={activeClassName}>{pad(page)}</span> / {pad(total)}
             </span>
-            <button type="button" disabled={page === total} className={page === total ? inactiveClassName : activeClassName} onClick={() => setPage(page + 1)}>
+            <button type="button" aria-disabled={page === total} className={page === total ? inactiveClassName : activeClassName} onClick={() => page < total && setPage(page + 1)}>
                 Next →
             </button>
         </>

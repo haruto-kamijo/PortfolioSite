@@ -34,7 +34,7 @@ const Badge = ({ lang }: { lang: Locale }) => (
 );
 
 const CtaButton = ({ lang }: { lang: Locale }) => (
-    <Part id="cta-button" as="span" className="inline-block">
+    <Part id="cta-button" as="span" className="inline-flex">
         <JumpButton
             target="pricing-table"
             className="rounded-xl bg-gradient-to-r from-[#a78bfa] to-[#f472b6] px-6 py-3 text-sm font-semibold shadow-[0_8px_24px_rgba(236,72,153,0.45)] transition-transform hover:-translate-y-0.5"

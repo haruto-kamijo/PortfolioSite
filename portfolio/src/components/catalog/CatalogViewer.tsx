@@ -20,8 +20,9 @@ type Mode = "page" | "parts";
  * パーツの名前を見るモード
  * - パーツ（data-part の付いた要素）を指すと、枠と名前を出す
  * - クリックするとパーツ図鑑のその項目へ移る。タッチでは1回目のタップで名前を出し、同じパーツをもう一度タップで移る。
- *   見本の中の部品が動かないよう、クリックはここで先に止める
+ *   見本の中の部品が動かないよう、中身は inert にする（指しているパーツは位置から探す）
  * - ?part=<id> 付きで開くと、このモードになり、そのパーツを囲んで見える位置までスクロールする（図鑑の「ページで見る」から来たとき）
+ * - このモードのあいだは URL に ?view=parts を付け、図鑑へ移って戻ってきても、このモードのままにする
  *
  * どちらのモードでも、横の一覧を指すと、そのパーツをページの中で全部囲む（キーボードではフォーカスで同じことが起きる）。
  * 一覧から外れると ?part= の囲みに戻る
@@ -49,6 +50,7 @@ export const CatalogViewer = ({
 }) => {
     const router = useRouter();
     const stageRef = useRef<HTMLDivElement>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
     const pointerType = useRef<string>("mouse");
 
     const [mode, setMode] = useState<Mode>("page");
@@ -90,6 +92,12 @@ export const CatalogViewer = ({
 
     useLayoutEffect(measure, [measure]);
 
+    // 名前を見るモードでは見本の中身を inert にして、クリック・キーボード・タッチ・フォーカスのどれでも部品が動かないようにする。
+    // React 18 は inert を属性として持たないので、直接付け外しする
+    useLayoutEffect(() => {
+        contentRef.current?.toggleAttribute("inert", mode === "parts");
+    }, [mode]);
+
     // 見本の大きさが変わったら測り直す（窓の大きさのほか、フォントの読み込みやスクロールバーの出入りでも変わる）
     useEffect(() => {
         const stage = stageRef.current;
@@ -106,16 +114,18 @@ export const CatalogViewer = ({
         // 図鑑から来たとき：そのパーツを囲み、最初の1つが見えるところまで動かす。
         // 別のページから移ってきたときは、この effect のあとに URL が書き換わることがあるので、少し待ってから読む。
         // 同じページのまま戻る・進むで ?part= が変わったとき（popstate）も読み直し、無ければ囲みを外す。
+        // 見方は ?view=parts で残す（図鑑へ移って戻ってきたときも、名前を見るモードのままにするため）。
         // useSearchParams を使うと、静的に作るこのページで見本ごとサーバーで描かれなくなるため、URL を直接読む
         let timer = 0;
         const syncFromQuery = () => {
             window.clearTimeout(timer);
             timer = window.setTimeout(() => {
-                const id = new URLSearchParams(window.location.search).get("part");
+                const query = new URLSearchParams(window.location.search);
+                const id = query.get("part");
                 const first = id ? stageRef.current?.querySelector<HTMLElement>(`[data-part="${CSS.escape(id)}"]`) : null;
                 setPinnedId(id && first ? id : null);
+                setMode(first || query.get("view") === "parts" ? "parts" : "page");
                 if (first) {
-                    setMode("parts");
                     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
                     first.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
                 }
@@ -140,31 +150,47 @@ export const CatalogViewer = ({
         };
     }, [parts]);
 
-    const partAt = (target: EventTarget | null) => {
+    /**
+     * 画面の点にあるパーツ。入れ子のときは内側のもの。
+     * 名前を見るモードでは中身が inert でイベントの target にならないので、要素の位置から探す
+     */
+    const partAt = (x: number, y: number) => {
         const stage = stageRef.current;
-        const el = target instanceof Element ? target.closest<HTMLElement>("[data-part]") : null;
-        return el && stage?.contains(el) ? el : null;
+        if (!stage) return null;
+        // 文書の順で後ろにあるものほど内側なので、最後に当たったものを使う
+        let found: HTMLElement | null = null;
+        stage.querySelectorAll<HTMLElement>("[data-part]").forEach((el) => {
+            const r = el.getBoundingClientRect();
+            if (r.width > 0 && r.height > 0 && x >= r.left && x < r.right && y >= r.top && y < r.bottom) found = el;
+        });
+        return found as HTMLElement | null;
     };
 
     const changeMode = (next: Mode) => {
         setHovered(null);
         setMode(next);
+        // 見方を URL に残す。ページを操作するモードに戻したら、図鑑から来たときの ?part= の囲みも外す
+        const url = new URL(window.location.href);
+        if (next === "parts") {
+            url.searchParams.set("view", "parts");
+        } else {
+            url.searchParams.delete("view");
+            url.searchParams.delete("part");
+            setPinnedId(null);
+        }
+        window.history.replaceState(window.history.state, "", url);
     };
 
     const onPointerMove = (e: React.PointerEvent) => {
         pointerType.current = e.pointerType;
         if (mode !== "parts" || e.pointerType === "touch") return;
-        const el = partAt(e.target);
+        const el = partAt(e.clientX, e.clientY);
         if (el !== hovered) setHovered(el);
     };
 
-    // パーツの名前を見るモードでは、見本の中の部品より先にクリックを受け取り、そこで止める
-    // （アコーディオンが開いたり、フォームが送られたりしないように）
-    const onClickCapture = (e: React.MouseEvent) => {
+    const onClick = (e: React.MouseEvent) => {
         if (mode !== "parts") return;
-        e.preventDefault();
-        e.stopPropagation();
-        const el = partAt(e.target);
+        const el = partAt(e.clientX, e.clientY);
         if (!el) return;
         const part = byId.get(el.dataset.part ?? "");
         if (!part) return;
@@ -236,12 +262,10 @@ export const CatalogViewer = ({
                             pointerType.current = e.pointerType;
                             if (e.pointerType === "touch") setIsTouch(true);
                         }}
-                        // 名前を見るモードでは、入力欄にフォーカスが移らないようにする
-                        onMouseDownCapture={(e) => mode === "parts" && e.preventDefault()}
                         onPointerLeave={() => pointerType.current !== "touch" && setHovered(null)}
-                        onClickCapture={onClickCapture}
+                        onClick={onClick}
                     >
-                        {children}
+                        <div ref={contentRef}>{children}</div>
 
                         {boxes.map(({ id, box }, i) => (
                             <div

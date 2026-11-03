@@ -40,7 +40,7 @@ const Badge = ({ lang }: { lang: Locale }) => (
 );
 
 const CtaButton = ({ lang }: { lang: Locale }) => (
-    <Part id="cta-button" as="span" className="inline-block">
+    <Part id="cta-button" as="span" className="inline-flex">
         <JumpButton target="form" className="whitespace-nowrap bg-[#b5452c] px-6 py-3 text-sm tracking-[0.2em] text-[#f4efe6] hover:bg-[#9a3a25]">
             {textFor(lang)("席を予約する", "Reserve a table")}
         </JumpButton>
