@@ -11,6 +11,10 @@ npm run build   # 本番ビルド（型チェックとLintも走る）
 npm run lint
 ```
 
+Windows の新しい Node（22.23 など）では、Next 14 に同梱の `@vercel/og` がフォントや wasm の場所を読めず、ビルドや dev で `/og.png` などを作るところが `Invalid URL` で止まる。
+`npm install` のあとに `scripts/patch-vercel-og.mjs`（`postinstall`）がそこを書き換えるので、ふつうは何もしなくてよい。Windows 以外（CI・本番の Linux）では書き換えない。
+それでも止まるときは、`node scripts/patch-vercel-og.mjs` を実行して、出たメッセージを見る。
+
 ### E2E テスト
 
 `e2e/` に、ブラウザで画面を操作して確かめるテスト（Playwright）がある。
@@ -24,9 +28,6 @@ npx cross-env BLOG_FEEDS_DISABLED=true npm run build   # テストは next start
 npm run test:e2e:edge                  # Windows では Edge で動かせる（Playwright のブラウザを入れなくてよい）
 npx playwright install chromium && npm run test:e2e   # Playwright の Chromium で動かす場合
 ```
-
-Windows の新しい Node（22.23 など）では、Next 14 に同梱の `@vercel/og` がフォントの場所を読めず、ビルドで `/og.png` などを作るところが `Invalid URL` で止まる。
-`npm install` のあとに `scripts/patch-vercel-og.mjs`（`postinstall`）がそこを書き換えるので、ふつうは何もしなくてよい。Linux（CI・本番）では書き換えない。
 
 落ちたときは `npx playwright show-report` で、どの操作で何が起きたかを見られる（手元で動かしたあと）。
 CI で落ちたときは、ワークフローの artifact（`playwright-report`）を落として、同じコマンドで開く。

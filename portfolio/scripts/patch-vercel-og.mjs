@@ -8,23 +8,30 @@
 // （path.join はファイル名をフォルダとして数えるので "../" で同じフォルダを指す。URL では "./" が同じフォルダ）。
 //
 // Linux（CI・本番）では今の書き方で動くので、Windows のときだけ書き換える。
-// Next を上げて書き方が変わったら、何もせずに知らせるだけにする（npm install は止めない）。
+// 直せないとき（Next を上げて書き方や場所が変わった、ファイルを読み書きできない）は、知らせるだけにする（npm install は止めない）。
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 
 if (process.platform !== "win32") process.exit(0);
 
-const file = fileURLToPath(new URL("../node_modules/next/dist/compiled/@vercel/og/index.node.js", import.meta.url));
-if (!existsSync(file)) process.exit(0);
+const warn = (message) => console.warn(`patch-vercel-og: ${message}。scripts/patch-vercel-og.mjs を見直してください`);
 
-const pattern = /fileURLToPath\(join\(import\.meta\.url, "\.\.\/([^"]+)"\)\)/g;
-const source = readFileSync(file, "utf8");
-const patched = source.replace(pattern, 'fileURLToPath(new URL("./$1", import.meta.url))');
+try {
+    const next = dirname(createRequire(import.meta.url).resolve("next/package.json"));
+    const file = join(next, "dist/compiled/@vercel/og/index.node.js");
 
-if (patched !== source) {
-    writeFileSync(file, patched);
-    console.log("patch-vercel-og: @vercel/og のファイルの場所の組み立てを、Windows で動く形に直しました");
-} else if (!source.includes('new URL("./yoga.wasm", import.meta.url)')) {
-    console.warn("patch-vercel-og: @vercel/og の書き方が変わっていて直せませんでした。scripts/patch-vercel-og.mjs を見直してください");
+    const pattern = /fileURLToPath\(join\(import\.meta\.url, "\.\.\/([^"]+)"\)\)/g;
+    const source = readFileSync(file, "utf8");
+    const patched = source.replace(pattern, 'fileURLToPath(new URL("./$1", import.meta.url))');
+
+    if (patched !== source) {
+        writeFileSync(file, patched);
+        console.log("patch-vercel-og: @vercel/og のファイルの場所の組み立てを、Windows で動く形に直しました");
+    } else if (!source.includes('new URL("./yoga.wasm", import.meta.url)')) {
+        warn("@vercel/og の書き方が変わっていて直せませんでした");
+    }
+} catch (error) {
+    warn(`@vercel/og を直せませんでした（${error.message}）`);
 }
