@@ -118,6 +118,12 @@ test.describe("PC", () => {
         await expect(stage(page)).toHaveAttribute("data-mode", "parts");
     });
 
+    test("?view=parts で開くと、名前を見るモードで中身が inert になっている", async ({ page }) => {
+        await openConcept(page, "/catalog/studio?view=parts");
+        await expect(stage(page)).toHaveAttribute("data-mode", "parts");
+        await expect(stage(page).locator("[inert]")).toHaveCount(1);
+    });
+
     test("ページを操作するモードに戻すと、URL の見方と ?part= の囲みが外れる", async ({ page }) => {
         await openConcept(page, "/catalog/kissa?part=menu-list");
         await expect(stage(page)).toHaveAttribute("data-mode", "parts");

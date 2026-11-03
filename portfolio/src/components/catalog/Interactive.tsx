@@ -152,7 +152,7 @@ export const NumberPager = ({
             </button>
             {cells.map((cell, i) =>
                 cell === "gap" ? (
-                    <span key={`gap-${i}`} className={`${itemClassName} ${inactiveClassName}`}>
+                    <span key={`gap-${i}`} aria-hidden="true" className={`${itemClassName} ${inactiveClassName}`}>
                         …
                     </span>
                 ) : (

@@ -170,7 +170,7 @@ const ja: Dictionary = {
     },
     catalog: {
         heading: { title: "デザインカタログ", sub: "DESIGN CATALOG" },
-        lead: "目的の違う架空のサイトを、見た目の流派ごとにデザインしました。ページの中のパーツを指すと名前が出て、押すとパーツ図鑑でその役割と、ほかのページでの見え方を比べられます。",
+        lead: "目的の違う架空のサイトを、見た目の流派ごとにデザインしました。見本のページは、そのままボタンやタブを押して操作できます。「パーツの名前を見る」に切り替えると、パーツを指して名前を確かめ、押してパーツ図鑑でその役割と、ほかのページでの見え方を比べられます。",
         viewsLabel: "表示の切り替え",
         pages: "ページ",
         parts: "パーツ図鑑",
@@ -289,7 +289,7 @@ const en: Dictionary = {
     },
     catalog: {
         heading: { title: "DESIGN CATALOG", sub: "Pages & UI parts" },
-        lead: "Fictional websites for different purposes, each designed in its own visual style. Point at a part of a page to see its name, and click to open the parts guide, where you can compare how it looks on the other pages.",
+        lead: "Fictional websites for different purposes, each designed in its own visual style. You can use each sample page as it is, pressing its buttons and tabs. Switch to “Show part names” to point at a part and see its name, and click it to open the parts guide, where you can compare how it looks on the other pages.",
         viewsLabel: "Switch view",
         pages: "Pages",
         parts: "Parts Guide",

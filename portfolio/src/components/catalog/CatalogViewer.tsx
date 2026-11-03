@@ -98,6 +98,18 @@ export const CatalogViewer = ({
         contentRef.current?.toggleAttribute("inert", mode === "parts");
     }, [mode]);
 
+    // ?view=parts・?part= で開いたときは、画面に出す前に名前を見るモードにする（下の effect の読み直しを待つあいだに、部品を押せないように）。
+    // サーバーで描くときは URL のクエリが分からないので、初めの値は "page" のままにして、ここで切り替える
+    useLayoutEffect(() => {
+        const query = new URLSearchParams(window.location.search);
+        const id = query.get("part");
+        const hasPart = !!id && !!stageRef.current?.querySelector(`[data-part="${CSS.escape(id)}"]`);
+        if (query.get("view") === "parts" || hasPart) {
+            contentRef.current?.setAttribute("inert", "");
+            setMode("parts");
+        }
+    }, []);
+
     // 見本の大きさが変わったら測り直す（窓の大きさのほか、フォントの読み込みやスクロールバーの出入りでも変わる）
     useEffect(() => {
         const stage = stageRef.current;
