@@ -29,8 +29,13 @@ try {
     if (patched !== source) {
         writeFileSync(file, patched);
         console.log("patch-vercel-og: @vercel/og のファイルの場所の組み立てを、Windows で動く形に直しました");
-    } else if (!source.includes('new URL("./yoga.wasm", import.meta.url)')) {
-        warn("@vercel/og の書き方が変わっていて直せませんでした");
+    }
+    // 3つとも直った形になっていることを確かめる（一部だけ書き方が変わったときに、直ったように見せない）
+    const missing = ["noto-sans-v27-latin-regular.ttf", "yoga.wasm", "resvg.wasm"].filter(
+        (name) => !patched.includes(`fileURLToPath(new URL("./${name}", import.meta.url))`),
+    );
+    if (missing.length > 0 || patched.includes("join(import.meta.url")) {
+        warn(`@vercel/og の書き方が変わっていて直せませんでした（${missing.join("・") || "join(import.meta.url が残っている"}）`);
     }
 } catch (error) {
     warn(`@vercel/og を直せませんでした（${error.message}）`);
