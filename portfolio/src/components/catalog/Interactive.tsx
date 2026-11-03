@@ -16,7 +16,10 @@ import React, { createContext, useContext, useState } from "react";
  * キーボードで押した人が続きから進めるよう、フォーカスも移す
  */
 const scrollToPart = (from: HTMLElement, target: string) => {
-    const el = from.closest("[data-catalog-page]")?.querySelector<HTMLElement>(`[data-part="${CSS.escape(target)}"]`);
+    // タブで絞り込まれて隠れているもの（大きさが無いもの）は飛ばす
+    const el = Array.from(
+        from.closest("[data-catalog-page]")?.querySelectorAll<HTMLElement>(`[data-part="${CSS.escape(target)}"]`) ?? []
+    ).find((candidate) => candidate.getClientRects().length > 0);
     if (!el) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     el.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });

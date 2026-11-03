@@ -51,6 +51,15 @@ test.describe("ページを操作するモード", () => {
         expect(pathOf(page)).toBe("/catalog/saas");
     });
 
+    test("絞り込みで最初のカードが隠れていても、CTA ボタンは見えているカードへ動く", async ({ page }) => {
+        await openConcept(page, "/catalog/magazine");
+        await stage(page).locator('[data-part="tabs"]').getByRole("button", { name: "特集" }).click();
+        const cards = stage(page).locator('[data-part="card"]');
+        await expect(cards.first()).toBeHidden();
+        await stage(page).locator('[data-part="cta-button"]').getByRole("button").click();
+        await expect(cards.filter({ visible: true })).toBeFocused();
+    });
+
     test("タブで中身が絞り込まれ、絞り込まれたパーツは囲まない", async ({ page }) => {
         await openConcept(page, "/catalog/studio");
         const figures = stage(page).locator('[data-part="gallery"] figure');
