@@ -95,6 +95,10 @@ export default function CatalogConceptPage({ params }: Props) {
                 parts={parts}
                 texts={{
                     previewLabel: t.previewLabel.replace("{name}", pick(concept.name, lang)),
+                    modeLabel: t.modeLabel,
+                    modePage: t.modePage,
+                    modeParts: t.modeParts,
+                    hintPage: t.hintPage,
                     hintPointer: t.hintPointer,
                     hintTouch: t.hintTouch,
                     partsOnPage: t.partsOnPage,

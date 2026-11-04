@@ -1,12 +1,13 @@
 // src/components/catalog/concepts/Kissa.tsx
 import React from "react";
+import { DemoForm, JumpButton, JumpNav } from "@/components/catalog/Interactive";
 import { Part, textFor } from "@/components/catalog/Part";
 import type { Locale } from "@/lib/i18n";
 import type { ConceptView } from "./types";
 
 /**
  * 喫茶 ほしづき（和モダン）。生成りの背景・明朝体・朱色の差し色。
- * 見本なので、ボタンやリンクは押せない見た目だけの要素にしている（押すとパーツ図鑑へ移る）
+ * ナビと予約のボタンはページの中の該当する場所へ動き、予約のフォームは入力できる（送信してもどこにも送らない）
  */
 
 const MINCHO = '"Hiragino Mincho ProN", "Yu Mincho", YuMincho, "Noto Serif JP", "Times New Roman", serif';
@@ -39,27 +40,33 @@ const Badge = ({ lang }: { lang: Locale }) => (
 );
 
 const CtaButton = ({ lang }: { lang: Locale }) => (
-    <Part id="cta-button" as="span" className="inline-block whitespace-nowrap bg-[#b5452c] px-6 py-3 text-sm tracking-[0.2em] text-[#f4efe6]">
-        {textFor(lang)("席を予約する", "Reserve a table")}
+    <Part id="cta-button" as="span" className="inline-flex">
+        <JumpButton target="form" className="whitespace-nowrap bg-[#b5452c] px-6 py-3 text-sm tracking-[0.2em] text-[#f4efe6] hover:bg-[#9a3a25]">
+            {textFor(lang)("席を予約する", "Reserve a table")}
+        </JumpButton>
     </Part>
 );
 
 const GlobalNav = ({ lang }: { lang: Locale }) => {
     const t = textFor(lang);
-    const items = [t("お品書き", "Menu"), t("お知らせ", "News"), t("店内", "Inside"), t("ご予約", "Reserve")];
     return (
         <Part id="global-nav" as="header" className="flex flex-wrap items-center justify-between gap-3 border-b border-[#2b2622]/15 px-6 py-4">
             <div>
                 <p className="text-lg tracking-[0.3em]">{t("喫茶 ほしづき", "Kissa Hoshizuki")}</p>
                 <p className="text-[9px] tracking-[0.4em] text-[#8a7a66]">SINCE 1987</p>
             </div>
-            <ul className="flex gap-5 text-xs tracking-[0.2em]">
-                {items.map((item, i) => (
-                    <li key={item} className={i === 0 ? "border-b border-[#b5452c] pb-1 text-[#b5452c]" : "pb-1 text-[#2b2622]/70"}>
-                        {item}
-                    </li>
-                ))}
-            </ul>
+            <JumpNav
+                items={[
+                    { label: t("お品書き", "Menu"), target: "menu-list" },
+                    { label: t("お知らせ", "News"), target: "card" },
+                    { label: t("店内", "Inside"), target: "gallery" },
+                    { label: t("ご予約", "Reserve"), target: "form" },
+                ]}
+                className="flex gap-5 text-xs tracking-[0.2em]"
+                itemClassName="border-b pb-1"
+                activeClassName="border-[#b5452c] text-[#b5452c]"
+                inactiveClassName="border-transparent text-[#2b2622]/70 hover:text-[#b5452c]"
+            />
         </Part>
     );
 };
@@ -181,25 +188,46 @@ const Testimonial = ({ lang }: { lang: Locale }) => (
 
 const Form = ({ lang }: { lang: Locale }) => {
     const t = textFor(lang);
-    const fields = [
-        { label: t("お名前", "Name"), value: t("星野 月子", "Tsukiko Hoshino") },
-        { label: t("日にち", "Date"), value: "2026.11.03" },
-        { label: t("人数", "Guests"), value: t("2名 ▾", "2 people ▾") },
-    ];
+    const label = "text-[11px] tracking-[0.2em] text-[#8a7a66]";
+    const input = "mt-1 w-full border-b border-[#2b2622]/40 bg-transparent pb-1 text-sm outline-none focus:border-[#b5452c]";
     return (
         <Part id="form" as="section" className="px-6 py-10">
             <p className="mb-5 text-center text-sm tracking-[0.4em]">{t("ご予約", "RESERVE")}</p>
-            <div className="mx-auto max-w-sm space-y-4">
-                {fields.map((f) => (
-                    <div key={f.label}>
-                        <p className="text-[11px] tracking-[0.2em] text-[#8a7a66]">{f.label}</p>
-                        <p className="mt-1 border-b border-[#2b2622]/40 pb-1 text-sm">{f.value}</p>
-                    </div>
-                ))}
+            <DemoForm
+                className="mx-auto max-w-sm space-y-4"
+                sentMessage={t("ご予約を承りました（見本なので、どこにも送っていません）", "Reservation received (this is a sample, so nothing was sent)")}
+                sentClassName="text-center text-xs tracking-wider text-[#b5452c]"
+            >
+                <div>
+                    <label htmlFor="kissa-name" className={label}>
+                        {t("お名前", "Name")}
+                    </label>
+                    <input id="kissa-name" required defaultValue={t("星野 月子", "Tsukiko Hoshino")} className={input} />
+                </div>
+                <div>
+                    <label htmlFor="kissa-date" className={label}>
+                        {t("日にち", "Date")}
+                    </label>
+                    <input id="kissa-date" type="date" required defaultValue="2026-11-03" className={input} />
+                </div>
+                <div>
+                    <label htmlFor="kissa-guests" className={label}>
+                        {t("人数", "Guests")}
+                    </label>
+                    <select id="kissa-guests" defaultValue="2" className={`${input} cursor-pointer`}>
+                        {[1, 2, 3, 4].map((n) => (
+                            <option key={n} value={n}>
+                                {t(`${n}名`, n === 1 ? "1 person" : `${n} people`)}
+                            </option>
+                        ))}
+                    </select>
+                </div>
                 <p className="pt-2 text-center">
-                    <span className="inline-block border border-[#2b2622] px-8 py-2 text-xs tracking-[0.3em]">{t("送信する", "Send")}</span>
+                    <button type="submit" className="border border-[#2b2622] px-8 py-2 text-xs tracking-[0.3em] hover:bg-[#2b2622] hover:text-[#f4efe6]">
+                        {t("送信する", "Send")}
+                    </button>
                 </p>
-            </div>
+            </DemoForm>
         </Part>
     );
 };

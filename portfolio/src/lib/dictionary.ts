@@ -66,6 +66,10 @@ export type Dictionary = {
         open: string;
         partsCount: string;
         previewLabel: string;
+        modeLabel: string;
+        modePage: string;
+        modeParts: string;
+        hintPage: string;
         hintPointer: string;
         hintTouch: string;
         partsOnPage: string;
@@ -166,7 +170,7 @@ const ja: Dictionary = {
     },
     catalog: {
         heading: { title: "デザインカタログ", sub: "DESIGN CATALOG" },
-        lead: "目的の違う架空のサイトを、見た目の流派ごとにデザインしました。ページの中のパーツを指すと名前が出て、押すとパーツ図鑑でその役割と、ほかのページでの見え方を比べられます。",
+        lead: "目的の違う架空のサイトを、見た目の流派ごとにデザインしました。見本のページは、そのままボタンやタブを押して操作できます。「パーツの名前を見る」に切り替えると、パーツを指して名前を確かめ、押してパーツ図鑑でその役割と、ほかのページでの見え方を比べられます。",
         viewsLabel: "表示の切り替え",
         pages: "ページ",
         parts: "パーツ図鑑",
@@ -181,6 +185,10 @@ const ja: Dictionary = {
         open: "ページを見る",
         partsCount: "{n} 個のパーツ",
         previewLabel: "{name} のデザイン見本",
+        modeLabel: "見本の見方",
+        modePage: "ページを操作する",
+        modeParts: "パーツの名前を見る",
+        hintPage: "ボタンやタブを押すと、ページの中で動きます。パーツの名前は「パーツの名前を見る」に切り替えると出ます。",
         hintPointer: "パーツにカーソルを合わせると名前が出ます。クリックするとパーツ図鑑に移ります。",
         hintTouch: "パーツをタップすると名前が出ます。もう一度タップするとパーツ図鑑に移ります。",
         partsOnPage: "このページのパーツ",
@@ -281,7 +289,7 @@ const en: Dictionary = {
     },
     catalog: {
         heading: { title: "DESIGN CATALOG", sub: "Pages & UI parts" },
-        lead: "Fictional websites for different purposes, each designed in its own visual style. Point at a part of a page to see its name, and click to open the parts guide, where you can compare how it looks on the other pages.",
+        lead: "Fictional websites for different purposes, each designed in its own visual style. You can use each sample page as it is, pressing its buttons and tabs. Switch to “Show part names” to point at a part and see its name, and click it to open the parts guide, where you can compare how it looks on the other pages.",
         viewsLabel: "Switch view",
         pages: "Pages",
         parts: "Parts Guide",
@@ -296,6 +304,10 @@ const en: Dictionary = {
         open: "View page",
         partsCount: "{n} parts",
         previewLabel: "Design sample of {name}",
+        modeLabel: "How to view the sample",
+        modePage: "Use the page",
+        modeParts: "Show part names",
+        hintPage: "Buttons and tabs work inside the page. Switch to “Show part names” to see what each part is called.",
         hintPointer: "Hover over a part to see its name. Click it to open the parts guide.",
         hintTouch: "Tap a part to see its name. Tap it again to open the parts guide.",
         partsOnPage: "Parts on this page",

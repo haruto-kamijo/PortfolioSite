@@ -1,5 +1,6 @@
 // src/components/catalog/concepts/Studio.tsx
 import React from "react";
+import { CounterPager, DemoForm, FilterItem, FilterScope, FilterTabs, JumpButton, JumpNav } from "@/components/catalog/Interactive";
 import { Part, textFor } from "@/components/catalog/Part";
 import type { Locale } from "@/lib/i18n";
 import type { ConceptView } from "./types";
@@ -33,11 +34,16 @@ const GlobalNav = ({ lang }: { lang: Locale }) => {
     return (
         <Part id="global-nav" as="header" className="flex items-center justify-between px-8 py-6">
             <p className="text-sm tracking-[0.5em]">KASUMI</p>
-            <ul className="flex gap-6 text-[11px] tracking-[0.2em] text-[#a8a29e]">
-                <li className="text-[#1c1917]">{t("作品", "Works")}</li>
-                <li>{t("紹介", "About")}</li>
-                <li>{t("連絡", "Contact")}</li>
-            </ul>
+            <JumpNav
+                items={[
+                    { label: t("作品", "Works"), target: "gallery" },
+                    { label: t("紹介", "About"), target: "stats" },
+                    { label: t("連絡", "Contact"), target: "form" },
+                ]}
+                className="flex gap-6 text-[11px] tracking-[0.2em]"
+                activeClassName="text-[#1c1917]"
+                inactiveClassName="text-[#a8a29e] hover:text-[#1c1917]"
+            />
         </Part>
     );
 };
@@ -49,8 +55,10 @@ const Breadcrumb = ({ lang }: { lang: Locale }) => (
 );
 
 const CtaButton = ({ lang }: { lang: Locale }) => (
-    <Part id="cta-button" as="span" className="inline-block border-b border-[#1c1917] pb-1 text-xs tracking-[0.25em]">
-        {textFor(lang)("撮影のご相談", "Book a shoot")} →
+    <Part id="cta-button" as="span" className="inline-flex">
+        <JumpButton target="form" className="border-b border-[#1c1917] pb-1 text-xs tracking-[0.25em] hover:opacity-60">
+            {textFor(lang)("撮影のご相談", "Book a shoot")} →
+        </JumpButton>
     </Part>
 );
 
@@ -78,14 +86,19 @@ const Hero = ({ lang }: { lang: Locale }) => {
 
 const Tabs = ({ lang }: { lang: Locale }) => {
     const t = textFor(lang);
-    const items = [t("すべて", "All"), t("風景", "Landscape"), t("人物", "Portrait"), t("広告", "Commercial")];
     return (
         <Part id="tabs" as="nav" className="flex gap-6 px-8 text-[11px] tracking-[0.2em]">
-            {items.map((item, i) => (
-                <span key={item} className={i === 1 ? "border-b border-[#1c1917] pb-1" : "pb-1 text-[#a8a29e]"}>
-                    {item}
-                </span>
-            ))}
+            <FilterTabs
+                items={[
+                    { label: t("すべて", "All"), value: "all" },
+                    { label: t("風景", "Landscape"), value: "landscape" },
+                    { label: t("人物", "Portrait"), value: "portrait" },
+                    { label: t("広告", "Commercial"), value: "commercial" },
+                ]}
+                itemClassName="border-b pb-1"
+                activeClassName="border-[#1c1917]"
+                inactiveClassName="border-transparent text-[#a8a29e] hover:text-[#1c1917]"
+            />
         </Part>
     );
 };
@@ -98,25 +111,28 @@ const Tag = ({ label }: { label: string }) => (
 
 const Gallery = ({ lang }: { lang: Locale }) => {
     const t = textFor(lang);
+    const landscape = { value: "landscape", label: t("風景", "Landscape") };
+    const portrait = { value: "portrait", label: t("人物", "Portrait") };
+    const commercial = { value: "commercial", label: t("広告", "Commercial") };
     const items = [
-        { tone: 0, wide: true, title: t("潮間帯 I", "Intertidal I"), tag: t("風景", "Landscape") },
-        { tone: 2, wide: false, title: t("灯台守", "Lighthouse keeper"), tag: t("人物", "Portrait") },
-        { tone: 1, wide: false, title: t("霧の朝", "Morning fog"), tag: t("風景", "Landscape") },
-        { tone: 4, wide: false, title: t("網を繕う人", "Net mender"), tag: t("人物", "Portrait") },
-        { tone: 2, wide: false, title: t("浜の昼", "Noon on the beach"), tag: t("広告", "Commercial") },
-        { tone: 3, wide: true, title: t("防波堤", "Breakwater"), tag: t("風景", "Landscape") },
+        { tone: 0, wide: true, title: t("潮間帯 I", "Intertidal I"), tag: landscape },
+        { tone: 2, wide: false, title: t("灯台守", "Lighthouse keeper"), tag: portrait },
+        { tone: 1, wide: false, title: t("霧の朝", "Morning fog"), tag: landscape },
+        { tone: 4, wide: false, title: t("網を繕う人", "Net mender"), tag: portrait },
+        { tone: 2, wide: false, title: t("浜の昼", "Noon on the beach"), tag: commercial },
+        { tone: 3, wide: true, title: t("防波堤", "Breakwater"), tag: landscape },
     ];
-    // 横長と縦長を交互に置き、大きさの差でリズムを出す
+    // 横長と縦長を交互に置き、大きさの差でリズムを出す。上のタブで選んだ種類だけを出す（FilterScope）
     return (
         <Part id="gallery" className="grid grid-cols-2 gap-x-6 gap-y-8 px-8 py-10 sm:grid-cols-4">
             {items.map((item) => (
-                <figure key={item.title} className={item.wide ? "col-span-2" : ""}>
+                <FilterItem key={item.title} as="figure" value={item.tag.value} className={item.wide ? "col-span-2" : ""}>
                     <Photo className={`w-full ${item.wide ? "aspect-[16/9]" : "aspect-[3/4]"}`} tone={item.tone} />
                     <figcaption className="mt-2 flex items-baseline justify-between gap-2 text-[11px] tracking-[0.15em]">
                         {item.title}
-                        <Tag label={item.tag} />
+                        <Tag label={item.tag.label} />
                     </figcaption>
-                </figure>
+                </FilterItem>
             ))}
         </Part>
     );
@@ -124,11 +140,7 @@ const Gallery = ({ lang }: { lang: Locale }) => {
 
 const Pagination = () => (
     <Part id="pagination" as="nav" className="flex items-center justify-between px-8 pb-12 text-[11px] tracking-[0.2em] text-[#a8a29e]">
-        <span>← Prev</span>
-        <span>
-            <span className="text-[#1c1917]">01</span> / 06
-        </span>
-        <span className="text-[#1c1917]">Next →</span>
+        <CounterPager total={6} activeClassName="text-[#1c1917]" inactiveClassName="text-[#a8a29e]" />
     </Part>
 );
 
@@ -159,19 +171,27 @@ const Accordion = ({ lang }: { lang: Locale }) => {
             body: t("ロケーションの下見から納品まで、およそ三週間です。", "About three weeks from scouting to delivery."),
             open: true,
         },
-        { title: t("雑誌・書籍", "Editorial") },
-        { title: t("広告", "Commercial") },
+        {
+            title: t("雑誌・書籍", "Editorial"),
+            body: t("誌面の構成に合わせて、縦位置と横位置の両方を撮ります。", "We shoot both portrait and landscape frames to fit your layout."),
+        },
+        {
+            title: t("広告", "Commercial"),
+            body: t("使う媒体と期間をうかがってから、お見積りをお送りします。", "Tell us the media and period, and we will send a quote."),
+        },
     ];
+    // 開け閉めは details に任せる（JavaScript が無くても動く）
     return (
         <Part id="accordion" as="section" className="px-8 py-12">
             {items.map((item) => (
-                <div key={item.title} className="border-b border-[#e7e5e4] py-4">
-                    <p className="flex justify-between text-sm tracking-[0.1em]">
+                <details key={item.title} open={item.open} className="group border-b border-[#e7e5e4] py-4">
+                    <summary className="flex cursor-pointer list-none justify-between text-sm tracking-[0.1em] [&::-webkit-details-marker]:hidden">
                         {item.title}
-                        <span className="text-[#a8a29e]">{item.open ? "−" : "+"}</span>
-                    </p>
-                    {item.body && <p className="mt-3 text-xs leading-loose text-[#78716c]">{item.body}</p>}
-                </div>
+                        <span aria-hidden className="text-[#a8a29e] group-open:hidden">+</span>
+                        <span aria-hidden className="hidden text-[#a8a29e] group-open:inline">−</span>
+                    </summary>
+                    <p className="mt-3 text-xs leading-loose text-[#78716c]">{item.body}</p>
+                </details>
             ))}
         </Part>
     );
@@ -180,25 +200,37 @@ const Accordion = ({ lang }: { lang: Locale }) => {
 const Form = ({ lang }: { lang: Locale }) => {
     const t = textFor(lang);
     const fields = [
-        { label: t("お名前", "Name"), value: "" },
-        { label: t("メール", "Email"), value: "" },
-        { label: t("ご相談の内容", "Message"), value: "", tall: true },
+        { id: "studio-name", label: t("お名前", "Name"), type: "text" },
+        { id: "studio-email", label: t("メール", "Email"), type: "email" },
+        { id: "studio-message", label: t("ご相談の内容", "Message"), tall: true },
     ];
+    const input = "mt-2 w-full border-b border-[#d6d3d1] bg-transparent text-sm outline-none focus:border-[#1c1917]";
     return (
         <Part id="form" as="section" className="px-8 pb-12">
-            <div className="grid gap-6 sm:grid-cols-2">
-                {fields.map((f) => (
-                    <div key={f.label} className={f.tall ? "sm:col-span-2" : ""}>
-                        <p className="text-[10px] tracking-[0.2em] text-[#a8a29e]">{f.label}</p>
-                        <div className={`mt-2 border-b border-[#d6d3d1] ${f.tall ? "h-16" : "h-6"}`} />
-                    </div>
-                ))}
-            </div>
-            <p className="mt-8 text-right">
-                <span className="inline-block bg-[#1c1917] px-8 py-3 text-[11px] tracking-[0.3em] text-[#fafaf9]">
-                    {t("送信", "Send")}
-                </span>
-            </p>
+            <DemoForm
+                sentMessage={t("送信しました（見本なので、どこにも送っていません）", "Sent (this is a sample, so nothing was sent)")}
+                sentClassName="mt-4 text-right text-[11px] tracking-[0.15em] text-[#78716c]"
+            >
+                <div className="grid gap-6 sm:grid-cols-2">
+                    {fields.map((f) => (
+                        <div key={f.id} className={f.tall ? "sm:col-span-2" : ""}>
+                            <label htmlFor={f.id} className="text-[10px] tracking-[0.2em] text-[#a8a29e]">
+                                {f.label}
+                            </label>
+                            {f.tall ? (
+                                <textarea id={f.id} required rows={3} className={`${input} resize-none`} />
+                            ) : (
+                                <input id={f.id} type={f.type} required className={`${input} h-6`} />
+                            )}
+                        </div>
+                    ))}
+                </div>
+                <p className="mt-8 text-right">
+                    <button type="submit" className="bg-[#1c1917] px-8 py-3 text-[11px] tracking-[0.3em] text-[#fafaf9] hover:opacity-80">
+                        {t("送信", "Send")}
+                    </button>
+                </p>
+            </DemoForm>
         </Part>
     );
 };
@@ -215,8 +247,10 @@ const Page: ConceptView["Page"] = ({ lang }) => (
         <GlobalNav lang={lang} />
         <Breadcrumb lang={lang} />
         <Hero lang={lang} />
-        <Tabs lang={lang} />
-        <Gallery lang={lang} />
+        <FilterScope>
+            <Tabs lang={lang} />
+            <Gallery lang={lang} />
+        </FilterScope>
         <Pagination />
         <Stats lang={lang} />
         <Accordion lang={lang} />

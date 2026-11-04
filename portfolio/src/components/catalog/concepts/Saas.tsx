@@ -1,5 +1,6 @@
 // src/components/catalog/concepts/Saas.tsx
 import React from "react";
+import { DemoForm, JumpButton, JumpNav } from "@/components/catalog/Interactive";
 import { Part, textFor } from "@/components/catalog/Part";
 import type { Locale } from "@/lib/i18n";
 import type { ConceptView } from "./types";
@@ -33,12 +34,13 @@ const Badge = ({ lang }: { lang: Locale }) => (
 );
 
 const CtaButton = ({ lang }: { lang: Locale }) => (
-    <Part
-        id="cta-button"
-        as="span"
-        className="inline-block rounded-xl bg-gradient-to-r from-[#a78bfa] to-[#f472b6] px-6 py-3 text-sm font-semibold shadow-[0_8px_24px_rgba(236,72,153,0.45)]"
-    >
-        {textFor(lang)("無料で始める", "Start for free")}
+    <Part id="cta-button" as="span" className="inline-flex">
+        <JumpButton
+            target="pricing-table"
+            className="rounded-xl bg-gradient-to-r from-[#a78bfa] to-[#f472b6] px-6 py-3 text-sm font-semibold shadow-[0_8px_24px_rgba(236,72,153,0.45)] transition-transform hover:-translate-y-0.5"
+        >
+            {textFor(lang)("無料で始める", "Start for free")}
+        </JumpButton>
     </Part>
 );
 
@@ -51,12 +53,17 @@ const GlobalNav = ({ lang }: { lang: Locale }) => {
                     <span className="h-5 w-5 rounded-md bg-gradient-to-br from-[#a78bfa] to-[#f472b6]" />
                     Tasklane
                 </p>
-                <ul className="flex gap-4 text-xs text-white/75">
-                    <li className="text-white">{t("機能", "Features")}</li>
-                    <li>{t("料金", "Pricing")}</li>
-                    <li>{t("導入事例", "Customers")}</li>
-                    <li>{t("ログイン", "Log in")}</li>
-                </ul>
+                <JumpNav
+                    items={[
+                        { label: t("機能", "Features"), target: "feature-grid" },
+                        { label: t("料金", "Pricing"), target: "pricing-table" },
+                        { label: t("導入事例", "Customers"), target: "testimonial" },
+                        { label: t("ログイン", "Log in") },
+                    ]}
+                    className="flex gap-4 text-xs"
+                    activeClassName="text-white"
+                    inactiveClassName="text-white/75 hover:text-white"
+                />
             </div>
         </Part>
     );
@@ -197,19 +204,21 @@ const Accordion = ({ lang }: { lang: Locale }) => {
     const t = textFor(lang);
     const items = [
         { q: t("無料プランに期限はありますか？", "Does the free plan expire?"), a: t("ありません。3人までならずっと無料です。", "No. It stays free for up to three people."), open: true },
-        { q: t("途中でプランを変えられますか？", "Can I change plans later?") },
-        { q: t("データはどこに保存されますか？", "Where is my data stored?") },
+        { q: t("途中でプランを変えられますか？", "Can I change plans later?"), a: t("いつでも変えられます。差額は日割りで計算します。", "Any time. We prorate the difference by day.") },
+        { q: t("データはどこに保存されますか？", "Where is my data stored?"), a: t("東京のデータセンターに、暗号化して保存します。", "Encrypted, in a data center in Tokyo.") },
     ];
+    // 開け閉めは details に任せる（JavaScript が無くても動く）
     return (
         <Part id="accordion" as="section" className="mx-6 my-12 space-y-2">
             {items.map((item) => (
-                <div key={item.q} className={`${glass} px-5 py-3`}>
-                    <p className="flex items-center justify-between text-sm">
+                <details key={item.q} open={item.open} className={`${glass} group px-5 py-3`}>
+                    <summary className="flex cursor-pointer list-none items-center justify-between text-sm [&::-webkit-details-marker]:hidden">
                         {item.q}
-                        <span className="text-white/60">{item.open ? "−" : "+"}</span>
-                    </p>
-                    {item.a && <p className="mt-2 text-xs text-white/70">{item.a}</p>}
-                </div>
+                        <span aria-hidden className="text-white/60 group-open:hidden">+</span>
+                        <span aria-hidden className="hidden text-white/60 group-open:inline">−</span>
+                    </summary>
+                    <p className="mt-2 text-xs text-white/70">{item.a}</p>
+                </details>
             ))}
         </Part>
     );
@@ -218,10 +227,26 @@ const Accordion = ({ lang }: { lang: Locale }) => {
 const Newsletter = ({ lang }: { lang: Locale }) => {
     const t = textFor(lang);
     return (
-        <Part id="newsletter" as="section" className={`${glass} mx-6 mb-10 flex flex-wrap items-center gap-3 p-4`}>
-            <p className="min-w-[10rem] flex-1 text-sm">{t("新機能のお知らせを受け取る", "Get product updates")}</p>
-            <span className="min-w-[10rem] flex-1 rounded-lg border border-white/25 bg-white/10 px-3 py-2 text-xs text-white/50">you@example.com</span>
-            <span className="rounded-lg bg-white px-4 py-2 text-xs font-semibold text-[#4c1d95]">{t("登録", "Subscribe")}</span>
+        <Part id="newsletter" as="section" className={`${glass} mx-6 mb-10 p-4`}>
+            <DemoForm
+                className="flex flex-wrap items-center gap-3"
+                sentMessage={t("登録しました（見本なので、どこにも送っていません）", "Subscribed (this is a sample, so nothing was sent)")}
+                sentClassName="w-full text-xs text-[#86efac]"
+            >
+                <label htmlFor="saas-newsletter" className="min-w-[10rem] flex-1 text-sm">
+                    {t("新機能のお知らせを受け取る", "Get product updates")}
+                </label>
+                <input
+                    id="saas-newsletter"
+                    type="email"
+                    required
+                    placeholder="you@example.com"
+                    className="min-w-[10rem] flex-1 rounded-lg border border-white/25 bg-white/10 px-3 py-2 text-xs text-white outline-none placeholder:text-white/50 focus:border-white/60"
+                />
+                <button type="submit" className="rounded-lg bg-white px-4 py-2 text-xs font-semibold text-[#4c1d95]">
+                    {t("登録", "Subscribe")}
+                </button>
+            </DemoForm>
         </Part>
     );
 };
