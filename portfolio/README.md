@@ -82,6 +82,7 @@ firebase deploy
 | `/home`| 本編トップ（Hero / Latest / Skills / Works / Contact）。Latest は作品と記事の新しい順に3件 |
 | `/about` | プロフィール（写真・所属・学年・趣味・使用言語） |
 | `/portfolio?tab=` | 作品一覧。`sites` / `games` / `models` / `photos` / `pocs` / `kaggle` / `blog` をタブで切り替え。`blog` には Zenn・note の記事を RSS から自動で並べる |
+| `/portfolio?tag=` | タグでの絞り込み。すべてのカテゴリから、選んだタグを全部持つ作品を並べる（`?tag=Next.js&tag=Firebase` のように5個まで）。タブの下のタグの列か、カードのタグを押して選ぶ |
 | `/contact` | お問い合わせフォーム |
 | `/catalog` | デザインカタログ。目的の違う架空のサイト4つを、見た目の流派ごとに作った見本の一覧。制作物の `sites` タブの先頭にもカードを出す |
 | `/catalog/<見本>` | 見本のページ（`kissa` / `saas` / `magazine` / `studio`）。見方は2つで、枠の上のボタンで切り替える。既定の「ページを操作する」では、ナビ・CTA ボタン・タブ・アコーディオン・ページ送り・フォームがページの中で動く（フォームはどこにも送らない）。「パーツの名前を見る」（`?view=parts`）では、パーツを指すと名前が出て、押すとパーツ図鑑のその項目へ移る |
@@ -112,7 +113,7 @@ src/
         layout.tsx
         home/page.tsx
         about/page.tsx
-        portfolio/page.tsx // ?tab= でカテゴリを切り替え
+        portfolio/page.tsx // ?tab= でカテゴリを切り替え、?tag= でタグで絞り込む
         contact/page.tsx
         catalog/           // デザインカタログ（page.tsx・[concept]/page.tsx・parts/page.tsx）
     admin/                 // 認証必須のCMS。layout.tsx が未認証を弾く
@@ -177,6 +178,7 @@ src/
       defaults.ts             // site.ts から作る既定値
       getSiteContent.ts       // 公開ページ向け（profile/skillGroups/works）
       getPortfolioItems.ts    // 公開ページ向け（portfolioItems）
+      tags.ts                 // /portfolio のタグでの絞り込み（?tag= の読み取り・絞り込み・URL）
       feeds.ts                // Zenn・note の RSS からブログのカードを作る（1時間キャッシュ）
       claudeUsage.ts          // About の Claude Code 利用状況の型・検査（画面と登録スクリプトで共通）
       getClaudeUsage.ts       // 公開ページ向け（stats/claudeUsage）

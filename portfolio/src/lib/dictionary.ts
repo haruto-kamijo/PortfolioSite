@@ -47,7 +47,22 @@ export type Dictionary = {
         };
     };
     academic: { graduated: string };
-    portfolio: { heading: Heading; tabsLabel: string; tagsLabel: string; empty: string; noImage: string };
+    /** {tag}・{tags}・{n}・{max} の差し込み先は portfolio/page.tsx と PortfolioCard を参照 */
+    portfolio: {
+        heading: Heading;
+        tabsLabel: string;
+        tagsLabel: string;
+        empty: string;
+        noImage: string;
+        tagFilterLabel: string;
+        tagFilterHint: string;
+        tagFilterFull: string;
+        tagAdd: string;
+        tagRemove: string;
+        tagResults: string;
+        tagEmpty: string;
+        tagClear: string;
+    };
     /** デザインカタログ（/catalog）。{n} などの差し込み先は各ページを参照 */
     catalog: {
         heading: Heading;
@@ -167,6 +182,14 @@ const ja: Dictionary = {
         tagsLabel: "使った技術",
         empty: "準備中です",
         noImage: "画像なし",
+        tagFilterLabel: "タグで探す",
+        tagFilterHint: "すべてのカテゴリから探します。複数選ぶと、そのすべてが付いた作品に絞り込みます",
+        tagFilterFull: "タグは {max} 個まで選べます",
+        tagAdd: "{tag} で絞り込む",
+        tagRemove: "{tag} の絞り込みを外す",
+        tagResults: "{tags}のタグが付いた作品：{n} 件",
+        tagEmpty: "このタグの組み合わせの作品はありません",
+        tagClear: "絞り込みを解除",
     },
     catalog: {
         heading: { title: "デザインカタログ", sub: "DESIGN CATALOG" },
@@ -286,6 +309,14 @@ const en: Dictionary = {
         tagsLabel: "Built with",
         empty: "Coming soon...",
         noImage: "No image",
+        tagFilterLabel: "Filter by tag",
+        tagFilterHint: "Searches every category. Pick more than one to see only works that have all of them.",
+        tagFilterFull: "You can pick up to {max} tags",
+        tagAdd: "Filter by {tag}",
+        tagRemove: "Remove the {tag} filter",
+        tagResults: "Works tagged {tags}: {n}",
+        tagEmpty: "No works have this combination of tags",
+        tagClear: "Clear filter",
     },
     catalog: {
         heading: { title: "DESIGN CATALOG", sub: "Pages & UI parts" },

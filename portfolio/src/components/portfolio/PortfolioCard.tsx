@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Panel } from "@/components/ui/Panel";
 import { PORTFOLIO_CATEGORY_LABELS, PortfolioItem } from "@/lib/content/types";
+import { MAX_SELECTED_TAGS, toggleTagHref } from "@/lib/content/tags";
 import { getDictionary } from "@/lib/dictionary";
 import { Locale, localizePath, pick } from "@/lib/i18n";
 
@@ -18,18 +19,21 @@ const formatDate = (iso: string) =>
 
 /**
  * 作品1件のカード。/portfolio の一覧とホームの「最近の更新」で使う。
- * showCategory はカテゴリをまたいで並べるとき（ホーム）に、どのタブの作品かを出す
+ * showCategory はカテゴリをまたいで並べるとき（ホーム・タグでの絞り込み）に、どのタブの作品かを出す。
+ * タグを押すと、そのタグで絞り込んだ /portfolio を開く。selectedTags は今選んでいるタグで、押すとそこに足す（選んでいれば外す）
  */
 export const PortfolioCard = ({
     item,
     lang,
     showDate = false,
     showCategory = false,
+    selectedTags = [],
 }: {
     item: PortfolioItem;
     lang: Locale;
     showDate?: boolean;
     showCategory?: boolean;
+    selectedTags?: string[];
 }) => {
     const t = getDictionary(lang).portfolio;
     const caption = pick(item.caption, lang);
@@ -59,20 +63,9 @@ export const PortfolioCard = ({
             )}
             <p className={`${meta.length > 0 ? "mt-1.5" : "mt-4"} text-base text-white`}>{pick(item.title, lang)}</p>
             {caption && <p className="mt-2 text-xs text-slate-400">{caption}</p>}
-            {item.tags.length > 0 && (
-                <ul className="mt-3 flex flex-wrap gap-1.5" aria-label={t.tagsLabel}>
-                    {item.tags.map((tag) => (
-                        <li
-                            key={tag}
-                            className="rounded-full bg-cyan-200/[0.07] px-2.5 py-0.5 text-[10px] tracking-wider text-cyan-100/70"
-                        >
-                            {tag}
-                        </li>
-                    ))}
-                </ul>
-            )}
         </>
     );
+    const full = selectedTags.length >= MAX_SELECTED_TAGS;
 
     return (
         <Panel as="li" className={item.href ? "transition-colors hover:border-cyan-200/40" : ""}>
@@ -88,7 +81,34 @@ export const PortfolioCard = ({
             ) : (
                 <div className="p-5">{body}</div>
             )}
-            {/* カード全体のリンクの中にリンクは入れられないので、補助リンクは外に並べる */}
+            {/* カード全体のリンクの中にリンクは入れられないので、タグと補助リンクは外に並べる */}
+            {item.tags.length > 0 && (
+                <ul className={`-mt-2 flex flex-wrap gap-1.5 px-5 ${item.links.length > 0 ? "pb-4" : "pb-5"}`} aria-label={t.tagsLabel}>
+                    {item.tags.map((tag) => {
+                        const selected = selectedTags.includes(tag);
+                        const chip = `rounded-full px-2.5 py-1 text-[10px] tracking-wider ${
+                            selected ? "bg-cyan-200/20 text-cyan-100" : "bg-cyan-200/[0.07] text-cyan-100/70"
+                        }`;
+                        return (
+                            <li key={tag} className="flex">
+                                {/* 選べる数を超えるタグは足せないので、押せない見た目のまま出す */}
+                                {full && !selected ? (
+                                    <span className={chip}>{tag}</span>
+                                ) : (
+                                    <Link
+                                        href={toggleTagHref(selectedTags, tag, lang)}
+                                        aria-label={(selected ? t.tagRemove : t.tagAdd).replace("{tag}", tag)}
+                                        aria-current={selected ? "true" : undefined}
+                                        className={`${chip} transition-colors hover:bg-cyan-200/25 hover:text-cyan-50`}
+                                    >
+                                        {tag}
+                                    </Link>
+                                )}
+                            </li>
+                        );
+                    })}
+                </ul>
+            )}
             {item.links.length > 0 && (
                 <div className="-mt-1 flex flex-wrap gap-2 px-5 pb-5">
                     {item.links.map((link, i) => (
