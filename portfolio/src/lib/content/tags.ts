@@ -17,10 +17,10 @@ export const MAX_SELECTED_TAGS = 5;
 export const tagKey = (tag: string) => tag.toLowerCase();
 
 /**
- * 制御文字と、見えない書式文字（文字の向きを変える U+202E・ゼロ幅の空白・BOM など）。URL から来たタグに入っていたら読まない。
+ * 制御文字と、見えない書式文字（文字の向きを変える U+202E・ゼロ幅の空白・行の区切り U+2028・BOM など）。URL から来たタグに入っていたら読まない。
  * ビルドの対象が ES5 で \p{Cf} が使えないので、範囲で書く
  */
-const INVISIBLE = /[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff\ufff9-\ufffb]/;
+const INVISIBLE = /[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff\ufff9-\ufffb]/;
 
 /** ?tag= の値を、選んだタグの一覧にする。空・長すぎるもの・見えない文字を含むもの・重複は捨てる */
 export const readSelectedTags = (value: string | string[] | undefined): string[] => {

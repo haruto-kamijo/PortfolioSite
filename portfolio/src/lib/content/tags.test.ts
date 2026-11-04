@@ -30,7 +30,7 @@ describe("readSelectedTags", () => {
 
     test("空・31文字以上・見えない文字を含むものは捨てる", () => {
         assert.deepEqual(readSelectedTags(["", "  ", "a".repeat(31), "a".repeat(30)]), ["a".repeat(30)]);
-        assert.deepEqual(readSelectedTags(["abc\u202Edef", "a\u200Bb", "a\nb", "ok", "機械学習"]), ["ok", "機械学習"]);
+        assert.deepEqual(readSelectedTags(["abc\u202Edef", "a\u200Bb", "a\nb", "a\u2028b", "a\u2029b", "ok", "機械学習"]), ["ok", "機械学習"]);
     });
 
     test("大文字・小文字だけが違う重複は、先のほうを残す", () => {
