@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { CareerTimeline } from "@/components/career/CareerTimeline";
 import { Panel } from "@/components/ui/Panel";
 import { SectionTitle } from "@/components/ui/SectionTitle";
+import { isPlanned, monthInTokyo } from "@/lib/content/career";
 import { getCareer } from "@/lib/content/getCareer";
 import { getDictionary } from "@/lib/dictionary";
 import { DEFAULT_LOCALE, alternatesFor, isLocale } from "@/lib/i18n";
@@ -33,6 +34,9 @@ export default async function CareerPage({ params }: Props) {
     const lang = langOf(params);
     const t = getDictionary(lang).career;
     const items = await getCareer();
+    // 「予定」の印は、ページを作るときの日本時間の年月で決める（5 分ごとに作り直すので、月が変われば外れる）
+    const today = monthInTokyo(new Date());
+    const planned = items.filter((item) => isPlanned(item, today)).map((item) => item.id);
 
     return (
         <div className="mx-auto max-w-4xl px-5 py-12 sm:py-24">
@@ -46,8 +50,9 @@ export default async function CareerPage({ params }: Props) {
             ) : (
                 <CareerTimeline
                     items={items}
+                    planned={planned}
                     lang={lang}
-                    texts={{ filterLabel: t.filterLabel, all: t.all, kinds: t.kinds, present: t.present, emptyKind: t.emptyKind }}
+                    texts={{ filterLabel: t.filterLabel, all: t.all, kinds: t.kinds, present: t.present, planned: t.planned, count: t.count }}
                 />
             )}
         </div>

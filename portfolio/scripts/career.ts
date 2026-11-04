@@ -6,14 +6,23 @@
 //
 //   npm run career -- <career.json の場所>              確かめて、変わるところを表示する（dry-run。何も書き込まない）
 //   npm run career -- <career.json の場所> --run        本番に書き込む
-//   npm run career -- <career.json の場所> --emulator   エミュレータに書き込む（--run と一緒に使う）
+//   npm run career -- <career.json の場所> --emulator   エミュレータに繋ぐ（--run と一緒に使うと書き込む）
 //
 // 登録ファイルは個人の経歴なので、このリポジトリには置かない（置き場所は自分で決める）。
 
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
-import { CAREER_COLLECTION, CAREER_DOC_ID, CareerItem, parseCareerFile, readCareerDoc, sortCareer } from "../src/lib/content/career";
+import {
+    CAREER_COLLECTION,
+    CAREER_DOC_ID,
+    CAREER_MAX_BYTES,
+    CareerItem,
+    diffCareer,
+    parseCareerFile,
+    readCareerDoc,
+    sortCareer,
+} from "../src/lib/content/career";
 
 const SITE_URL = "https://kamijoharuto.com";
 const KNOWN_FLAGS = ["--run", "--emulator"];
@@ -45,8 +54,6 @@ const dateRange = (item: CareerItem) =>
 
 const line = (item: CareerItem) => `${dateRange(item).padEnd(19)} [${item.kind}] ${item.title.ja}${item.org.ja ? `（${item.org.ja}）` : ""}`;
 
-const same = (a: CareerItem, b: CareerItem) => JSON.stringify(a) === JSON.stringify(b);
-
 const main = async () => {
     const args = process.argv.slice(2);
     const flags = new Set(args.filter((a) => a.startsWith("--")));
@@ -74,27 +81,29 @@ const main = async () => {
         process.exit(1);
     }
     const sorted = sortCareer(items);
+    const doc = { items: sorted, updatedAt: new Date().toISOString() };
+    const bytes = Buffer.byteLength(JSON.stringify(doc), "utf-8");
+    if (bytes > CAREER_MAX_BYTES) {
+        throw new Error(`登録ファイルが大きすぎます（${bytes} バイト。${CAREER_MAX_BYTES} バイトまで）。説明を短くするか、項目を減らしてください`);
+    }
 
     const fb = await connect(flags.has("--emulator"));
     const ref = fb.db.collection(CAREER_COLLECTION).doc(CAREER_DOC_ID);
-    const current = readCareerDoc((await ref.get()).data());
-    const byId = new Map(current.map((item) => [item.id, item]));
-    const next = new Set(sorted.map((item) => item.id));
+    // 登録済みの項目のうち形の崩れたものは読めないが、丸ごと置き換えると消えるので、消える側として表示する
+    const { items: current, unreadable } = readCareerDoc((await ref.get()).data());
+    const diff = diffCareer(current, sorted);
+    const added = new Set(diff.added);
+    const changed = new Set(diff.changed);
 
     console.log(`登録ファイル：${path}`);
     console.log(`書き込み先：${fb.target} の ${CAREER_COLLECTION}/${CAREER_DOC_ID}`);
     console.log(`\n項目（${sorted.length} 件・新しい順）`);
-    for (const item of sorted) {
-        const before = byId.get(item.id);
-        const mark = !before ? "＋" : same(before, item) ? "　" : "～";
-        console.log(`  ${mark} ${line(item)}`);
-    }
-    const removed = current.filter((item) => !next.has(item.id));
-    for (const item of removed) console.log(`  － ${line(item)}`);
+    for (const item of sorted) console.log(`  ${added.has(item.id) ? "＋" : changed.has(item.id) ? "～" : "　"} ${line(item)}`);
+    for (const item of current.filter((i) => diff.removed.includes(i.id))) console.log(`  － ${line(item)}`);
+    for (const id of unreadable) console.log(`  － ${id}（登録済みの中身の形が崩れていて読めないもの。書き込むと消えます）`);
     console.log("\n（＋ 足す　～ 変わる　－ 消す）");
 
-    const changed = sorted.some((item) => !byId.has(item.id) || !same(byId.get(item.id)!, item)) || removed.length > 0;
-    if (!changed) {
+    if (added.size === 0 && changed.size === 0 && diff.removed.length === 0 && unreadable.length === 0) {
         console.log("\n登録済みの内容と同じなので、書き込むものはありません。");
         return;
     }
@@ -103,7 +112,8 @@ const main = async () => {
         return;
     }
 
-    await ref.set({ items: sorted, updatedAt: new Date().toISOString() });
+    // 1つのドキュメントに全部の項目を持つ決まりなので、merge せずに丸ごと置き換える（content.ts は1作品ずつなので merge する）
+    await ref.set(doc);
     console.log(`\n${fb.target}に書き込みました。ページには 5 分ほどで出ます：${SITE_URL}/career`);
 };
 

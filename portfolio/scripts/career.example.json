@@ -1,48 +1,100 @@
 {
     "items": [
         {
+            "id": "example-graduate-school",
+            "kind": "education",
+            "start": "2099-04",
+            "title": {
+                "ja": "（例）〇〇大学大学院 進学",
+                "en": "(Example) Graduate School of XX University"
+            }
+        },
+        {
             "id": "example-university",
             "kind": "education",
             "start": "2022-04",
             "end": "present",
-            "title": { "ja": "（例）〇〇大学 情報学部 入学", "en": "(Example) Entered the Faculty of Informatics, XX University" },
-            "org": { "ja": "〇〇大学", "en": "XX University" }
+            "title": {
+                "ja": "（例）〇〇大学 情報学部 入学",
+                "en": "(Example) Entered the Faculty of Informatics, XX University"
+            },
+            "org": {
+                "ja": "〇〇大学",
+                "en": "XX University"
+            }
         },
         {
             "id": "example-lab",
             "kind": "research",
             "start": "2025-04",
             "end": "present",
-            "title": { "ja": "（例）〇〇研究室に配属", "en": "(Example) Joined the XX Lab" },
-            "description": { "ja": "研究のテーマを1〜2文で書く。", "en": "One or two sentences about the research theme." }
+            "title": {
+                "ja": "（例）〇〇研究室に配属",
+                "en": "(Example) Joined the XX Lab"
+            },
+            "description": {
+                "ja": "研究のテーマを1〜2文で書く。",
+                "en": "One or two sentences about the research theme."
+            }
         },
         {
             "id": "example-talk",
             "kind": "research",
             "start": "2026-03",
-            "title": { "ja": "（例）〇〇学会 全国大会で発表", "en": "(Example) Presented at the XX Society Annual Meeting" },
-            "links": [{ "label": { "ja": "予稿", "en": "Paper" }, "href": "https://example.com/paper" }]
+            "title": {
+                "ja": "（例）〇〇学会 全国大会で発表",
+                "en": "(Example) Presented at the XX Society Annual Meeting"
+            },
+            "links": [
+                {
+                    "label": {
+                        "ja": "予稿",
+                        "en": "Paper"
+                    },
+                    "href": "https://example.com/paper"
+                }
+            ]
         },
         {
             "id": "example-hackathon",
             "kind": "achievement",
             "start": "2025-11",
-            "title": { "ja": "（例）〇〇ハッカソン 優秀賞", "en": "(Example) Excellence Award, XX Hackathon" },
-            "links": [{ "label": { "ja": "作品", "en": "Project" }, "href": "/portfolio?tag=Next.js" }]
+            "title": {
+                "ja": "（例）〇〇ハッカソン 優秀賞",
+                "en": "(Example) Excellence Award, XX Hackathon"
+            },
+            "links": [
+                {
+                    "label": {
+                        "ja": "作品",
+                        "en": "Project"
+                    },
+                    "href": "/portfolio?tag=Next.js"
+                }
+            ]
         },
         {
             "id": "example-intern",
             "kind": "work",
             "start": "2025-08",
             "end": "2025-09",
-            "title": { "ja": "（例）〇〇株式会社 インターン", "en": "(Example) Intern at XX Inc." },
-            "org": { "ja": "Web アプリの開発", "en": "Web app development" }
+            "title": {
+                "ja": "（例）〇〇株式会社 インターン",
+                "en": "(Example) Intern at XX Inc."
+            },
+            "org": {
+                "ja": "Web アプリの開発",
+                "en": "Web app development"
+            }
         },
         {
             "id": "example-license",
             "kind": "work",
             "start": "2023",
-            "title": { "ja": "（例）基本情報技術者", "en": "(Example) Fundamental Information Technology Engineer" }
+            "title": {
+                "ja": "（例）基本情報技術者",
+                "en": "(Example) Fundamental Information Technology Engineer"
+            }
         }
     ]
 }

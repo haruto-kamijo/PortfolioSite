@@ -33,8 +33,10 @@ export type Dictionary = {
         all: string;
         kinds: Record<CareerKind, string>;
         present: string;
+        planned: string;
+        /** {n} を差し込む（絞り込んだあとの件数の読み上げ） */
+        count: string;
         empty: string;
-        emptyKind: string;
     };
     about: {
         heading: Heading;
@@ -156,7 +158,7 @@ const ja: Dictionary = {
         about: "プロフィール",
         aboutDescription: "上條遥都のプロフィール。所属・スキル・趣味など。",
         career: "経歴",
-        careerDescription: "上條遥都の経歴。学歴・研究・制作・職歴を年ごとに並べています。",
+        careerDescription: "上條遥都の経歴。学歴・研究と発表・職歴と資格・制作と受賞を年ごとに並べています。",
         portfolio: "制作物",
         portfolioDescription: "上條遥都の制作物一覧。Webサイト・ゲーム・3Dモデル・写真。",
         contact: "お問い合わせ",
@@ -188,13 +190,14 @@ const ja: Dictionary = {
     },
     career: {
         heading: { title: "経歴", sub: "CAREER" },
-        lead: "学歴・研究と発表・制作と受賞・職歴と資格を、新しい順に年ごとに並べています。",
+        lead: "学歴・研究と発表・職歴と資格・制作と受賞を、新しい順に年ごとに並べています。",
         filterLabel: "種類で絞り込む",
         all: "すべて",
         kinds: { education: "学歴", research: "研究・発表", work: "職歴・資格", achievement: "制作・受賞" },
         present: "現在",
+        planned: "予定",
+        count: "{n} 件",
         empty: "準備中です",
-        emptyKind: "この種類の項目はまだありません",
     },
     about: {
         heading: { title: "プロフィール", sub: "ABOUT" },
@@ -310,7 +313,7 @@ const en: Dictionary = {
         about: "About",
         aboutDescription: "About Kamijo Haruto: school, skills, and hobbies.",
         career: "Career",
-        careerDescription: "Kamijo Haruto's career: education, research, projects, and work, year by year.",
+        careerDescription: "Kamijo Haruto's career: education, research, work, and projects, year by year.",
         portfolio: "Portfolio",
         portfolioDescription: "Works by Kamijo Haruto: websites, games, 3D models, and photos.",
         contact: "Contact",
@@ -342,13 +345,14 @@ const en: Dictionary = {
     },
     career: {
         heading: { title: "CAREER", sub: "Timeline" },
-        lead: "Education, research and talks, projects and awards, and work and certifications, year by year, newest first.",
+        lead: "Education, research, work, and projects, year by year, newest first.",
         filterLabel: "Filter by type",
         all: "All",
         kinds: { education: "Education", research: "Research & talks", work: "Work & certifications", achievement: "Projects & awards" },
         present: "Present",
+        planned: "Planned",
+        count: "{n} items",
         empty: "Coming soon...",
-        emptyKind: "Nothing of this type yet",
     },
     about: {
         heading: { title: "ABOUT", sub: "Profile" },
