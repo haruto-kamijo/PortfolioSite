@@ -7,6 +7,7 @@ import { CatalogViewer } from "@/components/catalog/CatalogViewer";
 import { CONCEPT_VIEWS } from "@/components/catalog/concepts";
 import { CATALOG_CONCEPTS, CATALOG_CONCEPT_IDS, isCatalogConceptId } from "@/lib/catalog/concepts";
 import { CATALOG_PARTS, CatalogPartId } from "@/lib/catalog/parts";
+import { catalogFramePath } from "@/lib/catalog/widths";
 import { getDictionary } from "@/lib/dictionary";
 import { DEFAULT_LOCALE, alternatesFor, isLocale, localizePath, pick } from "@/lib/i18n";
 import { openGraphFor } from "@/lib/metadata";
@@ -93,6 +94,7 @@ export default function CatalogConceptPage({ params }: Props) {
             <CatalogViewer
                 domain={concept.domain}
                 parts={parts}
+                frameSrc={localizePath(catalogFramePath(id), lang)}
                 texts={{
                     previewLabel: t.previewLabel.replace("{name}", pick(concept.name, lang)),
                     modeLabel: t.modeLabel,
@@ -103,6 +105,9 @@ export default function CatalogConceptPage({ params }: Props) {
                     hintTouch: t.hintTouch,
                     partsOnPage: t.partsOnPage,
                     openInParts: t.openInParts,
+                    widthLabel: t.widthLabel,
+                    widths: { fit: t.widthFit, pc: t.widthPc, tablet: t.widthTablet, phone: t.widthPhone },
+                    widthScaled: t.widthScaled,
                 }}
             >
                 <Page lang={lang} />

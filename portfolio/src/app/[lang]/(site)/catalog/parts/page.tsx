@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CatalogNav } from "@/components/catalog/CatalogNav";
 import { CONCEPT_VIEWS } from "@/components/catalog/concepts";
 import { HashHighlight } from "@/components/catalog/HashHighlight";
+import { SampleCode } from "@/components/catalog/SampleCode";
 import { Panel } from "@/components/ui/Panel";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { CATALOG_CONCEPTS, CATALOG_CONCEPT_IDS } from "@/lib/catalog/concepts";
@@ -102,6 +103,7 @@ export default function CatalogPartsPage({ params }: Props) {
                                         <li key={c}>
                                             <Panel as="article" className="overflow-hidden">
                                                 <div
+                                                    data-sample=""
                                                     role="img"
                                                     aria-label={`${pick(concept.name, lang)} — ${pick(part.name, lang)}`}
                                                     className="overflow-hidden border-b border-white/10"
@@ -125,6 +127,17 @@ export default function CatalogPartsPage({ params }: Props) {
                                                         {t.viewOnPage} →
                                                     </Link>
                                                 </p>
+                                                <SampleCode
+                                                    partId={id}
+                                                    texts={{
+                                                        show: t.codeShow,
+                                                        note: t.codeNote,
+                                                        copy: t.codeCopy,
+                                                        copied: t.codeCopied,
+                                                        copyFailed: t.codeCopyFailed,
+                                                        label: t.codeLabel.replace("{name}", `${pick(concept.name, lang)} — ${pick(part.name, lang)}`),
+                                                    }}
+                                                />
                                             </Panel>
                                         </li>
                                     );

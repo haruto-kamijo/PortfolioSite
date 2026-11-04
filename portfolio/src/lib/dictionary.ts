@@ -91,6 +91,20 @@ export type Dictionary = {
         hintTouch: string;
         partsOnPage: string;
         openInParts: string;
+        widthLabel: string;
+        widthFit: string;
+        widthPc: string;
+        widthTablet: string;
+        widthPhone: string;
+        /** {px}・{percent} を差し込む */
+        widthScaled: string;
+        codeShow: string;
+        codeNote: string;
+        codeCopy: string;
+        codeCopied: string;
+        codeCopyFailed: string;
+        /** {name} を差し込む */
+        codeLabel: string;
         aliases: string;
         usedIn: string;
         viewOnPage: string;
@@ -220,6 +234,18 @@ const ja: Dictionary = {
         hintTouch: "パーツをタップすると名前が出ます。もう一度タップするとパーツ図鑑に移ります。",
         partsOnPage: "このページのパーツ",
         openInParts: "図鑑で見る",
+        widthLabel: "表示する幅",
+        widthFit: "画面に合わせる",
+        widthPc: "PC",
+        widthTablet: "タブレット",
+        widthPhone: "スマホ",
+        widthScaled: "{px}px を {percent}% に縮めて表示",
+        codeShow: "コードを見る",
+        codeNote: "見本として描いた HTML と Tailwind CSS のクラスです。文章は短くしています。",
+        codeCopy: "コピー",
+        codeCopied: "コピーしました",
+        codeCopyFailed: "コピーできませんでした",
+        codeLabel: "{name} の HTML",
         aliases: "別名：",
         usedIn: "使っているページ",
         viewOnPage: "ページで見る",
@@ -349,6 +375,18 @@ const en: Dictionary = {
         hintTouch: "Tap a part to see its name. Tap it again to open the parts guide.",
         partsOnPage: "Parts on this page",
         openInParts: "Open in guide",
+        widthLabel: "Width",
+        widthFit: "Fit",
+        widthPc: "Desktop",
+        widthTablet: "Tablet",
+        widthPhone: "Phone",
+        widthScaled: "{px}px, scaled to {percent}%",
+        codeShow: "Show code",
+        codeNote: "The HTML and Tailwind CSS classes this sample renders. Long text is shortened.",
+        codeCopy: "Copy",
+        codeCopied: "Copied",
+        codeCopyFailed: "Could not copy",
+        codeLabel: "HTML of {name}",
         aliases: "Also called: ",
         usedIn: "Used on",
         viewOnPage: "View on page",

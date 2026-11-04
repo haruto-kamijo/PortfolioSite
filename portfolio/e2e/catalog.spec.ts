@@ -101,13 +101,15 @@ test.describe("PC", () => {
         await openConcept(page, "/catalog/studio");
         await showPartNames(page);
         const focusInStage = () => stage(page).evaluate((el) => el.contains(document.activeElement));
-        // 切り替えのボタンから Tab で進むと、見本を飛ばして横の一覧へ移る
+        // 枠の上の最後のボタン（幅の切り替えのスマホ）から Tab で進むと、見本を飛ばして横の一覧へ移る
+        const lastButton = page.getByRole("group", { name: "表示する幅" }).getByRole("button", { name: "スマホ" });
+        await lastButton.focus();
         await page.keyboard.press("Tab");
         await expect(partsList(page).getByRole("link").first()).toBeFocused();
         expect(await focusInStage()).toBe(false);
         // 逆向きに戻っても、見本の中には入らない
         await page.keyboard.press("Shift+Tab");
-        await expect(page.getByRole("button", { name: "パーツの名前を見る" })).toBeFocused();
+        await expect(lastButton).toBeFocused();
     });
 
     test("名前を見るモードで押すと図鑑へ移り、戻っても名前を見るモードのまま", async ({ page }) => {

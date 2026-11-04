@@ -2,7 +2,9 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 import { useSpaceScene } from "./SpaceSceneProvider";
+import { isCatalogFramePath } from "@/lib/catalog/widths";
 import { NAVIGATE_AT_MS } from "@/lib/warpTimeline";
 
 // WebGL は SSR できないため、Canvas はクライアントのみで読み込む
@@ -24,12 +26,16 @@ const WARPING_TRANSFORM = "scale-[1.30] brightness-120";
 
 export const SpaceBackground = () => {
     const { phase } = useSpaceScene();
+    const pathname = usePathname();
 
     const isWarping = phase === "spinup" || phase === "flash" || phase === "warp";
     const transformClass =
         phase === "idle" ? "scale-100 brightness-100"
             : phase === "cruise" ? "scale-[1.04] brightness-75"
                 : WARPING_TRANSFORM;
+
+    // デザインカタログの iframe に入れる見本だけのページでは、星空を描かない（iframe ごとに WebGL を作らないように）
+    if (isCatalogFramePath(pathname)) return null;
 
     return (
         <>
