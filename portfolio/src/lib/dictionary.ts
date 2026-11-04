@@ -91,6 +91,22 @@ export type Dictionary = {
         hintTouch: string;
         partsOnPage: string;
         openInParts: string;
+        /** {name}・{width} を差し込む（見本を入れた iframe の名前） */
+        frameTitle: string;
+        widthLabel: string;
+        widthFit: string;
+        widthPc: string;
+        widthTablet: string;
+        widthPhone: string;
+        /** {px}・{percent} を差し込む */
+        widthScaled: string;
+        codeShow: string;
+        codeNote: string;
+        codeCopy: string;
+        codeCopied: string;
+        codeCopyFailed: string;
+        /** {name} を差し込む */
+        codeLabel: string;
         aliases: string;
         usedIn: string;
         viewOnPage: string;
@@ -220,6 +236,19 @@ const ja: Dictionary = {
         hintTouch: "パーツをタップすると名前が出ます。もう一度タップするとパーツ図鑑に移ります。",
         partsOnPage: "このページのパーツ",
         openInParts: "図鑑で見る",
+        frameTitle: "{name} のデザイン見本の中身（{width}）",
+        widthLabel: "表示する幅",
+        widthFit: "画面に合わせる",
+        widthPc: "PC",
+        widthTablet: "タブレット",
+        widthPhone: "スマホ",
+        widthScaled: "{px}px を {percent}% に縮めて表示",
+        codeShow: "コードを見る",
+        codeNote: "見本として描いた HTML と Tailwind CSS のクラスです。背景と書体（見本のページ全体の指定）と SVG の中身は省き、文章は短くしています。",
+        codeCopy: "コピー",
+        codeCopied: "コピーしました",
+        codeCopyFailed: "コピーできませんでした",
+        codeLabel: "{name} の HTML",
         aliases: "別名：",
         usedIn: "使っているページ",
         viewOnPage: "ページで見る",
@@ -349,6 +378,19 @@ const en: Dictionary = {
         hintTouch: "Tap a part to see its name. Tap it again to open the parts guide.",
         partsOnPage: "Parts on this page",
         openInParts: "Open in guide",
+        frameTitle: "Contents of the {name} design sample ({width})",
+        widthLabel: "Width",
+        widthFit: "Fit",
+        widthPc: "Desktop",
+        widthTablet: "Tablet",
+        widthPhone: "Phone",
+        widthScaled: "{px}px, scaled to {percent}%",
+        codeShow: "Show code",
+        codeNote: "The HTML and Tailwind CSS classes this sample renders. The background and font (set for the whole sample page) and the inside of SVGs are left out, and long text is shortened.",
+        codeCopy: "Copy",
+        codeCopied: "Copied",
+        codeCopyFailed: "Could not copy",
+        codeLabel: "HTML of {name}",
         aliases: "Also called: ",
         usedIn: "Used on",
         viewOnPage: "View on page",

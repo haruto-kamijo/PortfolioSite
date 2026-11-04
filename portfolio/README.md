@@ -40,7 +40,7 @@ npx playwright install chromium && npm run test:e2e   # Playwright の Chromium 
 
 落ちたときは `npx playwright show-report` で、どの操作で何が起きたかを見られる（手元で動かしたあと）。
 CI で落ちたときは、ワークフローの artifact（`playwright-report`）を落として、同じコマンドで開く。
-デザインカタログの見本には `data-testid`（`catalog-stage` / `catalog-part-label` / `catalog-part-box`）を付けてあり、テストはこれを目印にする。
+デザインカタログの見本には `data-testid`（`catalog-stage` / `catalog-part-label` / `catalog-part-box`）を付けてあり、テストはこれを目印にする。見本の中身は iframe の中にあるので、テストでは `frameLocator` で探す。
 見本は動かせるようになると `data-ready` が付くので、テストはそれを待ってから操作する（ハイドレーションの前に指しても反応しないため）。
 
 ## デプロイ
@@ -94,8 +94,9 @@ firebase deploy
 | `/portfolio?tag=` | タグでの絞り込み。すべてのカテゴリから、選んだタグを全部持つ作品を並べる（`?tag=Next.js&tag=Firebase` のように5個まで。大文字・小文字は区別しない）。タブの下のタグの列か、カードのタグを押して選ぶ。`?tab=` も残り、解除するとそのタブに戻る。RSS の記事（配信元の名前）は絞り込みの対象外 |
 | `/contact` | お問い合わせフォーム |
 | `/catalog` | デザインカタログ。目的の違う架空のサイト4つを、見た目の流派ごとに作った見本の一覧。制作物の `sites` タブの先頭にもカードを出す |
-| `/catalog/<見本>` | 見本のページ（`kissa` / `saas` / `magazine` / `studio`）。見方は2つで、枠の上のボタンで切り替える。既定の「ページを操作する」では、ナビ・CTA ボタン・タブ・アコーディオン・ページ送り・フォームがページの中で動く（フォームはどこにも送らない）。「パーツの名前を見る」（`?view=parts`）では、パーツを指すと名前が出て、押すとパーツ図鑑のその項目へ移る |
-| `/catalog/parts` | パーツ図鑑。UI パーツの名前・別名・役割と、各見本での見え方。「ページで見る」で `/catalog/<見本>?part=<パーツ>` に戻る（「パーツの名前を見る」で開く） |
+| `/catalog/<見本>` | 見本のページ（`kissa` / `saas` / `magazine` / `studio`）。見方は2つで、枠の上のボタンで切り替える。既定の「ページを操作する」では、ナビ・CTA ボタン・タブ・アコーディオン・ページ送り・フォームがページの中で動く（フォームはどこにも送らない）。「パーツの名前を見る」（`?view=parts`）では、パーツを指すと名前が出て、押すとパーツ図鑑のその項目へ移る。見本は `/catalog-frame/<見本>` を iframe に入れて描く。表示する幅も選べ（`?width=pc` / `tablet` / `phone`。既定は枠の幅に合わせる）、その幅の iframe にして本物の画面と同じように並び替わらせる（枠より広いときは縮める。スマホの画面では選べない）。どの幅でも同じ iframe なので、見本の中で開いたものや入力した文字は残る |
+| `/catalog-frame/<見本>` | 見本のページだけを描く、iframe 用のページ。ヘッダー・フッター・星空の背景は出さず、検索にも載せない（canonical は `/catalog/<見本>`） |
+| `/catalog/parts` | パーツ図鑑。UI パーツの名前・別名・役割と、各見本での見え方。「ページで見る」で `/catalog/<見本>?part=<パーツ>` に戻る（「パーツの名前を見る」で開く）。各見本の「コードを見る」で、描いた HTML と Tailwind CSS のクラスを出し、コピーできる |
 | `/og.png` | リンクを貼ったときに出る画像（OGP、ビルド時に生成） |
 | `/login` | 管理者ログイン（Googleサインイン） |
 | `/admin` | CMS。受信箱・プロフィール編集・TOPカード・ポートフォリオ管理 |
@@ -125,6 +126,7 @@ src/
         portfolio/page.tsx // ?tab= でカテゴリを切り替え、?tag= でタグで絞り込む
         contact/page.tsx
         catalog/           // デザインカタログ（page.tsx・[concept]/page.tsx・parts/page.tsx）
+      catalog-frame/[concept]/page.tsx // 見本だけのページ（見本のページの iframe の中身。(site) の外なのでヘッダーが付かない）
     admin/                 // 認証必須のCMS。layout.tsx が未認証を弾く
       layout.tsx
       page.tsx             // ダッシュボード
@@ -156,7 +158,8 @@ src/
     catalog/
       concepts/            // 見本のページ4つ（Kissa / Saas / Magazine / Studio）。パーツは <Part id> で印を付ける
       Part.tsx             // パーツの印（data-part）
-      CatalogViewer.tsx    // 見本をブラウザの枠に入れ、2つの見方の切り替え・指す・押す・一覧との連動を受け持つ
+      CatalogViewer.tsx    // 見本をブラウザの枠に入れ、2つの見方と幅の切り替え・指す・押す・一覧との連動を受け持つ（見本は iframe に入れ、その中も読む）
+      SampleCode.tsx       // パーツ図鑑の「コードを見る」（描いた見本を class 付きの HTML にする）
       Interactive.tsx      // 見本の中で動く部品（ナビ・CTA ボタン・タブの絞り込み・ページ送り・フォーム）
       CatalogNav.tsx / HashHighlight.tsx
     admin/
@@ -196,6 +199,7 @@ src/
       parts.ts                // パーツ図鑑の項目（名前・別名・役割）。見本の <Part id> はここの id
       concepts.ts             // 見本のページの説明（目的・流派・書体・配色）。どれも架空のサイト
       portfolioItem.ts        // 制作物の sites タブに出すカタログのカード（Firestore には置かない）
+      widths.ts               // 見本を表示する幅（PC・タブレット・スマホ）と、見本だけのページのパス
     metadata.ts               // 公開ページの OGP（各ページが自分の URL で呼ぶ）
     three/shaders/            // GLSL
 scripts/
