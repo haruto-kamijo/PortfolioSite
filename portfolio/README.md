@@ -15,6 +15,15 @@ Windows の新しい Node（22.23 など）では、Next 14 に同梱の `@verce
 `npm install` のあとに `scripts/patch-vercel-og.mjs`（`postinstall`）がそこを書き換えるので、ふつうは何もしなくてよい。Windows 以外（CI・本番の Linux）では書き換えない。
 それでも止まるときは、`node scripts/patch-vercel-og.mjs` を実行して、出たメッセージを見る。
 
+### ユニットテスト
+
+`src/**/*.test.ts` に、画面を使わずに決まりを確かめるテスト（Node の `node:test` を `tsx` で動かす）がある。
+いまは `/portfolio` のタグでの絞り込みの決まり（`src/lib/content/tags.test.ts`）。CI（`ci.yml` の共通 CI）が `npm test` を動かす。
+
+```bash
+npm test
+```
+
 ### E2E テスト
 
 `e2e/` に、ブラウザで画面を操作して確かめるテスト（Playwright）がある。
@@ -82,6 +91,7 @@ firebase deploy
 | `/home`| 本編トップ（Hero / Latest / Skills / Works / Contact）。Latest は作品と記事の新しい順に3件 |
 | `/about` | プロフィール（写真・所属・学年・趣味・使用言語） |
 | `/portfolio?tab=` | 作品一覧。`sites` / `games` / `models` / `photos` / `pocs` / `kaggle` / `blog` をタブで切り替え。`blog` には Zenn・note の記事を RSS から自動で並べる |
+| `/portfolio?tag=` | タグでの絞り込み。すべてのカテゴリから、選んだタグを全部持つ作品を並べる（`?tag=Next.js&tag=Firebase` のように5個まで。大文字・小文字は区別しない）。タブの下のタグの列か、カードのタグを押して選ぶ。`?tab=` も残り、解除するとそのタブに戻る。RSS の記事（配信元の名前）は絞り込みの対象外 |
 | `/contact` | お問い合わせフォーム |
 | `/catalog` | デザインカタログ。目的の違う架空のサイト4つを、見た目の流派ごとに作った見本の一覧。制作物の `sites` タブの先頭にもカードを出す |
 | `/catalog/<見本>` | 見本のページ（`kissa` / `saas` / `magazine` / `studio`）。見方は2つで、枠の上のボタンで切り替える。既定の「ページを操作する」では、ナビ・CTA ボタン・タブ・アコーディオン・ページ送り・フォームがページの中で動く（フォームはどこにも送らない）。「パーツの名前を見る」（`?view=parts`）では、パーツを指すと名前が出て、押すとパーツ図鑑のその項目へ移る |
@@ -112,7 +122,7 @@ src/
         layout.tsx
         home/page.tsx
         about/page.tsx
-        portfolio/page.tsx // ?tab= でカテゴリを切り替え
+        portfolio/page.tsx // ?tab= でカテゴリを切り替え、?tag= でタグで絞り込む
         contact/page.tsx
         catalog/           // デザインカタログ（page.tsx・[concept]/page.tsx・parts/page.tsx）
     admin/                 // 認証必須のCMS。layout.tsx が未認証を弾く
@@ -142,6 +152,7 @@ src/
     ui/
       Panel.tsx / SectionTitle.tsx / AcademicStatusLine.tsx
     portfolio/PortfolioCard.tsx // 作品1件のカード（/portfolio とホームの Latest で共通）
+    portfolio/FocusOnTagChange.tsx // タグを選び直したら、結果の件数へ画面とフォーカスを動かす
     catalog/
       concepts/            // 見本のページ4つ（Kissa / Saas / Magazine / Studio）。パーツは <Part id> で印を付ける
       Part.tsx             // パーツの印（data-part）
@@ -177,6 +188,7 @@ src/
       defaults.ts             // site.ts から作る既定値
       getSiteContent.ts       // 公開ページ向け（profile/skillGroups/works）
       getPortfolioItems.ts    // 公開ページ向け（portfolioItems）
+      tags.ts                 // /portfolio のタグでの絞り込み（?tag= の読み取り・絞り込み・URL）
       feeds.ts                // Zenn・note の RSS からブログのカードを作る（1時間キャッシュ）
       claudeUsage.ts          // About の Claude Code 利用状況の型・検査（画面と登録スクリプトで共通）
       getClaudeUsage.ts       // 公開ページ向け（stats/claudeUsage）

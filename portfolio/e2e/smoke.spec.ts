@@ -11,6 +11,7 @@ const PAGES = [
     "/about",
     "/portfolio",
     "/portfolio?tab=blog",
+    "/portfolio?tag=Next.js",
     "/contact",
     "/catalog",
     "/catalog/kissa",

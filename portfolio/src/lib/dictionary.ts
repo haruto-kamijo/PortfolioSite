@@ -47,7 +47,24 @@ export type Dictionary = {
         };
     };
     academic: { graduated: string };
-    portfolio: { heading: Heading; tabsLabel: string; tagsLabel: string; empty: string; noImage: string };
+    /** {tags}・{n}・{max} の差し込み先は portfolio/page.tsx を参照。…Sr は読み上げだけに足す文（見た目の文字のあとに続く） */
+    portfolio: {
+        heading: Heading;
+        tabsLabel: string;
+        tagsLabel: string;
+        empty: string;
+        noImage: string;
+        tagFilterLabel: string;
+        tagFilterHint: string;
+        tagFilterFull: string;
+        tagMore: string;
+        tagCountSr: string;
+        tagAddSr: string;
+        tagSelectedSr: string;
+        tagResults: string;
+        tagEmpty: string;
+        tagClear: string;
+    };
     /** デザインカタログ（/catalog）。{n} などの差し込み先は各ページを参照 */
     catalog: {
         heading: Heading;
@@ -167,6 +184,16 @@ const ja: Dictionary = {
         tagsLabel: "使った技術",
         empty: "準備中です",
         noImage: "画像なし",
+        tagFilterLabel: "タグで探す",
+        tagFilterHint: "すべてのカテゴリから探します。複数選ぶと、そのすべてが付いた作品に絞り込みます",
+        tagFilterFull: "タグは {max} 個まで選べます",
+        tagMore: "ほかのタグ（{n}）",
+        tagCountSr: " 件",
+        tagAddSr: "。押すと絞り込む",
+        tagSelectedSr: "（選択中。押すと外す）",
+        tagResults: "{tags}のタグが付いた作品：{n} 件",
+        tagEmpty: "選んだタグがすべて付いた作品はありません",
+        tagClear: "絞り込みを解除",
     },
     catalog: {
         heading: { title: "デザインカタログ", sub: "DESIGN CATALOG" },
@@ -286,6 +313,16 @@ const en: Dictionary = {
         tagsLabel: "Built with",
         empty: "Coming soon...",
         noImage: "No image",
+        tagFilterLabel: "Filter by tag",
+        tagFilterHint: "Searches every category. Pick more than one to see only works that have all of them.",
+        tagFilterFull: "You can pick up to {max} tags",
+        tagMore: "More tags ({n})",
+        tagCountSr: " works",
+        tagAddSr: ". Filter by this tag",
+        tagSelectedSr: " (selected. Remove from the filter)",
+        tagResults: "Works with all of the selected tags ({tags}): {n}",
+        tagEmpty: "No works have all of the selected tags",
+        tagClear: "Clear filter",
     },
     catalog: {
         heading: { title: "DESIGN CATALOG", sub: "Pages & UI parts" },
@@ -343,5 +380,12 @@ const en: Dictionary = {
 };
 
 const dictionaries: Record<Locale, Dictionary> = { ja, en };
+
+/**
+ * 文面の {name} を vars の値で置き換える。一度に置き換えるので、差し込んだ値の中の {n} や $& はそのまま出る
+ * （利用者が URL に書いたタグなどを差し込んでも、文面が崩れないように）
+ */
+export const fill = (template: string, vars: Record<string, string | number>) =>
+    template.replace(/\{(\w+)\}/g, (match, key: string) => (key in vars ? String(vars[key]) : match));
 
 export const getDictionary = (lang: Locale): Dictionary => dictionaries[lang];

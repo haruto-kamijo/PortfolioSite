@@ -2,7 +2,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Panel } from "@/components/ui/Panel";
-import { PORTFOLIO_CATEGORY_LABELS, PortfolioItem } from "@/lib/content/types";
+import { PORTFOLIO_CATEGORY_LABELS, PortfolioCategory, PortfolioItem } from "@/lib/content/types";
+import { MAX_SELECTED_TAGS, hasTag, toggleTagHref } from "@/lib/content/tags";
 import { getDictionary } from "@/lib/dictionary";
 import { Locale, localizePath, pick } from "@/lib/i18n";
 
@@ -18,23 +19,34 @@ const formatDate = (iso: string) =>
 
 /**
  * 作品1件のカード。/portfolio の一覧とホームの「最近の更新」で使う。
- * showCategory はカテゴリをまたいで並べるとき（ホーム）に、どのタブの作品かを出す
+ * showCategory はカテゴリをまたいで並べるとき（ホーム・タグでの絞り込み）に、どのタブの作品かを出す。
+ * タグを押すと、そのタグで絞り込んだ /portfolio を開く。/portfolio の中では次の値を渡す：
+ * - selectedTags：今選んでいるタグ。押すとそこに足す（選んでいれば外す）
+ * - tab：絞り込む前に開いていたタブ。解除したときにそこへ戻れるよう URL に残す
+ * - onPortfolioPage：同じページの中での切り替えなので、ページの先頭へは戻さない（FocusOnTagChange が結果へ動かす）
  */
 export const PortfolioCard = ({
     item,
     lang,
     showDate = false,
     showCategory = false,
+    selectedTags = [],
+    tab = null,
+    onPortfolioPage = false,
 }: {
     item: PortfolioItem;
     lang: Locale;
     showDate?: boolean;
     showCategory?: boolean;
+    selectedTags?: string[];
+    tab?: PortfolioCategory | null;
+    onPortfolioPage?: boolean;
 }) => {
     const t = getDictionary(lang).portfolio;
     const caption = pick(item.caption, lang);
     const meta = [
         showCategory ? PORTFOLIO_CATEGORY_LABELS[item.category][lang] : null,
+        item.source ?? null,
         showDate && item.createdAt ? formatDate(item.createdAt) : null,
     ].filter(Boolean);
 
@@ -59,23 +71,13 @@ export const PortfolioCard = ({
             )}
             <p className={`${meta.length > 0 ? "mt-1.5" : "mt-4"} text-base text-white`}>{pick(item.title, lang)}</p>
             {caption && <p className="mt-2 text-xs text-slate-400">{caption}</p>}
-            {item.tags.length > 0 && (
-                <ul className="mt-3 flex flex-wrap gap-1.5" aria-label={t.tagsLabel}>
-                    {item.tags.map((tag) => (
-                        <li
-                            key={tag}
-                            className="rounded-full bg-cyan-200/[0.07] px-2.5 py-0.5 text-[10px] tracking-wider text-cyan-100/70"
-                        >
-                            {tag}
-                        </li>
-                    ))}
-                </ul>
-            )}
         </>
     );
+    const full = selectedTags.length >= MAX_SELECTED_TAGS;
 
     return (
-        <Panel as="li" className={item.href ? "transition-colors hover:border-cyan-200/40" : ""}>
+        // 縁はカード全体のリンクに乗ったときだけ光らせる（外に並べたタグや補助リンクに乗ったときは光らせない）
+        <Panel as="li" className={item.href ? "transition-colors has-[>a:hover]:border-cyan-200/40" : ""}>
             {/* サイト内のページ（/catalog など）は同じタブで、表示中の言語のまま開く */}
             {item.href && isInternalPath(item.href) ? (
                 <Link href={localizePath(item.href, lang)} className="block p-5">
@@ -88,7 +90,36 @@ export const PortfolioCard = ({
             ) : (
                 <div className="p-5">{body}</div>
             )}
-            {/* カード全体のリンクの中にリンクは入れられないので、補助リンクは外に並べる */}
+            {/* カード全体のリンクの中にリンクは入れられないので、タグと補助リンクは外に並べる */}
+            {item.tags.length > 0 && (
+                <ul className={`-mt-2 flex flex-wrap gap-1.5 px-5 ${item.links.length > 0 ? "pb-4" : "pb-5"}`} aria-label={t.tagsLabel}>
+                    {item.tags.map((tag) => {
+                        const selected = hasTag(selectedTags, tag);
+                        const chip = `rounded-full px-2.5 py-1 text-[10px] tracking-wider ${
+                            selected ? "bg-cyan-200/20 text-cyan-100" : "bg-cyan-200/[0.07] text-cyan-100/70"
+                        }`;
+                        return (
+                            <li key={tag} className="flex">
+                                {/* 選べる数を超えるタグは足せないので、押せない見た目のまま出す */}
+                                {full && !selected ? (
+                                    <span className={chip}>{tag}</span>
+                                ) : (
+                                    // 名前は見た目の文字のあとに読み上げ用の文を足す形にする（音声で「Next.js」と言っても押せるように）
+                                    <Link
+                                        href={toggleTagHref(selectedTags, tag, tab, lang)}
+                                        scroll={!onPortfolioPage}
+                                        prefetch={false}
+                                        className={`${chip} transition-colors hover:bg-cyan-200/25 hover:text-cyan-50`}
+                                    >
+                                        {tag}
+                                        <span className="sr-only">{selected ? t.tagSelectedSr : t.tagAddSr}</span>
+                                    </Link>
+                                )}
+                            </li>
+                        );
+                    })}
+                </ul>
+            )}
             {item.links.length > 0 && (
                 <div className="-mt-1 flex flex-wrap gap-2 px-5 pb-5">
                     {item.links.map((link, i) => (
