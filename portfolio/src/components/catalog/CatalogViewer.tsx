@@ -211,8 +211,11 @@ export const CatalogViewer = ({
     }, [frameLoaded, scrollToPart]);
     useEffect(flushScroll, [flushScroll, frameHeight]);
     /** 開いたときにだけ作る関数（syncFromQuery）から、今の値を読むためのもの */
+    // 描いている途中では書き換えず、画面に出したあと（コミットのあと）に書き換える
     const latest = useRef({ flushScroll, byId });
-    latest.current = { flushScroll, byId };
+    useLayoutEffect(() => {
+        latest.current = { flushScroll, byId };
+    });
 
     useEffect(() => {
         setIsTouch(window.matchMedia("(hover: none)").matches);

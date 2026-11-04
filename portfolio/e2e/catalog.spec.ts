@@ -13,6 +13,20 @@ const boxes = (page: Page) => page.getByTestId("catalog-part-box");
 const partsList = (page: Page) => page.getByRole("navigation", { name: "このページのパーツ" });
 const pathOf = (page: Page) => new URL(page.url()).pathname + new URL(page.url()).search + new URL(page.url()).hash;
 
+/**
+ * iframe の中の要素が、親のページの画面に出ているか。
+ * toBeInViewport は iframe の中の画面で判断し、iframe は中身の高さなので、親のページが動かなくても通ってしまう
+ */
+const expectOnScreen = async (page: Page, target: ReturnType<ReturnType<Page["frameLocator"]>["locator"]>) => {
+    await expect
+        .poll(async () => {
+            const box = await target.boundingBox();
+            const height = page.viewportSize()!.height;
+            return !!box && box.y < height && box.y + box.height > 0;
+        })
+        .toBe(true);
+};
+
 /** 見本のページを開き、動かせるようになる（ハイドレーションが終わり、iframe の中も読める）まで待つ。前に指しても React に届かないため */
 const openConcept = async (page: Page, path: string) => {
     await page.goto(path);
@@ -51,9 +65,9 @@ test.describe("ページを操作するモード", () => {
         await expect(item).toHaveAttribute("open", "");
 
         await sample(page).locator('[data-part="global-nav"]').getByRole("button", { name: "導入事例" }).click();
-        await expect(sample(page).locator('[data-part="testimonial"]')).toBeInViewport();
+        await expectOnScreen(page, sample(page).locator('[data-part="testimonial"]'));
         await sample(page).locator('[data-part="cta-button"]').getByRole("button").click();
-        await expect(sample(page).locator('[data-part="pricing-table"]')).toBeInViewport();
+        await expectOnScreen(page, sample(page).locator('[data-part="pricing-table"]'));
         expect(pathOf(page)).toBe("/catalog/saas");
     });
 

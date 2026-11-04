@@ -28,6 +28,20 @@ const waitForFrame = async (page: Page) => {
     await expect.poll(async () => (await frameEl(page).boundingBox())?.height ?? 0).toBeGreaterThan(1000);
 };
 
+/**
+ * iframe の中の要素が、親のページの画面に出ているか。
+ * toBeInViewport は iframe の中の画面で判断し、iframe は中身の高さなので、親のページが動かなくても通ってしまう
+ */
+const expectOnScreen = async (page: Page, target: ReturnType<ReturnType<Page["frameLocator"]>["locator"]>) => {
+    await expect
+        .poll(async () => {
+            const box = await target.boundingBox();
+            const height = page.viewportSize()!.height;
+            return !!box && box.y < height && box.y + box.height > 0;
+        })
+        .toBe(true);
+};
+
 /** iframe の中の要素を、親のページの画面の真ん中へ動かす（固定ヘッダーの下に隠れないように） */
 const centerInFrame = async (page: Page, selector: string) => {
     await frame(page).locator(selector).first().evaluate((el) => el.scrollIntoView({ block: "center" }));
@@ -104,7 +118,7 @@ test.describe("表示する幅（PC の画面）", () => {
         await openConcept(page, "/catalog/saas?width=phone");
         await waitForFrame(page);
         await frame(page).locator('[data-part="cta-button"]').getByRole("button").click();
-        await expect(frame(page).locator('[data-part="pricing-table"]')).toBeInViewport();
+        await expectOnScreen(page, frame(page).locator('[data-part="pricing-table"]'));
         expect(urlOf(page)).toBe("/catalog/saas?width=phone");
     });
 
@@ -154,7 +168,7 @@ test.describe("表示する幅（PC の画面）", () => {
         await waitForFrame(page);
         await page.mouse.move(1, 1);
         await expect(boxes(page)).toHaveCount(1);
-        await expect(frame(page).locator('[data-part="newsletter"]')).toBeInViewport();
+        await expectOnScreen(page, frame(page).locator('[data-part="newsletter"]'));
     });
 
     test("名前を見るモードからページを操作するモードに戻すと、iframe の中を押せるようになる", async ({ page }) => {
@@ -174,7 +188,7 @@ test.describe("表示する幅（PC の画面）", () => {
         await waitForFrame(page);
         await expect(stage(page)).toHaveAttribute("data-mode", "parts");
         await expect(boxes(page)).toHaveCount(1);
-        await expect(frame(page).locator('[data-part="testimonial"]')).toBeInViewport();
+        await expectOnScreen(page, frame(page).locator('[data-part="testimonial"]'));
     });
 
     test("横の一覧を指すと、iframe の中の同じパーツが囲まれる", async ({ page }) => {
@@ -242,6 +256,17 @@ test.describe("パーツ図鑑のコード", () => {
         const code = card.locator("pre code");
         await expect(code).toContainText('aria-pressed="true"');
         await expect(code).not.toContainText("data-");
+    });
+
+    test("1つの見本に同じパーツが並ぶときは、全部を出す", async ({ page }) => {
+        await page.goto("/catalog/parts#tag");
+        const card = page.locator("section#tag article").filter({ hasText: "THE GRID" });
+        await card.getByText("コードを見る").click();
+        const html = (await card.locator("pre code").textContent()) ?? "";
+        const inSample = await card.locator('[data-sample] [data-part="tag"]').count();
+        expect(inSample).toBeGreaterThan(1);
+        // パーツの数だけ、外側の要素のまとまりが出る
+        expect(html.split("\n\n").length).toBe(inSample);
     });
 
     test("英語のページでも、同じように出る", async ({ page }) => {

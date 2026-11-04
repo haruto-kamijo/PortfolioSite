@@ -72,7 +72,7 @@ export const elementToHtml = (el: Element) => {
 
 /**
  * パーツ図鑑の見本の下に置く「コードを見る」。開いたときに、同じ見本の枠（data-sample）の中で描かれた
- * パーツ（data-part）を読み、class 付きの HTML にして出す。描いたものを読むので、見た目と必ず一致する。
+ * パーツ（data-part。同じパーツが並ぶときは全部）を読み、class 付きの HTML にして出す。描いたものを読むので、見た目と必ず一致する。
  * 見本の背景や書体は、見本のページ全体（Frame）が持っているので、ここには入らない
  */
 export const SampleCode = ({
@@ -90,8 +90,12 @@ export const SampleCode = ({
         const details = ref.current;
         if (!details?.open || code) return;
         const sample = details.closest("article")?.querySelector("[data-sample]");
-        const part = sample?.querySelector(`[data-part="${CSS.escape(partId)}"]`) ?? sample?.firstElementChild;
-        if (part) setCode(elementToHtml(part));
+        if (!sample) return;
+        // 1つの見本に同じパーツが並ぶこともある（タグ・バッジなど）ので、全部を出す。入れ子のときは外側だけにする
+        const selector = `[data-part="${CSS.escape(partId)}"]`;
+        const found = Array.from(sample.querySelectorAll(selector)).filter((el) => !el.parentElement?.closest(selector));
+        const parts = found.length > 0 ? found : sample.firstElementChild ? [sample.firstElementChild] : [];
+        if (parts.length > 0) setCode(parts.map(elementToHtml).join("\n\n"));
     };
 
     const timer = useRef(0);
