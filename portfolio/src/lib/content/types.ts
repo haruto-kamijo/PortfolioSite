@@ -89,8 +89,10 @@ export type PortfolioItem = {
     href: string | null;
     /** href のほかに出すリンク。いまは登録スクリプト（scripts/content.ts）からだけ編集する */
     links: PortfolioLink[];
-    /** 使った技術（Python・Jev など）。言語に関わらず同じ表記で出す。登録スクリプトからだけ編集する */
+    /** 使った技術（Python・Jev など）。言語に関わらず同じ表記で出す。登録スクリプトからだけ編集する。/portfolio の絞り込みに使う */
     tags: string[];
+    /** RSS から作った記事の配信元（Zenn・note）。カードに出すだけで、タグの絞り込みには使わない */
+    source?: string;
     /** カテゴリ内での並び順。カテゴリをまたいだ比較はしない */
     order: number;
     coverUrl: string | null;

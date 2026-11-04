@@ -47,7 +47,7 @@ export type Dictionary = {
         };
     };
     academic: { graduated: string };
-    /** {tag}・{tags}・{n}・{max} の差し込み先は portfolio/page.tsx と PortfolioCard を参照 */
+    /** {tags}・{n}・{max} の差し込み先は portfolio/page.tsx を参照。…Sr は読み上げだけに足す文（見た目の文字のあとに続く） */
     portfolio: {
         heading: Heading;
         tabsLabel: string;
@@ -57,8 +57,10 @@ export type Dictionary = {
         tagFilterLabel: string;
         tagFilterHint: string;
         tagFilterFull: string;
-        tagAdd: string;
-        tagRemove: string;
+        tagMore: string;
+        tagCountSr: string;
+        tagAddSr: string;
+        tagSelectedSr: string;
         tagResults: string;
         tagEmpty: string;
         tagClear: string;
@@ -185,10 +187,12 @@ const ja: Dictionary = {
         tagFilterLabel: "タグで探す",
         tagFilterHint: "すべてのカテゴリから探します。複数選ぶと、そのすべてが付いた作品に絞り込みます",
         tagFilterFull: "タグは {max} 個まで選べます",
-        tagAdd: "{tag} で絞り込む",
-        tagRemove: "{tag} の絞り込みを外す",
+        tagMore: "ほかのタグ（{n}）",
+        tagCountSr: " 件",
+        tagAddSr: "。押すと絞り込む",
+        tagSelectedSr: "（選択中。押すと外す）",
         tagResults: "{tags}のタグが付いた作品：{n} 件",
-        tagEmpty: "このタグの組み合わせの作品はありません",
+        tagEmpty: "選んだタグがすべて付いた作品はありません",
         tagClear: "絞り込みを解除",
     },
     catalog: {
@@ -312,10 +316,12 @@ const en: Dictionary = {
         tagFilterLabel: "Filter by tag",
         tagFilterHint: "Searches every category. Pick more than one to see only works that have all of them.",
         tagFilterFull: "You can pick up to {max} tags",
-        tagAdd: "Filter by {tag}",
-        tagRemove: "Remove the {tag} filter",
-        tagResults: "Works tagged {tags}: {n}",
-        tagEmpty: "No works have this combination of tags",
+        tagMore: "More tags ({n})",
+        tagCountSr: " works",
+        tagAddSr: ". Filter by this tag",
+        tagSelectedSr: " (selected. Remove from the filter)",
+        tagResults: "Works with all of the selected tags ({tags}): {n}",
+        tagEmpty: "No works have all of the selected tags",
         tagClear: "Clear filter",
     },
     catalog: {
@@ -374,5 +380,12 @@ const en: Dictionary = {
 };
 
 const dictionaries: Record<Locale, Dictionary> = { ja, en };
+
+/**
+ * 文面の {name} を vars の値で置き換える。一度に置き換えるので、差し込んだ値の中の {n} や $& はそのまま出る
+ * （利用者が URL に書いたタグなどを差し込んでも、文面が崩れないように）
+ */
+export const fill = (template: string, vars: Record<string, string | number>) =>
+    template.replace(/\{(\w+)\}/g, (match, key: string) => (key in vars ? String(vars[key]) : match));
 
 export const getDictionary = (lang: Locale): Dictionary => dictionaries[lang];
