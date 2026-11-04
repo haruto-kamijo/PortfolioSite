@@ -6,20 +6,23 @@ import { expect, test, type Page } from "@playwright/test";
 const CONCEPTS = ["kissa", "saas", "magazine", "studio"];
 
 const stage = (page: Page) => page.getByTestId("catalog-stage");
+/** 見本の中身。見本は iframe（/catalog-frame/<見本>）に入れて描く */
+const sample = (page: Page) => page.frameLocator('[data-testid="catalog-stage"] iframe');
 const label = (page: Page) => page.getByTestId("catalog-part-label");
 const boxes = (page: Page) => page.getByTestId("catalog-part-box");
 const partsList = (page: Page) => page.getByRole("navigation", { name: "このページのパーツ" });
 const pathOf = (page: Page) => new URL(page.url()).pathname + new URL(page.url()).search + new URL(page.url()).hash;
 
-/** 見本のページを開き、動かせるようになる（ハイドレーションが終わる）まで待つ。前に指しても React に届かないため */
+/** 見本のページを開き、動かせるようになる（ハイドレーションが終わり、iframe の中も読める）まで待つ。前に指しても React に届かないため */
 const openConcept = async (page: Page, path: string) => {
     await page.goto(path);
     await expect(stage(page)).toHaveAttribute("data-ready", "");
+    await expect(stage(page)).toHaveAttribute("data-frame-ready", "");
 };
 
 /**
  * パーツの名前を見るモードに切り替える（既定はページを操作するモード）。
- * このモードでは見本の中身が inert で、指す・押すは枠が受け取るので、見本の中の要素には force で位置だけを使って操作する
+ * このモードでは見本の iframe が inert で、指す・押すは枠が受け取るので、見本の中の要素には force で位置だけを使って操作する
  */
 const showPartNames = async (page: Page, name = "パーツの名前を見る") => {
     await page.getByRole("button", { name }).click();
@@ -31,43 +34,43 @@ test.describe("ページを操作するモード", () => {
         await openConcept(page, "/catalog/saas");
         await expect(stage(page)).toHaveAttribute("data-mode", "page");
         await expect(page.getByRole("button", { name: "ページを操作する" })).toHaveAttribute("aria-pressed", "true");
-        // サーバーからは inert で届き、動かせるようになったら外れる
-        expect(await (await page.request.get("/catalog/saas")).text()).toMatch(/data-catalog-page=""[^>]*><div inert=""/);
-        await expect(stage(page).locator("[inert]")).toHaveCount(0);
-        await stage(page).locator('[data-part="pricing-table"]').click({ position: { x: 10, y: 10 }, force: true });
-        await stage(page).locator('[data-part="feature-grid"]').hover({ force: true });
+        // 見本の iframe はサーバーから inert で届き、動かせるようになったら外れる
+        expect(await (await page.request.get("/catalog/saas")).text()).toMatch(/<iframe[^>]* inert=""/);
+        await expect(stage(page).locator("iframe[inert]")).toHaveCount(0);
+        await sample(page).locator('[data-part="pricing-table"]').click({ position: { x: 10, y: 10 }, force: true });
+        await sample(page).locator('[data-part="feature-grid"]').hover({ force: true });
         await expect(label(page)).toHaveCount(0);
         expect(pathOf(page)).toBe("/catalog/saas");
     });
 
     test("アコーディオンが開け閉めでき、ナビとボタンはページの中の場所へ動く", async ({ page }) => {
         await openConcept(page, "/catalog/saas");
-        const item = stage(page).locator('[data-part="accordion"] details').nth(1);
+        const item = sample(page).locator('[data-part="accordion"] details').nth(1);
         await expect(item).not.toHaveAttribute("open");
         await item.locator("summary").click();
         await expect(item).toHaveAttribute("open", "");
 
-        await stage(page).locator('[data-part="global-nav"]').getByRole("button", { name: "導入事例" }).click();
-        await expect(stage(page).locator('[data-part="testimonial"]')).toBeInViewport();
-        await stage(page).locator('[data-part="cta-button"]').getByRole("button").click();
-        await expect(stage(page).locator('[data-part="pricing-table"]')).toBeInViewport();
+        await sample(page).locator('[data-part="global-nav"]').getByRole("button", { name: "導入事例" }).click();
+        await expect(sample(page).locator('[data-part="testimonial"]')).toBeInViewport();
+        await sample(page).locator('[data-part="cta-button"]').getByRole("button").click();
+        await expect(sample(page).locator('[data-part="pricing-table"]')).toBeInViewport();
         expect(pathOf(page)).toBe("/catalog/saas");
     });
 
     test("絞り込みで最初のカードが隠れていても、CTA ボタンは見えているカードへ動く", async ({ page }) => {
         await openConcept(page, "/catalog/magazine");
-        await stage(page).locator('[data-part="tabs"]').getByRole("button", { name: "特集" }).click();
-        const cards = stage(page).locator('[data-part="card"]');
+        await sample(page).locator('[data-part="tabs"]').getByRole("button", { name: "特集" }).click();
+        const cards = sample(page).locator('[data-part="card"]');
         await expect(cards.first()).toBeHidden();
-        await stage(page).locator('[data-part="cta-button"]').getByRole("button").click();
+        await sample(page).locator('[data-part="cta-button"]').getByRole("button").click();
         await expect(cards.filter({ visible: true })).toBeFocused();
     });
 
     test("タブで中身が絞り込まれ、絞り込まれたパーツは囲まない", async ({ page }) => {
         await openConcept(page, "/catalog/studio");
-        const figures = stage(page).locator('[data-part="gallery"] figure');
+        const figures = sample(page).locator('[data-part="gallery"] figure');
         await expect(figures.filter({ visible: true })).toHaveCount(6);
-        await stage(page).locator('[data-part="tabs"]').getByRole("button", { name: "人物" }).click();
+        await sample(page).locator('[data-part="tabs"]').getByRole("button", { name: "人物" }).click();
         await expect(figures.filter({ visible: true })).toHaveCount(2);
         // 横の一覧でタグを指すと、見えているタグだけを囲む
         await partsList(page).getByRole("link", { name: "タグ", exact: true }).hover();
@@ -76,7 +79,7 @@ test.describe("ページを操作するモード", () => {
 
     test("フォームは入力して送信でき、どこにも送らずに知らせだけが出る", async ({ page }) => {
         await openConcept(page, "/catalog/studio");
-        const form = stage(page).locator('[data-part="form"]');
+        const form = sample(page).locator('[data-part="form"]');
         await form.getByLabel("お名前").fill("霞 太郎");
         await form.getByLabel("メール").fill("taro@example.com");
         await form.getByLabel("ご相談の内容").fill("撮影の相談です");
@@ -87,7 +90,7 @@ test.describe("ページを操作するモード", () => {
 
     test("ページ送りで今のページが変わる", async ({ page }) => {
         await openConcept(page, "/catalog/magazine");
-        const pager = stage(page).locator('[data-part="pagination"]');
+        const pager = sample(page).locator('[data-part="pagination"]');
         await expect(pager.locator('[aria-current="page"]')).toHaveText("2");
         await pager.getByRole("button", { name: "次のページ" }).click();
         await expect(pager.locator('[aria-current="page"]')).toHaveText("3");
@@ -116,7 +119,7 @@ test.describe("PC", () => {
         await openConcept(page, "/catalog/saas");
         await showPartNames(page);
         expect(pathOf(page)).toBe("/catalog/saas?view=parts");
-        await stage(page).locator('[data-part="accordion"] summary').nth(1).click({ force: true });
+        await sample(page).locator('[data-part="accordion"] summary').nth(1).click({ force: true });
         await expect.poll(() => pathOf(page)).toBe("/catalog/parts#accordion");
         await page.goBack();
         await expect(stage(page)).toHaveAttribute("data-ready", "");
@@ -126,7 +129,7 @@ test.describe("PC", () => {
     test("?view=parts で開くと、名前を見るモードで中身が inert になっている", async ({ page }) => {
         await openConcept(page, "/catalog/studio?view=parts");
         await expect(stage(page)).toHaveAttribute("data-mode", "parts");
-        await expect(stage(page).locator("[inert]")).toHaveCount(1);
+        await expect(stage(page).locator("iframe[inert]")).toHaveCount(1);
     });
 
     test("ページを操作するモードに戻すと、URL の見方と ?part= の囲みが外れる", async ({ page }) => {
@@ -141,10 +144,10 @@ test.describe("PC", () => {
     test("パーツを指すと名前が出て、入れ子のパーツは内側の名前が出る", async ({ page }) => {
         await openConcept(page, "/catalog/kissa");
         await showPartNames(page);
-        await stage(page).locator('[data-part="feature-grid"]').hover({ force: true });
+        await sample(page).locator('[data-part="feature-grid"]').hover({ force: true });
         await expect(label(page)).toContainText("特徴グリッド");
         // force では重なりを確かめないので、上の固定ヘッダーの下に入らないよう、先に真ん中まで動かす
-        const cta = stage(page).locator('[data-part="cta-button"]').first();
+        const cta = sample(page).locator('[data-part="cta-button"]').first();
         await cta.evaluate((el) => el.scrollIntoView({ block: "center" }));
         await cta.hover({ force: true });
         await expect(label(page)).toContainText("CTA ボタン");
@@ -153,7 +156,7 @@ test.describe("PC", () => {
     test("パーツを押すと図鑑のその項目に移り、項目が強調される", async ({ page }) => {
         await openConcept(page, "/catalog/saas");
         await showPartNames(page);
-        await stage(page).locator('[data-part="pricing-table"]').click({ position: { x: 10, y: 10 }, force: true });
+        await sample(page).locator('[data-part="pricing-table"]').click({ position: { x: 10, y: 10 }, force: true });
         await expect.poll(() => pathOf(page)).toBe("/catalog/parts#pricing-table");
         await expect(page.locator("#pricing-table")).toHaveAttribute("data-highlight", "");
         await expect(page.locator("#pricing-table")).toBeInViewport();
@@ -209,19 +212,19 @@ test.describe("PC", () => {
 
     test("横の一覧を指すと、ページの中の同じパーツが全部囲まれる", async ({ page }) => {
         await openConcept(page, "/catalog/magazine");
-        const tags = await stage(page).locator('[data-part="tag"]').count();
+        const tags = await sample(page).locator('[data-part="tag"]').count();
         expect(tags).toBeGreaterThan(1);
         await partsList(page).getByRole("link", { name: "タグ", exact: true }).hover();
         await expect(boxes(page)).toHaveCount(tags);
     });
 
     test("見本のどのパーツにも、図鑑の項目がある", async ({ request }) => {
-        // 見本の HTML から data-part を集め、図鑑の section の id と突き合わせる（ブラウザで4ページ開くより軽い）
+        // 見本（iframe の中身のページ）の HTML から data-part を集め、図鑑の section の id と突き合わせる（ブラウザで4ページ開くより軽い）
         const idsOf = async (path: string, pattern: RegExp) =>
             new Set(Array.from((await (await request.get(path)).text()).matchAll(pattern), (m) => m[1]));
         const sections = await idsOf("/catalog/parts", /<section[^>]* id="([a-z-]+)"/g);
         for (const c of CONCEPTS) {
-            const parts = await idsOf(`/catalog/${c}`, /data-part="([a-z-]+)"/g);
+            const parts = await idsOf(`/catalog-frame/${c}`, /data-part="([a-z-]+)"/g);
             expect(parts.size, c).toBeGreaterThan(0);
             for (const id of Array.from(parts)) expect(sections.has(id), `${c} の ${id}`).toBe(true);
         }
@@ -231,7 +234,7 @@ test.describe("PC", () => {
         await openConcept(page, "/en/catalog/kissa");
         await expect(page).toHaveTitle(/^Kissa Hoshizuki \(Japanese modern\) \| Design Catalog/);
         await showPartNames(page, "Show part names");
-        await stage(page).locator('[data-part="feature-grid"]').hover({ force: true });
+        await sample(page).locator('[data-part="feature-grid"]').hover({ force: true });
         await expect(label(page)).toHaveText("Feature grid");
     });
 
@@ -261,7 +264,7 @@ test.describe("スマホ（タッチ）", () => {
         await openConcept(page, "/catalog/saas");
         await page.getByRole("button", { name: "パーツの名前を見る" }).tap();
         await expect(stage(page)).toHaveAttribute("data-mode", "parts");
-        const part = stage(page).locator('[data-part="pricing-table"]');
+        const part = sample(page).locator('[data-part="pricing-table"]');
         await part.scrollIntoViewIfNeeded();
         await part.tap({ position: { x: 20, y: 20 }, force: true });
         await expect(label(page)).toContainText("料金表");
@@ -278,13 +281,13 @@ test.describe("スマホ（タッチ）", () => {
     test("名前を見るモードでは、タップしても入力欄に入らず、アコーディオンも開かない", async ({ page }) => {
         await openConcept(page, "/catalog/saas");
         await page.getByRole("button", { name: "パーツの名前を見る" }).tap();
-        const input = stage(page).locator('[data-part="newsletter"] input');
+        const input = sample(page).locator('[data-part="newsletter"] input');
         await input.scrollIntoViewIfNeeded();
         // 中身は inert で、タップは枠が受け取る。force で、見本の上の位置をそのままタップする
         await input.tap({ force: true });
         await expect(label(page)).toContainText("ニュースレター");
         await expect(input).not.toBeFocused();
-        const item = stage(page).locator('[data-part="accordion"] details').nth(1);
+        const item = sample(page).locator('[data-part="accordion"] details').nth(1);
         await item.locator("summary").tap({ force: true });
         await expect(label(page)).toContainText("アコーディオン");
         await expect(item).not.toHaveAttribute("open");
@@ -293,7 +296,7 @@ test.describe("スマホ（タッチ）", () => {
     test("雑誌のページ送りは、真ん中のページでも狭い画面からはみ出さない", async ({ page }) => {
         await page.setViewportSize({ width: 360, height: 780 });
         await openConcept(page, "/catalog/magazine");
-        const pager = stage(page).locator('[data-part="pagination"]');
+        const pager = sample(page).locator('[data-part="pagination"]');
         for (let i = 0; i < 3; i++) await pager.getByRole("button", { name: "次のページ" }).tap();
         await expect(pager.locator('[aria-current="page"]')).toHaveText("5");
         const next = await pager.getByRole("button", { name: "次のページ" }).boundingBox();
@@ -307,7 +310,7 @@ test.describe("動きを減らす設定", () => {
 
     test("ティッカーは止まり、複製を隠して横にスクロールできる", async ({ page }) => {
         await openConcept(page, "/catalog/magazine");
-        const ticker = stage(page).locator('[data-part="ticker"]');
+        const ticker = sample(page).locator('[data-part="ticker"]');
         const state = await ticker.evaluate((el) => ({
             animation: getComputedStyle(el.firstElementChild!).animationName,
             duplicate: getComputedStyle(el.querySelector("span[aria-hidden]")!).display,

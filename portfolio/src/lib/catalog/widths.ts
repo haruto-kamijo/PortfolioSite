@@ -2,14 +2,14 @@
 
 /**
  * デザインカタログの見本を表示する幅。
- * fit は今までどおり見本をページの中にそのまま描く（枠の幅に合わせる）。
- * それ以外は、見本だけのページ（/catalog-frame/<見本>）をその幅の iframe に入れて描く。
+ * 見本はいつも、見本だけのページ（/catalog-frame/<見本>）を iframe に入れて描く。
+ * fit は枠の幅の iframe、それ以外はその幅の iframe にする（どの幅でも同じ iframe なので、見本の中の状態は残る）。
  * 見本の中は画面の幅（sm: など）で並びが変わる書き方なので、iframe にすると本物の画面と同じように並び替わる
  */
 export const CATALOG_WIDTHS = ["fit", "pc", "tablet", "phone"] as const;
 export type CatalogWidth = (typeof CATALOG_WIDTHS)[number];
 
-/** iframe の幅（px）。fit は iframe を使わない */
+/** iframe の幅（px）。fit は決まった幅を持たず、枠の幅にする */
 export const CATALOG_WIDTH_PX: Record<CatalogWidth, number | null> = {
     fit: null,
     pc: 1280,

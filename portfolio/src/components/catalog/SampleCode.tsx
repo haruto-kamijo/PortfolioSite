@@ -1,10 +1,13 @@
 // src/components/catalog/SampleCode.tsx
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
-/** HTML に書き出す属性。data-* や inert など、見本を動かすための属性は出さない */
-const ATTRS = ["class", "style", "href", "src", "alt", "type", "name", "id", "for", "placeholder", "value", "role", "aria-label", "aria-hidden"];
+/**
+ * HTML に書き出さない属性。見本を動かすための印（data-*・inert）と、React がその場で作る id（:r1: の形）を指す属性。
+ * aria-pressed などの状態を表す属性や、disabled などは残す（使う人が状態まで写せるように）
+ */
+const isSkipped = (attr: Attr) => attr.name.startsWith("data-") || attr.name === "inert" || /(^|\s):r[0-9a-z]+:/.test(attr.value);
 
 /** 閉じタグの無い要素 */
 const VOID = new Set(["area", "br", "col", "hr", "img", "input", "source", "wbr"]);
@@ -25,10 +28,11 @@ const shorten = (s: string) => {
 
 const openTag = (el: Element) => {
     const tag = el.tagName.toLowerCase();
-    const attrs = ATTRS.flatMap((name) => {
-        const value = el.getAttribute(name);
-        return value === null ? [] : [value === "" ? ` ${name}` : ` ${name}="${escapeAttr(value)}"`];
-    });
+    // 読みやすいよう class を先頭にし、ほかは描かれた順に並べる
+    const attrs = Array.from(el.attributes)
+        .filter((attr) => !isSkipped(attr))
+        .sort((a, b) => Number(b.name === "class") - Number(a.name === "class"))
+        .map((attr) => (attr.value === "" ? ` ${attr.name}` : ` ${attr.name}="${escapeAttr(attr.value)}"`));
     return `<${tag}${attrs.join("")}>`;
 };
 
@@ -90,14 +94,21 @@ export const SampleCode = ({
         if (part) setCode(elementToHtml(part));
     };
 
+    const timer = useRef(0);
     const copy = async () => {
+        // 続けて押しても読み上げるよう、いったん空にしてから知らせ、しばらくしたら消す
+        window.clearTimeout(timer.current);
+        setStatus("idle");
+        let next: "copied" | "failed" = "copied";
         try {
             await navigator.clipboard.writeText(code);
-            setStatus("copied");
         } catch {
-            setStatus("failed");
+            next = "failed";
         }
+        window.requestAnimationFrame(() => setStatus(next));
+        timer.current = window.setTimeout(() => setStatus("idle"), 3000);
     };
+    useEffect(() => () => window.clearTimeout(timer.current), []);
 
     return (
         <details ref={ref} onToggle={onToggle} className="group border-t border-white/10">
@@ -124,9 +135,10 @@ export const SampleCode = ({
                         </button>
                     </div>
                 </div>
-                {/* 長い class は折り返さず、枠の中で横に動かして読む */}
+                {/* 長いので枠の中でスクロールする。キーボードでも動かせるよう止まれるようにし、名前を付けるため region にする */}
                 <pre
                     tabIndex={0}
+                    role="region"
                     aria-label={texts.label}
                     className="max-h-96 overflow-auto rounded-lg border border-white/10 bg-black/50 p-3 font-mono text-[11px] leading-relaxed text-slate-200"
                 >

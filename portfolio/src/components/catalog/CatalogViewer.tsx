@@ -12,14 +12,22 @@ type Box = { top: number; left: number; width: number; height: number };
 
 type Mode = "page" | "parts";
 
-/** これより狭い画面（スマホ）では幅の切り替えを出さず、いつも画面に合わせて描く */
+/** これより狭い画面（スマホ）では幅の切り替えを出さず、いつも枠の幅で描く */
 const NARROW_QUERY = "(max-width: 639px)";
 
 /** iframe の中身の高さが分かるまでの仮の高さ */
-const FRAME_PLACEHOLDER_HEIGHT = 480;
+const FRAME_PLACEHOLDER_HEIGHT = 600;
 
 /**
  * デザインカタログの見本のページを、ブラウザの枠に入れて表示する。見方は2つあり、枠の上のボタンで切り替える。
+ *
+ * 見本は、見本だけのページ（frameSrc、/catalog-frame/<見本>）を iframe に入れて描く。
+ * 幅（src/lib/catalog/widths.ts）を選ぶと、その幅の iframe にする。見本の中は画面の幅（sm: など）で並びが変わる書き方なので、
+ * iframe にすると本物の画面と同じように並び替わる。既定の「画面に合わせる」では枠の幅の iframe にする。
+ * どの幅でも同じ iframe のまま大きさだけを変えるので、見本の中で選んだタブや入力した文字は、幅を変えても残る。
+ * - 枠より広い幅は、縮めて全体を見せる。スマホの画面では幅の切り替えを出さず、枠の幅で描く
+ * - iframe の高さは中身に合わせ、iframe の中ではスクロールさせない（ページごとスクロールする）
+ * - 選んだ幅は URL に ?width= で残す
  *
  * ページを操作するモード（既定）
  * - 見本の中のボタン・タブ・アコーディオン・フォームが、ページの中で動く（Interactive.tsx）。図鑑へは移らない
@@ -27,27 +35,19 @@ const FRAME_PLACEHOLDER_HEIGHT = 480;
  * パーツの名前を見るモード
  * - パーツ（data-part の付いた要素）を指すと、枠と名前を出す
  * - クリックするとパーツ図鑑のその項目へ移る。タッチでは1回目のタップで名前を出し、同じパーツをもう一度タップで移る。
- *   見本の中の部品が動かないよう、中身は inert にする（指しているパーツは位置から探す）
+ *   見本の部品が動かないよう iframe を inert にし、指す・押すは iframe を素通りさせて（pointer-events: none）この枠で受ける。
+ *   同じサイトの iframe なので中を直接読み、パーツの位置を縮めた割合で枠の上の位置に直して探す
  * - ?part=<id> 付きで開くと、このモードになり、そのパーツを囲んで見える位置までスクロールする（図鑑の「ページで見る」から来たとき）
  * - このモードのあいだは URL に ?view=parts を付け、図鑑へ移って戻ってきても、このモードのままにする
  *
  * どちらのモードでも、横の一覧を指すと、そのパーツをページの中で全部囲む（キーボードではフォーカスで同じことが起きる）。
  * 一覧から外れると ?part= の囲みに戻る
- *
- * 表示する幅（src/lib/catalog/widths.ts）
- * - 既定の「画面に合わせる」では、見本を children としてこのページの中に描く
- * - PC・タブレット・スマホでは、見本だけのページ（frameSrc）をその幅の iframe に入れる。枠より広い幅は縮めて全体を見せる。
- *   iframe の高さは中身に合わせ、iframe の中ではスクロールさせない（ページごとスクロールする）
- * - パーツの名前を見るモードは iframe でも同じように動く。同じサイトの iframe なので中を直接読み、
- *   パーツの位置を縮めた割合で枠の上の位置に直す。指す・押すは iframe を素通りさせ（pointer-events: none）、枠で受ける
- * - 選んだ幅は URL に ?width= で残す。スマホの画面では切り替えを出さない
  */
 export const CatalogViewer = ({
     domain,
     parts,
     frameSrc,
     texts,
-    children,
 }: {
     domain: string;
     parts: PartLabel[];
@@ -55,6 +55,8 @@ export const CatalogViewer = ({
     frameSrc: string;
     texts: {
         previewLabel: string;
+        /** iframe の名前。{width} に幅の名前を差し込む */
+        frameTitle: string;
         modeLabel: string;
         modePage: string;
         modeParts: string;
@@ -68,11 +70,9 @@ export const CatalogViewer = ({
         /** {px}・{percent} を差し込む（縮めて見せているとき） */
         widthScaled: string;
     };
-    children: React.ReactNode;
 }) => {
     const router = useRouter();
     const stageRef = useRef<HTMLDivElement>(null);
-    const contentRef = useRef<HTMLDivElement>(null);
     const frameRef = useRef<HTMLIFrameElement>(null);
     const pointerType = useRef<string>("mouse");
 
@@ -93,30 +93,32 @@ export const CatalogViewer = ({
     const [ready, setReady] = useState(false);
 
     const [width, setWidth] = useState<CatalogWidth>("fit");
-    /** スマホの画面か。そのときは幅を選んでいても、画面に合わせて描く */
+    /** スマホの画面か。そのときは幅を選んでいても、枠の幅で描く */
     const [narrow, setNarrow] = useState(false);
-    /** iframe の中の見本の高さ。0 は読み込み前 */
-    const [frameHeight, setFrameHeight] = useState(0);
-    const framePx = narrow ? null : CATALOG_WIDTH_PX[width];
-    const framed = framePx !== null;
+    const shownWidth: CatalogWidth = narrow ? "fit" : width;
+    /** iframe の中が読めるようになったか */
+    const [frameLoaded, setFrameLoaded] = useState(false);
+    /** iframe の中の見本の高さ。読み込む前は仮の高さ。幅を変えても、測り直すまでは前の高さのままにする */
+    const [frameHeight, setFrameHeight] = useState(FRAME_PLACEHOLDER_HEIGHT);
+    /** iframe の幅（px）。画面に合わせるときは枠の幅（測る前は null で、枠いっぱいにする） */
+    const framePx = CATALOG_WIDTH_PX[shownWidth] ?? (stageWidth > 0 ? stageWidth : null);
     // 枠より広い幅は、枠に収まるまで縮める（狭い幅は等倍のまま真ん中に置く）
-    const scale = framed && stageWidth > 0 ? Math.min(1, stageWidth / framePx) : 1;
+    const scale = framePx && stageWidth > 0 ? Math.min(1, stageWidth / framePx) : 1;
 
     const byId = new Map(parts.map((p) => [p.id, p]));
 
-    /** パーツを探す範囲。iframe のときは iframe の中の見本（読み込み前は null） */
-    const pageRoot = useCallback((): HTMLElement | null => {
-        if (!framed) return contentRef.current;
-        return frameRef.current?.contentDocument?.querySelector<HTMLElement>("[data-catalog-page]") ?? null;
-    }, [framed]);
+    /** パーツを探す範囲（iframe の中の見本）。読み込む前は null */
+    const pageRoot = useCallback(
+        (): HTMLElement | null => frameRef.current?.contentDocument?.querySelector<HTMLElement>("[data-catalog-page]") ?? null,
+        []
+    );
 
-    /** 要素の位置を、枠（stage）の左上から測った位置にする。iframe の中の要素は、縮めた割合を掛けて直す */
+    /** iframe の中の要素の位置を、枠（stage）の左上から測った位置にする。縮めた割合を掛けて直す */
     const boxOf = useCallback(
         (el: Element): Box => {
             const base = stageRef.current!.getBoundingClientRect();
+            const frame = frameRef.current!.getBoundingClientRect();
             const r = el.getBoundingClientRect();
-            const frame = framed ? frameRef.current?.getBoundingClientRect() : null;
-            if (!frame) return { top: r.top - base.top, left: r.left - base.left, width: r.width, height: r.height };
             return {
                 top: frame.top - base.top + r.top * scale,
                 left: frame.left - base.left + r.left * scale,
@@ -124,7 +126,7 @@ export const CatalogViewer = ({
                 height: r.height * scale,
             };
         },
-        [framed, scale]
+        [scale]
     );
 
     const measure = useCallback(() => {
@@ -137,30 +139,28 @@ export const CatalogViewer = ({
             : selectedId && root
               ? Array.from(root.querySelectorAll<HTMLElement>(`[data-part="${CSS.escape(selectedId)}"]`))
               : [];
-        // タブで絞り込まれて隠れているもの（大きさが無いもの）や、幅を変えて見えなくなったものは囲まない
+        // タブで絞り込まれて隠れているもの（大きさが無いもの）や、描き直されて無くなったものは囲まない
         const shown = targets.filter((el) => el.isConnected && el.getClientRects().length > 0);
         setBoxes(shown.map((el) => ({ id: el.dataset.part ?? "", box: boxOf(el) })));
     }, [hovered, selectedId, pageRoot, boxOf]);
 
-    useLayoutEffect(measure, [measure, frameHeight]);
+    useLayoutEffect(measure, [measure, frameHeight, framePx, frameLoaded]);
 
-    // 名前を見るモードでは見本の中身を inert にして、クリック・キーボード・タッチ・フォーカスのどれでも部品が動かないようにする。
-    // React 18 は inert を属性として持たないので、直接付け外しする。iframe の中の見本にも同じように付ける
+    // 名前を見るモードでは iframe を inert にして、クリック・キーボード・タッチ・フォーカスのどれでも見本の部品が動かないようにする。
+    // React 18 は inert を属性として持たないので、直接付け外しする。iframe はサーバーから inert で届き、ページを操作するモードならここで外す
+    // （ハイドレーションの前に、名前を見るモードの見本を押せないように）
     useLayoutEffect(() => {
-        contentRef.current?.toggleAttribute("inert", mode === "parts");
-        frameRef.current?.contentDocument?.body?.toggleAttribute("inert", mode === "parts");
-    }, [mode, frameHeight]);
+        frameRef.current?.toggleAttribute("inert", mode === "parts");
+    }, [mode]);
 
     // ?view=parts・?part= で開いたときは、画面に出す前に名前を見るモードにする（下の effect の読み直しを待つあいだに、部品を押せないように）。
     // サーバーで描くときは URL のクエリが分からないので、初めの値は "page" のままにして、ここで切り替える。
-    // 中身はサーバーから inert で届き、ページを操作するモードなら上の effect が外す。
-    // ?width= もここで読み、画面に出す前に iframe に切り替える
+    // ?width= もここで読み、画面に出す前にその幅にする
     useLayoutEffect(() => {
         const query = new URLSearchParams(window.location.search);
         const id = query.get("part");
-        const hasPart = !!id && !!stageRef.current?.querySelector(`[data-part="${CSS.escape(id)}"]`);
-        if (query.get("view") === "parts" || hasPart) {
-            contentRef.current?.setAttribute("inert", "");
+        if (query.get("view") === "parts" || (!!id && byId.has(id))) {
+            frameRef.current?.setAttribute("inert", "");
             setMode("parts");
         }
         const w = query.get("width");
@@ -170,9 +170,11 @@ export const CatalogViewer = ({
         const onChange = () => setNarrow(narrowQuery.matches);
         narrowQuery.addEventListener("change", onChange);
         return () => narrowQuery.removeEventListener("change", onChange);
+        // 開いたときに一度だけ読む
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // 見本の大きさが変わったら測り直す（窓の大きさのほか、フォントの読み込みやスクロールバーの出入りでも変わる）
+    // 枠の大きさが変わったら測り直す（窓の大きさのほか、スクロールバーの出入りでも変わる）
     useEffect(() => {
         const stage = stageRef.current;
         if (!stage) return;
@@ -181,32 +183,36 @@ export const CatalogViewer = ({
         return () => observer.disconnect();
     }, [measure]);
 
-    /** そのパーツの最初の1つ（見えているもの）を、見える位置まで動かす */
+    /** そのパーツの最初の1つ（見えているもの）を、見える位置まで動かす。見つからなければ false */
     const scrollToPart = useCallback(
         (id: string) => {
             const el = Array.from(pageRoot()?.querySelectorAll<HTMLElement>(`[data-part="${CSS.escape(id)}"]`) ?? []).find(
                 (candidate) => candidate.getClientRects().length > 0
             );
-            if (!el) return;
+            if (!el) return false;
             const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
             // iframe の中の要素でも、親のページごとスクロールして見える位置に出す
             el.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+            return true;
         },
         [pageRoot]
     );
-    const pinnedRef = useRef<string | null>(null);
-    pinnedRef.current = pinnedId;
-    /** iframe が読み込まれて中身の高さになったら動かす先（?part= のパーツ） */
+
+    /**
+     * ?part= のパーツへの、まだ済んでいないスクロール。開いたときと、戻る・進むで ?part= が変わったときだけ予約し、
+     * iframe が読み込まれて中身の高さになってから動かす（幅を変えただけでは動かさない）
+     */
     const pendingScroll = useRef<string | null>(null);
-    /** 開いたときにだけ作る関数（syncFromQuery）から、今の値を読むためのもの */
-    const current = useRef({ framed, frameHeight, scrollToPart });
-    current.current = { framed, frameHeight, scrollToPart };
-    useEffect(() => {
-        if (!framed || frameHeight === 0 || !pendingScroll.current) return;
+    const flushScroll = useCallback(() => {
         const id = pendingScroll.current;
-        pendingScroll.current = null;
-        scrollToPart(id);
-    }, [framed, frameHeight, scrollToPart]);
+        if (!id || !frameLoaded) return;
+        // 見つからないとき（まだ描かれていないとき）は、予約を残して次の機会に回す
+        if (scrollToPart(id)) pendingScroll.current = null;
+    }, [frameLoaded, scrollToPart]);
+    useEffect(flushScroll, [flushScroll, frameHeight]);
+    /** 開いたときにだけ作る関数（syncFromQuery）から、今の値を読むためのもの */
+    const latest = useRef({ flushScroll, byId });
+    latest.current = { flushScroll, byId };
 
     useEffect(() => {
         setIsTouch(window.matchMedia("(hover: none)").matches);
@@ -216,38 +222,63 @@ export const CatalogViewer = ({
         // 別のページから移ってきたときは、この effect のあとに URL が書き換わることがあるので、少し待ってから読む。
         // 同じページのまま戻る・進むで ?part= が変わったとき（popstate）も読み直し、無ければ囲みを外す。
         // 見方は ?view=parts、幅は ?width= で残す（図鑑へ移って戻ってきたときも、同じ見方・幅のままにするため）。
-        // useSearchParams を使うと、静的に作るこのページで見本ごとサーバーで描かれなくなるため、URL を直接読む。
-        // パーツがあるかどうかは、いつもこのページの中に描いている見本で確かめる（iframe はまだ読み込み中のことがあるため）
+        // useSearchParams を使うと、静的に作るこのページがサーバーで描かれなくなるため、URL を直接読む
         let timer = 0;
         const syncFromQuery = () => {
             window.clearTimeout(timer);
             timer = window.setTimeout(() => {
                 const query = new URLSearchParams(window.location.search);
                 const id = query.get("part");
-                const exists = !!id && !!stageRef.current?.querySelector(`[data-part="${CSS.escape(id)}"]`);
-                setPinnedId(id && exists ? id : null);
+                const exists = !!id && latest.current.byId.has(id);
+                setPinnedId(exists ? id : null);
                 setMode(exists || query.get("view") === "parts" ? "parts" : "page");
                 const w = query.get("width");
                 setWidth(isCatalogWidth(w) ? w : "fit");
-                // iframe のときは、iframe が中身の高さになってから動かす（上の effect）
-                if (id && exists) {
-                    pendingScroll.current = id;
-                    // この関数は開いたときの描画のものなので、今の幅は ref から読む
-                    window.requestAnimationFrame(() => {
-                        if (pendingScroll.current !== id) return;
-                        if (current.current.framed && current.current.frameHeight === 0) return;
-                        pendingScroll.current = null;
-                        current.current.scrollToPart(id);
-                    });
-                }
+                pendingScroll.current = exists ? id : null;
+                // 幅が変わったときは描き直されてから動かす（高さが変われば上の effect でも動かす）
+                window.requestAnimationFrame(() => latest.current.flushScroll());
             }, 0);
         };
         syncFromQuery();
         window.addEventListener("popstate", syncFromQuery);
+        return () => {
+            window.clearTimeout(timer);
+            window.removeEventListener("popstate", syncFromQuery);
+        };
+    }, []);
+
+    // iframe の中の見本の高さを追いかけ、iframe をその高さにする（タブで絞り込む・アコーディオンを開く・幅を変えるなどで変わる）。
+    // ResizeObserver は iframe の中の window のものを使う。
+    // 見本の要素は、iframe の中で React が描き直すと別のものに替わることがあるので、
+    // 中の要素の出入りを MutationObserver で見て、替わったら測る相手を付け替える
+    const frameObservers = useRef<{ disconnect: () => void }[]>([]);
+    const onFrameLoad = () => {
+        frameObservers.current.forEach((o) => o.disconnect());
+        frameObservers.current = [];
+        const win = frameRef.current?.contentWindow as (Window & typeof globalThis) | null;
+        const doc = frameRef.current?.contentDocument;
+        if (!win || !doc?.body) return;
+        let observed: HTMLElement | null = null;
+        const resize = new win.ResizeObserver(() => {
+            if (observed) setFrameHeight(Math.ceil(observed.getBoundingClientRect().height));
+        });
+        const attach = () => {
+            const root = doc.querySelector<HTMLElement>("[data-catalog-page]");
+            if (!root || root === observed) return;
+            if (observed) resize.unobserve(observed);
+            resize.observe(root);
+            observed = root;
+            setFrameHeight(Math.ceil(root.getBoundingClientRect().height));
+        };
+        const mutation = new win.MutationObserver(attach);
+        mutation.observe(doc.body, { childList: true, subtree: true });
+        frameObservers.current = [resize, mutation];
+        attach();
+        setFrameLoaded(true);
 
         // 一覧に無いパーツがページにあると、押しても図鑑に何も出ない。作る途中で気づけるように知らせる
-        if (process.env.NODE_ENV !== "production" && stageRef.current) {
-            const onPage = new Set(Array.from(stageRef.current.querySelectorAll<HTMLElement>("[data-part]")).map((el) => el.dataset.part));
+        if (process.env.NODE_ENV !== "production" && observed) {
+            const onPage = new Set(Array.from((observed as HTMLElement).querySelectorAll<HTMLElement>("[data-part]")).map((el) => el.dataset.part));
             const listed = new Set(parts.map((p) => p.id));
             const missing = Array.from(onPage).filter((p) => p && !listed.has(p));
             const unused = Array.from(listed).filter((p) => !onPage.has(p));
@@ -255,68 +286,30 @@ export const CatalogViewer = ({
                 console.warn("[catalog] samples とページのパーツが一致しません", { missing, unused });
             }
         }
-        return () => {
-            window.clearTimeout(timer);
-            window.removeEventListener("popstate", syncFromQuery);
-        };
-        // scrollToPart は幅で変わるが、URL の読み直しは開いたときと戻る・進むのときだけでよい
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [parts]);
-
-    // iframe の中の見本の高さを追いかけ、iframe をその高さにする（タブで絞り込む・アコーディオンを開くなどで変わる）。
-    // ResizeObserver は iframe の中の window のものを使う。
-    // 見本の要素は、iframe の中で React が描き直すと別のものに替わることがあるので、測るたびに探し直す。
-    // body も見ておき、替わったときに気づけるようにする
-    const frameObserver = useRef<ResizeObserver | null>(null);
-    const onFrameLoad = () => {
-        frameObserver.current?.disconnect();
-        const win = frameRef.current?.contentWindow as (Window & typeof globalThis) | null;
-        const doc = frameRef.current?.contentDocument;
-        if (!win || !doc?.body) return;
-        doc.body.toggleAttribute("inert", mode === "parts");
-        let observed: HTMLElement | null = null;
-        const update = () => {
-            const root = doc.querySelector<HTMLElement>("[data-catalog-page]");
-            if (!root) return;
-            if (root !== observed) {
-                if (observed) frameObserver.current?.unobserve(observed);
-                frameObserver.current?.observe(root);
-                observed = root;
-            }
-            setFrameHeight(Math.ceil(root.getBoundingClientRect().height));
-        };
-        frameObserver.current = new win.ResizeObserver(update);
-        frameObserver.current.observe(doc.body);
-        if (pinnedRef.current) pendingScroll.current = pinnedRef.current;
-        update();
     };
-    useEffect(() => () => frameObserver.current?.disconnect(), []);
-    // 画面に合わせる幅に戻したら iframe は無くなるので、次に開いたときに高さを測り直す
+    useEffect(() => () => frameObservers.current.forEach((o) => o.disconnect()), []);
+
+    // iframe が、こちらの描画より先に読み込みを終えていたとき（キャッシュから読んだときなど）は、onLoad が来ないので自分で始める
     useEffect(() => {
-        if (framed) return;
-        frameObserver.current?.disconnect();
-        setFrameHeight(0);
-    }, [framed]);
+        if (frameRef.current?.contentDocument?.readyState === "complete" && pageRoot()) onFrameLoad();
+        // 開いたときに一度だけ確かめる
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // 幅を変えたら、指していた要素は別の場所に移るので外す
-    useEffect(() => setHovered(null), [framed, framePx]);
+    useEffect(() => setHovered(null), [shownWidth]);
 
     /**
      * 画面の点にあるパーツ。入れ子のときは内側のもの。
-     * 名前を見るモードでは中身が inert でイベントの target にならないので、要素の位置から探す。
-     * iframe のときは、点を iframe の中の位置（縮める前）に直してから探す
+     * 名前を見るモードでは iframe が inert でイベントの target にならないので、要素の位置から探す。
+     * 点を iframe の中の位置（縮める前）に直してから探す
      */
     const partAt = (x: number, y: number) => {
         const root = pageRoot();
-        if (!root) return null;
-        let px = x;
-        let py = y;
-        if (framed) {
-            const frame = frameRef.current?.getBoundingClientRect();
-            if (!frame) return null;
-            px = (x - frame.left) / scale;
-            py = (y - frame.top) / scale;
-        }
+        const frame = frameRef.current?.getBoundingClientRect();
+        if (!root || !frame) return null;
+        const px = (x - frame.left) / scale;
+        const py = (y - frame.top) / scale;
         // 文書の順で後ろにあるものほど内側なので、最後に当たったものを使う
         let found: HTMLElement | null = null;
         root.querySelectorAll<HTMLElement>("[data-part]").forEach((el) => {
@@ -378,6 +371,7 @@ export const CatalogViewer = ({
     };
 
     const active = boxes.length > 0 ? byId.get(boxes[0].id) : null;
+    const fixedPx = CATALOG_WIDTH_PX[shownWidth];
 
     // 列の幅を中身（流れ続けるティッカーなど）で広げないよう、スマホでも minmax(0,1fr) にする
     return (
@@ -434,11 +428,11 @@ export const CatalogViewer = ({
                         <span className="flex-1 truncate rounded-md bg-black/30 px-3 py-1 text-center text-[11px] text-white/50">
                             {domain}
                         </span>
-                        {framed && (
+                        {fixedPx !== null && (
                             <span data-testid="catalog-width-info" className="shrink-0 text-[10px] tracking-wider text-white/40">
                                 {scale < 1
-                                    ? texts.widthScaled.replace("{px}", String(framePx)).replace("{percent}", String(Math.round(scale * 100)))
-                                    : `${framePx}px`}
+                                    ? texts.widthScaled.replace("{px}", String(fixedPx)).replace("{percent}", String(Math.round(scale * 100)))
+                                    : `${fixedPx}px`}
                             </span>
                         )}
                     </div>
@@ -447,9 +441,9 @@ export const CatalogViewer = ({
                         ref={stageRef}
                         data-testid="catalog-stage"
                         data-ready={ready ? "" : undefined}
+                        data-frame-ready={frameLoaded ? "" : undefined}
                         data-mode={mode}
-                        data-width={framed ? width : "fit"}
-                        data-catalog-page=""
+                        data-width={shownWidth}
                         // 名前を見るモードでは中身を押せないので、1枚の絵として読み上げる
                         role={mode === "parts" ? "img" : "region"}
                         aria-label={texts.previewLabel}
@@ -462,36 +456,35 @@ export const CatalogViewer = ({
                         onPointerLeave={() => pointerType.current !== "touch" && setHovered(null)}
                         onClick={onClick}
                     >
-                        {/* サーバーで描くときは見方が分からないので、inert で出しておき、動かせるようになってから外す
-                            （ハイドレーションの前に、名前を見るモードの見本を押せないように。React 18 は inert を属性として扱わないので文字列で渡す）。
-                            幅を選んで iframe で見せているあいだも消さずに隠しておく（?part= のパーツがあるかを確かめるのに使う） */}
-                        <div ref={contentRef} className={framed ? "hidden" : undefined} {...({ inert: "" } as object)}>
-                            {children}
+                        <div
+                            className="relative mx-auto overflow-hidden"
+                            style={{
+                                width: framePx ? framePx * scale : "100%",
+                                height: frameHeight * scale,
+                            }}
+                        >
+                            <iframe
+                                ref={frameRef}
+                                src={frameSrc}
+                                title={texts.frameTitle.replace("{width}", texts.widths[shownWidth])}
+                                onLoad={onFrameLoad}
+                                // 中身の高さに合わせるので、iframe の中ではスクロールさせない
+                                scrolling="no"
+                                // 名前を見るモードでは、キーボードでも iframe に入らない
+                                tabIndex={mode === "parts" ? -1 : undefined}
+                                className="absolute left-0 top-0 block origin-top-left border-0"
+                                style={{
+                                    width: framePx ?? "100%",
+                                    height: frameHeight,
+                                    transform: scale < 1 ? `scale(${scale})` : undefined,
+                                    // 名前を見るモードでは、指す・押すを iframe の外（この枠）で受ける
+                                    pointerEvents: mode === "parts" ? "none" : undefined,
+                                }}
+                                // サーバーで描くときは見方が分からないので、inert で出しておき、動かせるようになってから外す
+                                // （React 18 は inert を属性として扱わないので、空の文字列で渡す）
+                                {...({ inert: "" } as object)}
+                            />
                         </div>
-
-                        {framed && (
-                            <div
-                                className="relative mx-auto overflow-hidden"
-                                style={{ width: framePx * scale, height: (frameHeight || FRAME_PLACEHOLDER_HEIGHT) * scale }}
-                            >
-                                <iframe
-                                    ref={frameRef}
-                                    src={frameSrc}
-                                    title={texts.previewLabel}
-                                    onLoad={onFrameLoad}
-                                    // 中身の高さに合わせるので、iframe の中ではスクロールさせない
-                                    scrolling="no"
-                                    className="absolute left-0 top-0 block origin-top-left border-0"
-                                    style={{
-                                        width: framePx,
-                                        height: frameHeight || FRAME_PLACEHOLDER_HEIGHT,
-                                        transform: scale < 1 ? `scale(${scale})` : undefined,
-                                        // 名前を見るモードでは、指す・押すを iframe の外（この枠）で受ける
-                                        pointerEvents: mode === "parts" ? "none" : undefined,
-                                    }}
-                                />
-                            </div>
-                        )}
 
                         {boxes.map(({ id, box }, i) => (
                             <div

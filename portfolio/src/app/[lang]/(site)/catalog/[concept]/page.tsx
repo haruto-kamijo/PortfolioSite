@@ -40,7 +40,7 @@ export default function CatalogConceptPage({ params }: Props) {
     const lang = langOf(params);
     const t = getDictionary(lang).catalog;
     const concept = CATALOG_CONCEPTS[id];
-    const { Page, samples } = CONCEPT_VIEWS[id];
+    const { samples } = CONCEPT_VIEWS[id];
 
     // 横の一覧と、ページの中の名前の吹き出しに出す文言。英語のページでは英語名だけにする
     const parts = (Object.keys(samples) as CatalogPartId[]).map((partId) => ({
@@ -97,6 +97,7 @@ export default function CatalogConceptPage({ params }: Props) {
                 frameSrc={localizePath(catalogFramePath(id), lang)}
                 texts={{
                     previewLabel: t.previewLabel.replace("{name}", pick(concept.name, lang)),
+                    frameTitle: t.frameTitle.replace("{name}", pick(concept.name, lang)),
                     modeLabel: t.modeLabel,
                     modePage: t.modePage,
                     modeParts: t.modeParts,
@@ -109,9 +110,7 @@ export default function CatalogConceptPage({ params }: Props) {
                     widths: { fit: t.widthFit, pc: t.widthPc, tablet: t.widthTablet, phone: t.widthPhone },
                     widthScaled: t.widthScaled,
                 }}
-            >
-                <Page lang={lang} />
-            </CatalogViewer>
+            />
 
             <nav className="mt-12 flex justify-between gap-4 text-xs tracking-wider">
                 <Link href={localizePath(`/catalog/${prev}`, lang)} className="text-white/60 hover:text-cyan-200">

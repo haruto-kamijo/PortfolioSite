@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 /**
  * デザインカタログの表示する幅（PC・タブレット・スマホ）と、パーツ図鑑のコードの表示。
- * 幅を選ぶと、見本だけのページ（/catalog-frame/<見本>）をその幅の iframe に入れて描く
+ * 見本はいつも見本だけのページ（/catalog-frame/<見本>）を iframe に入れて描き、幅を選ぶとその幅の iframe にする
  */
 
 const stage = (page: Page) => page.getByTestId("catalog-stage");
@@ -19,6 +19,7 @@ const urlOf = (page: Page) => {
 const openConcept = async (page: Page, path: string) => {
     await page.goto(path);
     await expect(stage(page)).toHaveAttribute("data-ready", "");
+    await expect(stage(page)).toHaveAttribute("data-frame-ready", "");
 };
 
 /** iframe の中身が読み込まれ、高さが中身に合うまで待つ */
@@ -33,11 +34,34 @@ const centerInFrame = async (page: Page, selector: string) => {
 };
 
 test.describe("表示する幅（PC の画面）", () => {
-    test("既定は画面に合わせる幅で、iframe を使わない", async ({ page }) => {
+    test("既定は画面に合わせる幅で、枠の幅の iframe に描く", async ({ page }) => {
         await openConcept(page, "/catalog/saas");
         await expect(page.getByRole("button", { name: "画面に合わせる" })).toHaveAttribute("aria-pressed", "true");
-        await expect(frameEl(page)).toHaveCount(0);
         await expect(stage(page)).toHaveAttribute("data-width", "fit");
+        await waitForFrame(page);
+        const outer = await stage(page).boundingBox();
+        const inner = await frameEl(page).boundingBox();
+        expect(Math.abs(inner!.width - outer!.width)).toBeLessThan(2);
+        await expect(page.getByTestId("catalog-width-info")).toHaveCount(0);
+    });
+
+    test("幅を変えても同じ iframe のままで、見本の中で開いたものや入力した文字が残る", async ({ page }) => {
+        await openConcept(page, "/catalog/saas");
+        await waitForFrame(page);
+        const item = frame(page).locator('[data-part="accordion"] details').nth(1);
+        await item.locator("summary").click();
+        await expect(item).toHaveAttribute("open", "");
+        const input = frame(page).locator('[data-part="newsletter"] input');
+        await input.fill("taro@example.com");
+        // iframe の要素に印を付けておき、作り直されていないことを確かめる
+        await frameEl(page).evaluate((el) => el.setAttribute("data-test-mark", "1"));
+
+        for (const name of ["スマホ", "PC", "画面に合わせる"]) {
+            await page.getByRole("button", { name }).click();
+            await expect(frameEl(page)).toHaveAttribute("data-test-mark", "1");
+            await expect(item).toHaveAttribute("open", "");
+            await expect(input).toHaveValue("taro@example.com");
+        }
     });
 
     test("スマホを選ぶと、390px の iframe で並びが変わり、URL に残る", async ({ page }) => {
@@ -89,8 +113,9 @@ test.describe("表示する幅（PC の画面）", () => {
         await waitForFrame(page);
         await page.getByRole("button", { name: "パーツの名前を見る" }).click();
         await expect(stage(page)).toHaveAttribute("data-mode", "parts");
-        // 名前を見るモードでは、iframe の中も inert になる
-        await expect(frame(page).locator("body")).toHaveAttribute("inert", "");
+        // 名前を見るモードでは、iframe が inert になり、キーボードでも止まらない
+        await expect(frameEl(page)).toHaveAttribute("inert", "");
+        await expect(frameEl(page)).toHaveAttribute("tabindex", "-1");
 
         await centerInFrame(page, '[data-part="feature-grid"]');
         const part = await frame(page).locator('[data-part="feature-grid"]').boundingBox();
@@ -118,8 +143,30 @@ test.describe("表示する幅（PC の画面）", () => {
         await page.mouse.move(part!.x + 5, part!.y + 5);
         await expect(label(page)).toContainText("料金表");
         const box = await boxes(page).first().boundingBox();
+        expect(Math.abs(box!.x - part!.x)).toBeLessThan(2);
+        expect(Math.abs(box!.y - part!.y)).toBeLessThan(2);
         expect(Math.abs(box!.width - part!.width)).toBeLessThan(2);
         expect(Math.abs(box!.height - part!.height)).toBeLessThan(2);
+    });
+
+    test("縮めた PC の幅でも、?part= のパーツまで動いて囲む", async ({ page }) => {
+        await openConcept(page, "/catalog/saas?width=pc&part=newsletter");
+        await waitForFrame(page);
+        await page.mouse.move(1, 1);
+        await expect(boxes(page)).toHaveCount(1);
+        await expect(frame(page).locator('[data-part="newsletter"]')).toBeInViewport();
+    });
+
+    test("名前を見るモードからページを操作するモードに戻すと、iframe の中を押せるようになる", async ({ page }) => {
+        await openConcept(page, "/catalog/saas?width=phone&view=parts");
+        await waitForFrame(page);
+        await expect(frameEl(page)).toHaveAttribute("inert", "");
+        await page.getByRole("button", { name: "ページを操作する" }).click();
+        await expect(frameEl(page)).not.toHaveAttribute("inert", "");
+        const item = frame(page).locator('[data-part="accordion"] details').nth(1);
+        await item.locator("summary").click();
+        await expect(item).toHaveAttribute("open", "");
+        expect(urlOf(page)).toBe("/catalog/saas?width=phone");
     });
 
     test("?part= と幅を付けて開くと、iframe の中のそのパーツを囲む", async ({ page }) => {
@@ -137,11 +184,13 @@ test.describe("表示する幅（PC の画面）", () => {
         await expect(boxes(page)).toHaveCount(1);
     });
 
-    test("画面に合わせる幅に戻すと、iframe が無くなり URL からも外れる", async ({ page }) => {
+    test("画面に合わせる幅に戻すと、枠の幅になり URL からも外れる", async ({ page }) => {
         await openConcept(page, "/catalog/saas?width=tablet");
         await waitForFrame(page);
         await page.getByRole("button", { name: "画面に合わせる" }).click();
-        await expect(frameEl(page)).toHaveCount(0);
+        await expect(stage(page)).toHaveAttribute("data-width", "fit");
+        const outer = await stage(page).boundingBox();
+        await expect.poll(async () => Math.abs((await frameEl(page).boundingBox())!.width - outer!.width)).toBeLessThan(2);
         expect(urlOf(page)).toBe("/catalog/saas");
     });
 
@@ -157,11 +206,13 @@ test.describe("表示する幅（PC の画面）", () => {
 test.describe("表示する幅（スマホの画面）", () => {
     test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
 
-    test("幅の切り替えは出さず、?width= が付いていても画面に合わせて描く", async ({ page }) => {
+    test("幅の切り替えは出さず、?width= が付いていても枠の幅で描く", async ({ page }) => {
         await openConcept(page, "/catalog/saas?width=pc");
         await expect(page.getByRole("group", { name: "表示する幅" })).toBeHidden();
-        await expect(frameEl(page)).toHaveCount(0);
-        await expect(stage(page).locator('[data-part="feature-grid"]')).toBeVisible();
+        await expect(stage(page)).toHaveAttribute("data-width", "fit");
+        const box = await frameEl(page).boundingBox();
+        expect(box!.width).toBeLessThanOrEqual(390);
+        await expect(frame(page).locator('[data-part="feature-grid"]')).toBeVisible();
     });
 });
 
@@ -176,13 +227,21 @@ test.describe("パーツ図鑑のコード", () => {
         await card.getByText("コードを見る").click();
         await expect(code).toContainText('<button class="');
         await expect(code).not.toContainText("data-part");
-        await expect(code).not.toContainText("inert");
 
         await card.getByRole("button", { name: "コピー" }).click();
         await expect(card.getByRole("status")).toHaveText("コピーしました");
         // Windows ではクリップボードの改行が \r\n になるので、そろえて比べる
         const copied = await page.evaluate(() => navigator.clipboard.readText());
         expect(copied.replace(/\r\n/g, "\n")).toBe(await code.textContent());
+    });
+
+    test("状態を表す属性（aria-pressed など）も残し、見本を動かすための印は出さない", async ({ page }) => {
+        await page.goto("/catalog/parts#tabs");
+        const card = page.locator("section#tabs article").first();
+        await card.getByText("コードを見る").click();
+        const code = card.locator("pre code");
+        await expect(code).toContainText('aria-pressed="true"');
+        await expect(code).not.toContainText("data-");
     });
 
     test("英語のページでも、同じように出る", async ({ page }) => {
