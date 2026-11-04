@@ -35,6 +35,7 @@ export default defineConfig({
         reuseExistingServer: false,
         timeout: 60_000,
         // 外の RSS（Zenn・note）を読まない。ビルドのときも同じ値にする（e2e.yml・README）
-        env: { BLOG_FEEDS_DISABLED: "true" },
+        // 経歴のページは、Firestore の代わりに例の登録ファイルを読む（ビルドのときも同じ値にする）
+        env: { BLOG_FEEDS_DISABLED: "true", CAREER_EXAMPLE_FILE: "scripts/career.example.json" },
     },
 });

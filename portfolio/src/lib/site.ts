@@ -58,6 +58,7 @@ export type NavItem = {
 export const nav: readonly NavItem[] = [
     { label: { ja: "ホーム", en: "Home" }, href: "/home", ready: true },
     { label: { ja: "プロフィール", en: "About" }, href: "/about", ready: true },
+    { label: { ja: "経歴", en: "Career" }, href: "/career", ready: true },
     { label: { ja: "制作物", en: "Works" }, href: "/portfolio", ready: true },
     { label: { ja: "ブログ", en: "Blog" }, href: "/portfolio?tab=blog", ready: true },
     { label: { ja: "お問い合わせ", en: "Contact" }, href: "/contact", ready: true },

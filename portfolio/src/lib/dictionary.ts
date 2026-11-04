@@ -3,12 +3,13 @@
 // 管理画面(CMS)で編集する文章は site.ts / Firestore 側にあり、ここには置かない。
 
 import type { Locale } from "@/lib/i18n";
+import type { CareerKind } from "@/lib/content/career";
 
 /** 見出し。title が大きく、sub が横に小さく出る */
 type Heading = { title: string; sub: string };
 
 export type Dictionary = {
-    meta: { siteTitle: string; home: string; about: string; aboutDescription: string; portfolio: string; portfolioDescription: string; contact: string; contactDescription: string; catalog: string; catalogDescription: string; catalogParts: string; catalogPartsDescription: string };
+    meta: { siteTitle: string; home: string; about: string; aboutDescription: string; portfolio: string; portfolioDescription: string; contact: string; contactDescription: string; catalog: string; catalogDescription: string; catalogParts: string; catalogPartsDescription: string; career: string; careerDescription: string };
     start: { kicker: string; cta: string; hintPointer: string; hintTouch: string };
     header: { openMenu: string; soon: string; switchTo: string; switchLabel: string };
     home: {
@@ -23,6 +24,17 @@ export type Dictionary = {
         contact: Heading;
         contactLead: string;
         contactButton: string;
+    };
+    /** 経歴（/career）。種類の名前は src/lib/content/career.ts の CAREER_KINDS に合わせる */
+    career: {
+        heading: Heading;
+        lead: string;
+        filterLabel: string;
+        all: string;
+        kinds: Record<CareerKind, string>;
+        present: string;
+        empty: string;
+        emptyKind: string;
     };
     about: {
         heading: Heading;
@@ -143,6 +155,8 @@ const ja: Dictionary = {
         home: "ホーム",
         about: "プロフィール",
         aboutDescription: "上條遥都のプロフィール。所属・スキル・趣味など。",
+        career: "経歴",
+        careerDescription: "上條遥都の経歴。学歴・研究・制作・職歴を年ごとに並べています。",
         portfolio: "制作物",
         portfolioDescription: "上條遥都の制作物一覧。Webサイト・ゲーム・3Dモデル・写真。",
         contact: "お問い合わせ",
@@ -171,6 +185,16 @@ const ja: Dictionary = {
         contact: { title: "お問い合わせ", sub: "CONTACT" },
         contactLead: "制作のご相談・ご依頼はお問い合わせフォームからお願いします。",
         contactButton: "お問い合わせへ",
+    },
+    career: {
+        heading: { title: "経歴", sub: "CAREER" },
+        lead: "学歴・研究と発表・制作と受賞・職歴と資格を、新しい順に年ごとに並べています。",
+        filterLabel: "種類で絞り込む",
+        all: "すべて",
+        kinds: { education: "学歴", research: "研究・発表", work: "職歴・資格", achievement: "制作・受賞" },
+        present: "現在",
+        empty: "準備中です",
+        emptyKind: "この種類の項目はまだありません",
     },
     about: {
         heading: { title: "プロフィール", sub: "ABOUT" },
@@ -285,6 +309,8 @@ const en: Dictionary = {
         home: "Home",
         about: "About",
         aboutDescription: "About Kamijo Haruto: school, skills, and hobbies.",
+        career: "Career",
+        careerDescription: "Kamijo Haruto's career: education, research, projects, and work, year by year.",
         portfolio: "Portfolio",
         portfolioDescription: "Works by Kamijo Haruto: websites, games, 3D models, and photos.",
         contact: "Contact",
@@ -313,6 +339,16 @@ const en: Dictionary = {
         contact: { title: "CONTACT", sub: "Get in touch" },
         contactLead: "For project inquiries or requests, please use the contact form.",
         contactButton: "CONTACT",
+    },
+    career: {
+        heading: { title: "CAREER", sub: "Timeline" },
+        lead: "Education, research and talks, projects and awards, and work and certifications, year by year, newest first.",
+        filterLabel: "Filter by type",
+        all: "All",
+        kinds: { education: "Education", research: "Research & talks", work: "Work & certifications", achievement: "Projects & awards" },
+        present: "Present",
+        empty: "Coming soon...",
+        emptyKind: "Nothing of this type yet",
     },
     about: {
         heading: { title: "ABOUT", sub: "Profile" },

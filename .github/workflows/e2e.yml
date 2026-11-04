@@ -27,6 +27,8 @@ jobs:
     env:
       # 外の RSS（Zenn・note）を読まない。ビルド（ホームの最近の更新）とテストのどちらでも効かせる
       BLOG_FEEDS_DISABLED: "true"
+      # 経歴のページ（/career）は、Firestore の代わりに例の登録ファイルを読んで年表を出す（ビルドで作るページなので、ビルドにも効かせる）
+      CAREER_EXAMPLE_FILE: scripts/career.example.json
     defaults:
       run:
         working-directory: portfolio

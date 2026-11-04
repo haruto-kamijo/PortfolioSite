@@ -52,3 +52,6 @@ next-env.d.ts
 /test-results/
 /playwright-report/
 /blob-report/
+
+# 経歴の登録ファイル（個人の経歴なので置かない。例は scripts/career.example.json）
+career.json

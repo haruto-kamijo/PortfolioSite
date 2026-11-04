@@ -31,9 +31,10 @@ npm test
 `portfolio/` か `e2e.yml` を変える PR と、main への push で、GitHub Actions（`.github/workflows/e2e.yml`）が自動で動かす。
 Firebase の秘密の値は使わず、静的な既定値で表示されたサイトを確かめる（Firestore の中身・問い合わせの送信・管理画面は対象外）。
 外の RSS（Zenn・note）も `BLOG_FEEDS_DISABLED=true` で読まないので、ブログのタブの記事の表示も対象外。
+経歴のページ（`/career`）は、Firestore の代わりに例の登録ファイル（`scripts/career.example.json`、`CAREER_EXAMPLE_FILE`）を読んで年表を出す。
 
 ```bash
-npx cross-env BLOG_FEEDS_DISABLED=true npm run build   # テストは next start でビルド済みのものを動かす（外の RSS を読まずにビルド）
+npx cross-env BLOG_FEEDS_DISABLED=true CAREER_EXAMPLE_FILE=scripts/career.example.json npm run build   # テストは next start でビルド済みのものを動かす（外の RSS を読まず、経歴は例のファイルでビルド）
 npm run test:e2e:edge                  # Windows では Edge で動かせる（Playwright のブラウザを入れなくてよい）
 npx playwright install chromium && npm run test:e2e   # Playwright の Chromium で動かす場合
 ```
@@ -90,6 +91,7 @@ firebase deploy
 | `/`    | スタート画面。ボタン／Space／無操作8秒でワープして `/home` へ |
 | `/home`| 本編トップ（Hero / Latest / Skills / Works / Contact）。Latest は作品と記事の新しい順に3件 |
 | `/about` | プロフィール（写真・所属・学年・趣味・使用言語） |
+| `/career` | 経歴の年表。学歴・研究と発表・職歴と資格・制作と受賞を、年ごとに新しい順に並べ、種類で絞り込める。登録ファイルから登録スクリプトで書き込む（「経歴を登録する」） |
 | `/portfolio?tab=` | 作品一覧。`sites` / `games` / `models` / `photos` / `pocs` / `kaggle` / `blog` をタブで切り替え。`blog` には Zenn・note の記事を RSS から自動で並べる |
 | `/portfolio?tag=` | タグでの絞り込み。すべてのカテゴリから、選んだタグを全部持つ作品を並べる（`?tag=Next.js&tag=Firebase` のように5個まで。大文字・小文字は区別しない）。タブの下のタグの列か、カードのタグを押して選ぶ。`?tab=` も残り、解除するとそのタブに戻る。RSS の記事（配信元の名前）は絞り込みの対象外 |
 | `/contact` | お問い合わせフォーム |
@@ -191,6 +193,8 @@ src/
       defaults.ts             // site.ts から作る既定値
       getSiteContent.ts       // 公開ページ向け（profile/skillGroups/works）
       getPortfolioItems.ts    // 公開ページ向け（portfolioItems）
+      career.ts               // 経歴の型・登録ファイルの確かめ・並べ方（画面と登録スクリプトで共通）
+      getCareer.ts            // 公開ページ向け（career/timeline）
       tags.ts                 // /portfolio のタグでの絞り込み（?tag= の読み取り・絞り込み・URL）
       feeds.ts                // Zenn・note の RSS からブログのカードを作る（1時間キャッシュ）
       claudeUsage.ts          // About の Claude Code 利用状況の型・検査（画面と登録スクリプトで共通）
@@ -204,6 +208,8 @@ src/
     three/shaders/            // GLSL
 scripts/
   content.ts                  // 登録ファイル（portfolio.json）から作品を本番に登録する
+  career.ts                   // 登録ファイル（career.json）から経歴を本番に書き込む
+  career.example.json         // 経歴の登録ファイルの書き方の例（E2E でも使う。中身は架空）
   usage.ts                    // Claude Code の利用状況を集計して本番に書き込む
   usage-task.cmd              // usage.ts を毎日動かすためのタスクスケジューラ用
 ```
@@ -238,6 +244,7 @@ scripts/
 | `skillGroups/{id}` | Skills の分野と項目（`order` で並び順） | ○ | 管理者のみ |
 | `works/{id}` | home の WORKS カード5枚（カテゴリへの入口。`ready` `order` `coverUrl`） | ○ | 管理者のみ |
 | `portfolioItems/{id}` | `/portfolio` の中身。カテゴリごとの個々の作品（`category` `order` `ready` `coverUrl` `links` `tags`） | ○（`ready:true` のみ） | 管理者のみ |
+| `career/timeline` | `/career` の年表（`items` に全項目をまとめて持つ） | ×（サーバーが読む） | 登録スクリプトのみ |
 | `stats/claudeUsage` | About の Claude Code 利用状況（日ごとのトークン数・応答数・セッション数と合計） | ×（サーバーが読む） | 登録スクリプトのみ |
 | `contacts/{id}` | 問い合わせ内容 | × | サーバーのみ |
 
@@ -389,6 +396,29 @@ gcloud auth application-default login
 PoC の検証記事は PoC のカードの `href` に Zenn の URL を書けば、ブログのタブとで二重にならない。
 RSS は1時間ごとに読み直し、読めなかった RSS は飛ばして表示する。
 
+### 経歴を登録する
+
+`/career` の年表は、登録ファイル（`career.json`）に全部の項目をまとめて書き、スクリプトで `career/timeline` を丸ごと置き換える。
+ファイルから消した項目は、ページからも消える。登録ファイルは個人の経歴なので、このリポジトリには置かない（置き場所は自分で決める）。
+書き方は `scripts/career.example.json`（架空の例）を見る。
+
+```bash
+npm run career -- <career.json の場所>          # 確かめて、足す・変わる・消す項目を表示する（dry-run。何も書き込まない）
+npm run career -- <career.json の場所> --run    # 本番に書き込む（ページには 5 分ほどで出る）
+```
+
+| 項目 | 書き方 |
+|---|---|
+| `id` | 英小文字・数字・ハイフン。ファイルの中で重ならないもの |
+| `kind` | `education`（学歴）/ `research`（研究・発表）/ `work`（職歴・資格）/ `achievement`（制作・受賞） |
+| `start` | `"2024"` か `"2024-04"` |
+| `end` | 期間のあるものの終わり（`"2026-03"`）。続いているものは `"present"`。一時点のもの（受賞・発表）は書かない |
+| `title` | `{ "ja": "...", "en": "..." }`。日本語は必須。英語が空なら英語のページで日本語を出す |
+| `org` / `description` | 学校・研究室・会社などの名前と、1〜2文の説明。どちらも省いてよい |
+| `links` | `[{ "label": { "ja": "..." }, "href": "..." }]`。`https://` の URL か、`/portfolio?tag=Python` のようなサイトの中のパス。5 個まで |
+
+書き方の誤りは、どの項目のどこかを全部表示し、何も書き込まずに止まる。本番に繋ぐ認証は作品の登録と同じ（`gcloud auth application-default login`）。
+
 ### Claude Code の利用状況を更新する
 
 About ページの「Claude Code の利用状況」（日別ヒートマップと合計値）は、この PC の Claude Code のログ
@@ -428,6 +458,6 @@ About ページは ISR（5 分）なので、書き込んでから 5 分以内�
 `src/lib/content/defaults.ts`（= `src/lib/site.ts` の静的な値）を返す。
 そのため CMS が未完成でも、認証情報が無い環境でビルドしてもサイトは壊れない。
 
-`/home` `/about` は ISR（`revalidate = 300`）。`/portfolio` はカテゴリを `?tab=` で受け取るため
+`/home` `/about` `/career` は ISR（`revalidate = 300`）。`/portfolio` はカテゴリを `?tab=` で受け取るため
 Next.js が自動的に完全動的レンダリングにする（`revalidate` は効かない）。
 どちらも CMS の保存アクションが `revalidatePath` を呼ぶため、保存直後に反映される。
