@@ -4,6 +4,7 @@
 import React, { useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { AnalyticsEvents } from "@/components/analytics/AnalyticsEvents";
 import { useSpaceScene } from "@/components/space/SpaceSceneProvider";
 import { DEFAULT_LOCALE, isLocale } from "@/lib/i18n";
 
@@ -31,7 +32,8 @@ export default function SiteLayout({
         <div className="flex min-h-svh flex-col">
             <Header lang={lang} />
             <main className="flex-1">{children}</main>
-            <Footer />
+            <Footer lang={lang} />
+            <AnalyticsEvents />
 
             {/* ワープの暗転から明けるベール。CSSアニメーションなのでJSなしでも消える */}
             <div aria-hidden className="page-enter-veil" />

@@ -8,6 +8,7 @@ import { collections } from "@/lib/content/types";
 import { DEFAULT_LOCALE, Locale, Localized, isLocale } from "@/lib/i18n";
 import { sendContactEmail } from "@/lib/notify/email";
 import { sendContactChat } from "@/lib/notify/chat";
+import { clientIp, createRateLimiter } from "@/lib/rateLimit";
 
 /**
  * 問い合わせの受け口。
@@ -26,32 +27,8 @@ const LIMITS = {
     message: 4000,
 } as const;
 
-/**
- * 簡易レート制限。
- * Cloud Run のインスタンスごとのメモリなので厳密ではないが、
- * 素朴な連投を止める速度制限としては十分。厳密な制御が必要になったら Firestore に移す。
- */
-const RATE_WINDOW_MS = 60_000;
-const RATE_MAX = 3;
-const recentHits = new Map<string, number[]>();
-
-const isRateLimited = (key: string, now: number) => {
-    const hits = (recentHits.get(key) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
-    hits.push(now);
-    recentHits.set(key, hits);
-
-    // 際限なく増えないように、古いキーを掃除する
-    if (recentHits.size > 500) {
-        recentHits.forEach((times, k) => {
-            if (times.every((t) => now - t >= RATE_WINDOW_MS)) recentHits.delete(k);
-        });
-    }
-
-    return hits.length > RATE_MAX;
-};
-
-const clientIp = (req: NextRequest) =>
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+/** 素朴な連投を止める速度制限（1 分に 3 回まで） */
+const isRateLimited = createRateLimiter(60_000, 3);
 
 /** 生のIPは残さず、連投判定に使えるハッシュだけを保存する */
 const hashIp = (ip: string) =>

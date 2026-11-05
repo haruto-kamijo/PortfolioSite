@@ -4,6 +4,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { catalogKey } from "@/lib/analytics/events";
+import { trackEvent } from "@/lib/analytics/track";
 import { CATALOG_WIDTHS, CATALOG_WIDTH_PX, CatalogWidth, isCatalogWidth } from "@/lib/catalog/widths";
 
 type PartLabel = { id: string; name: string; sub: string; href: string };
@@ -44,11 +46,14 @@ const FRAME_PLACEHOLDER_HEIGHT = 600;
  * 一覧から外れると ?part= の囲みに戻る
  */
 export const CatalogViewer = ({
+    concept,
     domain,
     parts,
     frameSrc,
     texts,
 }: {
+    /** 見本の id。操作を数えるときに使う */
+    concept: string;
     domain: string;
     parts: PartLabel[];
     /** 見本だけのページの URL（表示中の言語のもの） */
@@ -330,6 +335,7 @@ export const CatalogViewer = ({
     };
 
     const changeMode = (next: Mode) => {
+        if (next === "parts" && mode !== "parts") trackEvent("catalog", catalogKey.parts(concept));
         setHovered(null);
         setMode(next);
         // ページを操作するモードに戻したら、図鑑から来たときの ?part= の囲みも外す
@@ -345,6 +351,7 @@ export const CatalogViewer = ({
     };
 
     const changeWidth = (next: CatalogWidth) => {
+        if (next !== width) trackEvent("catalog", catalogKey.width(concept, next));
         setHovered(null);
         setWidth(next);
         replaceQuery((params) => (next === "fit" ? params.delete("width") : params.set("width", next)));

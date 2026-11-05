@@ -1,6 +1,7 @@
 // src/app/[lang]/layout.tsx
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { CloudflareAnalytics } from "@/components/analytics/CloudflareAnalytics";
 import { HtmlLang } from "@/components/i18n/HtmlLang";
 import { getDictionary } from "@/lib/dictionary";
 import { LOCALES, alternatesFor, isLocale } from "@/lib/i18n";
@@ -49,6 +50,7 @@ export default function LangLayout({
         <div lang={params.lang} className="contents">
             <HtmlLang lang={params.lang} />
             {children}
+            <CloudflareAnalytics />
         </div>
     );
 }

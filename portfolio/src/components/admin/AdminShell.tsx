@@ -12,6 +12,7 @@ const NAV = [
     { label: "プロフィール", href: "/admin/profile" },
     { label: "TOPカード", href: "/admin/works" },
     { label: "ポートフォリオ", href: "/admin/portfolio" },
+    { label: "アクセス解析", href: "/admin/analytics" },
 ] as const;
 
 /**

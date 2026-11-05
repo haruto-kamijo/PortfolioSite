@@ -92,6 +92,7 @@ export default function CatalogConceptPage({ params }: Props) {
             </dl>
 
             <CatalogViewer
+                concept={id}
                 domain={concept.domain}
                 parts={parts}
                 frameSrc={localizePath(catalogFramePath(id), lang)}

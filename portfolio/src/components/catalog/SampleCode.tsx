@@ -2,6 +2,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { catalogKey } from "@/lib/analytics/events";
+import { trackEvent } from "@/lib/analytics/track";
 
 /**
  * HTML に書き出さない属性。見本を動かすための印（data-*・inert）と、React がその場で作る id（:r1: の形）を指す属性。
@@ -106,6 +108,7 @@ export const SampleCode = ({
         let next: "copied" | "failed" = "copied";
         try {
             await navigator.clipboard.writeText(code);
+            trackEvent("catalog", catalogKey.copy(partId));
         } catch {
             next = "failed";
         }
