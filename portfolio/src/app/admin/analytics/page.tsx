@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Panel } from "@/components/ui/Panel";
 import { ANALYTICS_PERIODS, AnalyticsRow, getAnalyticsSummary, isAnalyticsPeriod } from "@/lib/admin/analytics";
+import { getKnownTargets } from "@/lib/analytics/known";
 import { CATALOG_CONCEPTS, isCatalogConceptId } from "@/lib/catalog/concepts";
 import { CATALOG_PARTS, CatalogPartId } from "@/lib/catalog/parts";
 import { analytics } from "@/lib/site";
@@ -65,7 +66,9 @@ const Table = ({ title, rows, label }: { title: string; rows: AnalyticsRow[]; la
 export default async function AdminAnalyticsPage({ searchParams }: { searchParams: { days?: string } }) {
     const requested = Number(searchParams.days);
     const days = isAnalyticsPeriod(requested) ? requested : 30;
-    const summary = await getAnalyticsSummary(days);
+    // タグは小文字にして数えているので、作品に付いている書き方に戻して出す
+    const [summary, known] = await Promise.all([getAnalyticsSummary(days), getKnownTargets().catch(() => null)]);
+    const tagLabel = (key: string) => known?.tags.get(key) ?? key;
 
     return (
         <div className="mx-auto max-w-5xl px-5 py-10">
@@ -116,7 +119,7 @@ export default async function AdminAnalyticsPage({ searchParams }: { searchParam
                     </p>
                 </Panel>
                 <Table title="外へのリンク" rows={summary.counts.external} />
-                <Table title="タグでの絞り込み" rows={summary.counts.tag} />
+                <Table title="タグでの絞り込み" rows={summary.counts.tag} label={tagLabel} />
                 <Table title="デザインカタログの操作" rows={summary.counts.catalog} label={catalogLabel} />
             </div>
         </div>

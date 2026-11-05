@@ -16,7 +16,7 @@ import { CATALOG_WIDTHS } from "@/lib/catalog/widths";
 export const ANALYTICS_COLLECTION = "analytics";
 
 /**
- * external: サイトの外へのリンク（対象はリンク先の URL。? と # 以降は除く）
+ * external: サイトの外へのリンク（対象はリンク先の URL。# 以降は除く）
  * tag: /portfolio のタグで絞り込んだ（対象は選んだタグ）
  * catalog: デザインカタログの操作（対象は catalogKey の形）
  */
@@ -28,7 +28,10 @@ export type AnalyticsEvent = { type: EventType; key: string };
 /** 対象の長さの上限。URL がこれより長いリンクは数えない */
 export const MAX_EVENT_KEY = 300;
 
-/** 外へのリンクの URL を、数えるときの形にする。https で、このサイトの外を指すものだけ */
+/**
+ * 外へのリンクの URL を、数えるときの形にする。https で、このサイトの外を指すものだけ。
+ * ? 以降は残す（youtube.com/watch?v= のように、? の後ろでページが決まるリンクがあるため）。# 以降はページの中の位置なので除く
+ */
 export const externalKey = (href: string, siteHost: string): string | null => {
     let url: URL;
     try {
@@ -38,7 +41,7 @@ export const externalKey = (href: string, siteHost: string): string | null => {
     }
     if (url.protocol !== "https:" || url.hostname === siteHost) return null;
     // 末尾の / は付けても付けなくても同じページなので、そろえる
-    const key = `${url.origin}${url.pathname.replace(/\/+$/, "")}`;
+    const key = `${url.origin}${url.pathname.replace(/\/+$/, "")}${url.search}`;
     return key.length > MAX_EVENT_KEY ? null : key;
 };
 
@@ -76,6 +79,27 @@ export const parseEvent = (body: unknown): AnalyticsEvent | null => {
 /** 日本時間の日付（2026-11-05）。ドキュメントの id にする */
 export const dayInTokyo = (now: Date) =>
     new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+
+/** 本文の大きさの上限（バイト）。これより大きいものは読まずに捨てる */
+export const MAX_EVENT_BODY = 1024;
+
+/**
+ * サイトのページから送られたものか。ほかのサイトのページに送らせないためのもの（curl などでは偽れるので、悪用の対策ではない）。
+ * Sec-Fetch-Site を送らない古いブラウザでは、Origin（無ければ Referer）で確かめる
+ */
+export const isSameOriginRequest = (
+    headers: { secFetchSite: string | null; origin: string | null; referer: string | null },
+    siteOrigins: readonly string[]
+) => {
+    if (headers.secFetchSite) return headers.secFetchSite === "same-origin";
+    const from = headers.origin ?? headers.referer;
+    if (!from) return false;
+    try {
+        return siteOrigins.includes(new URL(from).origin);
+    } catch {
+        return false;
+    }
+};
 
 /** 検索エンジンなどのボットと、自動で動かしているブラウザ。数えない */
 export const isBotUserAgent = (ua: string) => !ua || /bot|crawl|spider|slurp|headless|lighthouse|preview/i.test(ua);

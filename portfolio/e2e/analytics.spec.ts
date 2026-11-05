@@ -27,7 +27,9 @@ test("フッターで、閲覧数を数えていることを知らせる。手�
 
 test("外へのリンクを押すと、リンク先の URL を送る", async ({ page, context }) => {
     // 外のサイトは開かない
-    await context.route("https://github.com/**", (route) => route.fulfill({ status: 200, body: "" }));
+    for (const site of ["https://github.com/**", "https://zenn.dev/**"]) {
+        await context.route(site, (route) => route.fulfill({ status: 200, body: "" }));
+    }
     const events = await collectEvents(page);
     await page.goto("/home");
     const popup = page.waitForEvent("popup");
@@ -35,10 +37,18 @@ test("外へのリンクを押すと、リンク先の URL を送る", async ({ 
     await (await popup).close();
     await expect.poll(() => events).toEqual([{ type: "external", key: "https://github.com/haruto-kamijo" }]);
 
+    // 中クリック（新しいタブで開く）も数える
+    // （自動で動かしているブラウザでは、中クリックで新しいタブは開かない。送ったことだけを確かめる）
+    await page.locator("footer").getByRole("link", { name: "Zenn" }).click({ button: "middle" });
+    await expect.poll(() => events).toEqual([
+        { type: "external", key: "https://github.com/haruto-kamijo" },
+        { type: "external", key: "https://zenn.dev/kamijoharuto" },
+    ]);
+
     // サイトの中のリンクは送らない
     await page.locator("header").first().getByRole("link", { name: "経歴" }).click();
     await expect.poll(() => new URL(page.url()).pathname).toBe("/career");
-    expect(events).toHaveLength(1);
+    expect(events).toHaveLength(2);
 });
 
 test("タグで絞り込むと、選んだタグを送る。外すときは送らない", async ({ page }) => {
@@ -52,6 +62,25 @@ test("タグで絞り込むと、選んだタグを送る。外すときは送�
     await tags.getByRole("link", { name: /TypeScript/ }).first().click();
     await expect.poll(() => new URL(page.url()).searchParams.getAll("tag")).toEqual([]);
     expect(events).toHaveLength(1);
+});
+
+test("英語のページでも、タグの絞り込みを送る", async ({ page }) => {
+    const events = await collectEvents(page);
+    await page.goto("/en/portfolio");
+    await page.getByRole("region", { name: "Filter by tag" }).getByRole("link", { name: /Next\.js/ }).first().click();
+    await expect.poll(() => events).toEqual([{ type: "tag", key: "Next.js" }]);
+});
+
+test("パーツ図鑑でコードをコピーすると送る", async ({ page, context }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    const events = await collectEvents(page);
+    await page.goto("/catalog/parts#cta-button");
+    const card = page.locator("section#cta-button article").first();
+    await card.getByText("コードを見る").click();
+    await expect(card.locator("pre code")).toContainText("<button");
+    await card.getByRole("button", { name: "コピー" }).click();
+    await expect(card.getByRole("status")).toHaveText("コピーしました");
+    await expect.poll(() => events).toEqual([{ type: "catalog", key: "copy:cta-button" }]);
 });
 
 test("カタログの幅の切り替えと、パーツの名前を見るモードを送る", async ({ page }) => {
@@ -70,4 +99,6 @@ test("/api/events は、ほかのサイトから送られたものと形の違�
     expect((await request.post("/api/events", { data: { type: "tag", key: "TypeScript" }, headers: { "sec-fetch-site": "cross-site" } })).status()).toBe(204);
     expect((await request.post("/api/events", { data: { type: "view", key: "/home" }, headers: sameOrigin })).status()).toBe(400);
     expect((await request.post("/api/events", { data: { type: "tag", key: "TypeScript" }, headers: sameOrigin })).status()).toBe(204);
+    // 大きすぎる本文は読まない
+    expect((await request.post("/api/events", { data: { type: "tag", key: "x".repeat(2000) }, headers: sameOrigin })).status()).toBe(400);
 });

@@ -2,15 +2,17 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { sumCounts } from "../admin/analytics";
-import { catalogKey, dayInTokyo, externalKey, isBotUserAgent, isCatalogKey, parseEvent } from "./events";
+import { catalogKey, dayInTokyo, externalKey, isBotUserAgent, isCatalogKey, isSameOriginRequest, parseEvent } from "./events";
 
 /** 自前で数える操作の決まり。`npm test` で動かす */
 
 describe("externalKey", () => {
     const host = "kamijoharuto.com";
 
-    test("https の外のリンクは、? と # と末尾の / を除いた形にする", () => {
-        assert.equal(externalKey("https://github.com/haruto-kamijo/?tab=repositories#top", host), "https://github.com/haruto-kamijo");
+    test("https の外のリンクは、# と末尾の / を除いた形にする。? 以降は残す", () => {
+        assert.equal(externalKey("https://github.com/haruto-kamijo/#top", host), "https://github.com/haruto-kamijo");
+        assert.equal(externalKey("https://www.youtube.com/watch?v=AAA#t=10", host), "https://www.youtube.com/watch?v=AAA");
+        assert.notEqual(externalKey("https://www.youtube.com/watch?v=AAA", host), externalKey("https://www.youtube.com/watch?v=BBB", host));
         assert.equal(externalKey("https://note.com/pon20020929/", host), externalKey("https://note.com/pon20020929", host));
         assert.equal(externalKey("https://zenn.dev/", host), "https://zenn.dev");
     });
@@ -30,6 +32,21 @@ describe("isCatalogKey", () => {
         for (const bad of ["width:kissa:huge", "width:nope:pc", "width:kissa", "parts:kissa:pc", "copy:nope", "copy:hero:x", "open:kissa", ""]) {
             assert.equal(isCatalogKey(bad), false, bad);
         }
+    });
+});
+
+describe("isSameOriginRequest", () => {
+    const origins = ["https://kamijoharuto.com"];
+    const h = (over: Partial<Record<"secFetchSite" | "origin" | "referer", string>>) => ({ secFetchSite: null, origin: null, referer: null, ...over });
+
+    test("Sec-Fetch-Site があればそれで、無ければ Origin・Referer で決める", () => {
+        assert.equal(isSameOriginRequest(h({ secFetchSite: "same-origin" }), origins), true);
+        assert.equal(isSameOriginRequest(h({ secFetchSite: "cross-site", origin: "https://kamijoharuto.com" }), origins), false);
+        assert.equal(isSameOriginRequest(h({ origin: "https://kamijoharuto.com" }), origins), true);
+        assert.equal(isSameOriginRequest(h({ referer: "https://kamijoharuto.com/portfolio?tag=Python" }), origins), true);
+        assert.equal(isSameOriginRequest(h({ origin: "https://evil.example" }), origins), false);
+        assert.equal(isSameOriginRequest(h({ origin: "null" }), origins), false);
+        assert.equal(isSameOriginRequest(h({}), origins), false);
     });
 });
 
