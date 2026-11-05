@@ -83,6 +83,10 @@
                 "en": "(Example) Intern at XX Inc."
             },
             "org": {
+                "ja": "〇〇株式会社",
+                "en": "XX Inc."
+            },
+            "description": {
                 "ja": "Web アプリの開発",
                 "en": "Web app development"
             }
