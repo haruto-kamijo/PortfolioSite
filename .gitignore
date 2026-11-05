@@ -1,2 +1,5 @@
 # クラッシュしたシェルのダンプ（Git Bash が時々出す）
 *.stackdump
+
+# 経歴の登録ファイル（個人の経歴なので置かない。例は portfolio/scripts/career.example.json）
+career.json

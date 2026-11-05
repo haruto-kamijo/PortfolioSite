@@ -48,6 +48,13 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ---- 経歴 ----
+    // /career の年表。書くのは登録スクリプト（scripts/career.ts、Admin SDK）だけで、
+    // 読むのもサーバー（Admin SDK）だけなので、クライアントからは触れない
+    match /career/{docId} {
+      allow read, write: if false;
+    }
+
     // ---- 問い合わせ ----
     // 受信内容は個人情報なので公開側からは読ませない。
     // 保存も API Route（サーバー）でバリデーション後に行う。

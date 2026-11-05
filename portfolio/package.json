@@ -14,7 +14,8 @@
     "usage": "tsx scripts/usage.ts",
     "test:e2e": "playwright test",
     "test:e2e:edge": "cross-env PW_CHANNEL=msedge playwright test",
-    "test": "tsx --test \"src/**/*.test.ts\""
+    "test": "tsx --test \"src/**/*.test.ts\"",
+    "career": "tsx scripts/career.ts"
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",

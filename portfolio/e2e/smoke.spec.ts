@@ -9,6 +9,7 @@ import { expect, test } from "@playwright/test";
 const PAGES = [
     "/home",
     "/about",
+    "/career",
     "/portfolio",
     "/portfolio?tab=blog",
     "/portfolio?tag=Next.js",
