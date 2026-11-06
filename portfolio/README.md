@@ -181,6 +181,7 @@ src/
     warpTimeline.ts         // ワープ演出のタイミング定数
     useReducedMotion.ts     // prefers-reduced-motion の判定
     rateLimit.ts            // API の簡易レート制限（問い合わせ・操作の回数で共通）
+    readLimited.ts          // リクエストの本文を上限のバイト数まで読む
     analytics/
       events.ts             // 数える操作の種類と対象の形（クライアントとサーバーで共通）
       known.ts              // サイトに出ている外へのリンクとタグ（ここに無いものは数えない）

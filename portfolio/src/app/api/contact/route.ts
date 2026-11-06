@@ -33,7 +33,7 @@ const isRateLimited = createRateLimiter(60_000, 3);
  * インスタンス全体の上限（1 分に 10 回まで）。
  * IP は X-Forwarded-For から取るので偽れる。IP ごとの制限をすり抜けられても、保存と通知の回数に上限を付ける
  */
-const isOverall = createRateLimiter(60_000, 10);
+const isOverall = createRateLimiter(60_000, 10, { countRejected: false });
 
 /** 生のIPは残さず、連投判定に使えるハッシュだけを保存する */
 const hashIp = (ip: string) =>

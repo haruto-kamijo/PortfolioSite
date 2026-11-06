@@ -15,6 +15,7 @@ import { getKnownTargets } from "@/lib/analytics/known";
 import { tagKey } from "@/lib/content/tags";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { clientIp, createRateLimiter } from "@/lib/rateLimit";
+import { readLimited } from "@/lib/readLimited";
 import { site } from "@/lib/site";
 
 /**
@@ -31,34 +32,12 @@ import { site } from "@/lib/site";
  */
 
 const isRateLimited = createRateLimiter(60_000, 30);
-const isOverall = createRateLimiter(60_000, 300);
+const isOverall = createRateLimiter(60_000, 300, { countRejected: false });
 
 const siteOrigin = new URL(site.url).origin;
 
 const accepted = () => new NextResponse(null, { status: 204 });
 const rejected = () => NextResponse.json({ ok: false }, { status: 400 });
-
-/**
- * 本文を max バイトまで読む。超えたらその時点で読むのをやめて null。
- * Content-Length は送り手が申告する値で、省略もできる（chunked）ので、実際に読んだバイト数で数える
- */
-const readLimited = async (req: NextRequest, max: number): Promise<string | null> => {
-    const reader = req.body?.getReader();
-    if (!reader) return "";
-    const chunks: Uint8Array[] = [];
-    let total = 0;
-    for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        total += value.byteLength;
-        if (total > max) {
-            await reader.cancel();
-            return null;
-        }
-        chunks.push(value);
-    }
-    return Buffer.concat(chunks).toString("utf8");
-};
 
 const isKnown = async (type: string, key: string) => {
     if (type === "catalog") return isCatalogKey(key);
