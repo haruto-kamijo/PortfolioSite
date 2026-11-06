@@ -9,6 +9,7 @@ import { getKnownTargets } from "@/lib/analytics/known";
 import { CATALOG_CONCEPTS, isCatalogConceptId } from "@/lib/catalog/concepts";
 import { CATALOG_PARTS, CatalogPartId } from "@/lib/catalog/parts";
 import { analytics } from "@/lib/site";
+import { requireAdminPage } from "@/lib/admin/session";
 
 /** 認証を通った後にだけ描画されるため、ここでタイトルを付けても存在は漏れない */
 export const metadata: Metadata = {
@@ -64,6 +65,7 @@ const Table = ({ title, rows, label }: { title: string; rows: AnalyticsRow[]; la
 };
 
 export default async function AdminAnalyticsPage({ searchParams }: { searchParams: { days?: string } }) {
+    await requireAdminPage();
     const requested = Number(searchParams.days);
     const days = isAnalyticsPeriod(requested) ? requested : 30;
     // タグは小文字にして数えているので、作品に付いている書き方に戻して出す

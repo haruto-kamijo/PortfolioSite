@@ -26,6 +26,8 @@ test("フッターで、閲覧数を数えていることを知らせる。手�
 });
 
 test("外へのリンクを押すと、リンク先の URL を送る", async ({ page, context }) => {
+    // 新しいタブを開き、ページも移るので時間がかかる。ほかのテストと並んで動くと 30 秒を超えることがある
+    test.slow();
     // 外のサイトは開かない
     for (const site of ["https://github.com/**", "https://zenn.dev/**"]) {
         await context.route(site, (route) => route.fulfill({ status: 200, body: "" }));
@@ -99,8 +101,10 @@ test("/api/events は、ほかのサイトから送られたものと形の違�
     expect((await request.post("/api/events", { data: { type: "tag", key: "TypeScript" }, headers: { "sec-fetch-site": "cross-site" } })).status()).toBe(204);
     expect((await request.post("/api/events", { data: { type: "view", key: "/home" }, headers: sameOrigin })).status()).toBe(400);
     expect((await request.post("/api/events", { data: { type: "tag", key: "TypeScript" }, headers: sameOrigin })).status()).toBe(204);
-    // 大きすぎる本文は読まない
-    expect((await request.post("/api/events", { data: { type: "tag", key: "x".repeat(2000) }, headers: sameOrigin })).status()).toBe(400);
-    // 文字数では 1024 に届かなくても、バイト数で超えれば読まない（あ は UTF-8 で 3 バイト）
-    expect((await request.post("/api/events", { data: { type: "tag", key: "あ".repeat(400) }, headers: sameOrigin })).status()).toBe(400);
+    // 大きすぎる本文は読まない。形は正しい（key の長さも上限内）ので、400 になるのは大きさのため。
+    // 文字数では 1024 に届かなくても、バイト数で超えれば読まない（あ は UTF-8 で 3 バイト）。
+    // Content-Length の無い（分けて送られる）本文は、src/lib/readLimited.test.ts で確かめる
+    const padded = { type: "tag", key: "TypeScript", pad: "あ".repeat(340) };
+    expect(JSON.stringify(padded).length).toBeLessThan(1024);
+    expect((await request.post("/api/events", { data: padded, headers: sameOrigin })).status()).toBe(400);
 });

@@ -8,6 +8,7 @@ import { countUnreadContacts } from "@/lib/admin/contacts";
 import { listPortfolioItemsAdmin } from "@/lib/admin/portfolio";
 import { getSiteContent } from "@/lib/content/getSiteContent";
 import { PORTFOLIO_CATEGORIES } from "@/lib/content/types";
+import { requireAdminPage } from "@/lib/admin/session";
 
 /** 認証を通った後にだけ描画されるため、ここでタイトルを付けても存在は漏れない */
 export const metadata: Metadata = {
@@ -18,6 +19,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminHomePage() {
+    await requireAdminPage();
     const [unread, content, portfolioItems] = await Promise.all([
         countUnreadContacts(),
         getSiteContent(),

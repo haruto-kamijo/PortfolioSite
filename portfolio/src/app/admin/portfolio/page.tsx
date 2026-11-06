@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 
 import { PortfolioItemsManager } from "@/components/admin/PortfolioItemsManager";
 import { listPortfolioItemsAdmin } from "@/lib/admin/portfolio";
+import { requireAdminPage } from "@/lib/admin/session";
 
 /** 認証を通った後にだけ描画されるため、ここでタイトルを付けても存在は漏れない */
 export const metadata: Metadata = {
@@ -15,6 +16,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminPortfolioPage() {
+    await requireAdminPage();
     const items = await listPortfolioItemsAdmin();
 
     return (
