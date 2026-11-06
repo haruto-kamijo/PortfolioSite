@@ -29,6 +29,11 @@ const LIMITS = {
 
 /** 素朴な連投を止める速度制限（1 分に 3 回まで） */
 const isRateLimited = createRateLimiter(60_000, 3);
+/**
+ * インスタンス全体の上限（1 分に 10 回まで）。
+ * IP は X-Forwarded-For から取るので偽れる。IP ごとの制限をすり抜けられても、保存と通知の回数に上限を付ける
+ */
+const isOverall = createRateLimiter(60_000, 10);
 
 /** 生のIPは残さず、連投判定に使えるハッシュだけを保存する */
 const hashIp = (ip: string) =>
@@ -107,7 +112,8 @@ export async function POST(req: NextRequest) {
     if ("error" in parsed) return fail(parsed.error, 400);
 
     const ip = clientIp(req);
-    if (isRateLimited(ip, Date.now())) return fail("rateLimited", 429);
+    const now = Date.now();
+    if (isRateLimited(ip, now) || isOverall("all", now)) return fail("rateLimited", 429);
 
     const db = getAdminDb();
     if (!db) {

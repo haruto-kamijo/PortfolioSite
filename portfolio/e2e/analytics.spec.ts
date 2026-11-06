@@ -101,4 +101,6 @@ test("/api/events は、ほかのサイトから送られたものと形の違�
     expect((await request.post("/api/events", { data: { type: "tag", key: "TypeScript" }, headers: sameOrigin })).status()).toBe(204);
     // 大きすぎる本文は読まない
     expect((await request.post("/api/events", { data: { type: "tag", key: "x".repeat(2000) }, headers: sameOrigin })).status()).toBe(400);
+    // 文字数では 1024 に届かなくても、バイト数で超えれば読まない（あ は UTF-8 で 3 バイト）
+    expect((await request.post("/api/events", { data: { type: "tag", key: "あ".repeat(400) }, headers: sameOrigin })).status()).toBe(400);
 });

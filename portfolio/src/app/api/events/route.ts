@@ -38,6 +38,28 @@ const siteOrigin = new URL(site.url).origin;
 const accepted = () => new NextResponse(null, { status: 204 });
 const rejected = () => NextResponse.json({ ok: false }, { status: 400 });
 
+/**
+ * 本文を max バイトまで読む。超えたらその時点で読むのをやめて null。
+ * Content-Length は送り手が申告する値で、省略もできる（chunked）ので、実際に読んだバイト数で数える
+ */
+const readLimited = async (req: NextRequest, max: number): Promise<string | null> => {
+    const reader = req.body?.getReader();
+    if (!reader) return "";
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        total += value.byteLength;
+        if (total > max) {
+            await reader.cancel();
+            return null;
+        }
+        chunks.push(value);
+    }
+    return Buffer.concat(chunks).toString("utf8");
+};
+
 const isKnown = async (type: string, key: string) => {
     if (type === "catalog") return isCatalogKey(key);
     const known = await getKnownTargets();
@@ -55,8 +77,8 @@ export async function POST(req: NextRequest) {
 
     // 大きな本文を読み込んで解析しないよう、長さを確かめてから読む
     if (Number(headers.get("content-length") ?? 0) > MAX_EVENT_BODY) return rejected();
-    const text = await req.text();
-    if (text.length > MAX_EVENT_BODY) return rejected();
+    const text = await readLimited(req, MAX_EVENT_BODY);
+    if (text === null) return rejected();
     let body: unknown;
     try {
         body = JSON.parse(text);

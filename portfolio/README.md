@@ -284,6 +284,7 @@ Storage は `works/{workId}/{fileName}` と `portfolioItems/{itemId}/{fileName}`
 
 スパム対策は、人間には見えないハニーポット項目（埋まっていたら成功を装って破棄）と
 IPごとのレート制限（60秒に3件、`src/lib/rateLimit.ts`）。レート制限は Cloud Run インスタンスごとのメモリなので厳密ではない。
+IP は `X-Forwarded-For` から取るので偽れる。IP ごとの制限をすり抜けられても保存と通知が増え続けないよう、インスタンス全体でも 60 秒に 10 件までにしている。
 
 保存する値は氏名・メール・本文・`createdAt`・`read`・UserAgent・**IPのハッシュ**。
 生のIPは保存しない（連投判定に使えれば十分なため）。

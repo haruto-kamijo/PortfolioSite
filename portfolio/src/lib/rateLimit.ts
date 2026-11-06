@@ -21,6 +21,8 @@ export const createRateLimiter = (windowMs: number, max: number) => {
     return (key: string, now: number) => {
         const hits = (recentHits.get(key) ?? []).filter((t) => now - t < windowMs);
         hits.push(now);
+        // 判定には直近の max + 1 回があれば足りる。断った分も数え続けるので、それより古いものは捨てる
+        if (hits.length > max + 1) hits.shift();
         recentHits.set(key, hits);
 
         // 際限なく増えないように、古いキーを掃除する
