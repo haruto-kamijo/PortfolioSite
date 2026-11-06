@@ -8,6 +8,7 @@ import { collections } from "@/lib/content/types";
 import { DEFAULT_LOCALE, Locale, Localized, isLocale } from "@/lib/i18n";
 import { sendContactEmail } from "@/lib/notify/email";
 import { sendContactChat } from "@/lib/notify/chat";
+import { clientIp, createRateLimiter } from "@/lib/rateLimit";
 
 /**
  * 問い合わせの受け口。
@@ -26,32 +27,13 @@ const LIMITS = {
     message: 4000,
 } as const;
 
+/** 素朴な連投を止める速度制限（1 分に 3 回まで） */
+const isRateLimited = createRateLimiter(60_000, 3);
 /**
- * 簡易レート制限。
- * Cloud Run のインスタンスごとのメモリなので厳密ではないが、
- * 素朴な連投を止める速度制限としては十分。厳密な制御が必要になったら Firestore に移す。
+ * インスタンス全体の上限（1 分に 10 回まで）。
+ * IP は X-Forwarded-For から取るので偽れる。IP ごとの制限をすり抜けられても、保存と通知の回数に上限を付ける
  */
-const RATE_WINDOW_MS = 60_000;
-const RATE_MAX = 3;
-const recentHits = new Map<string, number[]>();
-
-const isRateLimited = (key: string, now: number) => {
-    const hits = (recentHits.get(key) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
-    hits.push(now);
-    recentHits.set(key, hits);
-
-    // 際限なく増えないように、古いキーを掃除する
-    if (recentHits.size > 500) {
-        recentHits.forEach((times, k) => {
-            if (times.every((t) => now - t >= RATE_WINDOW_MS)) recentHits.delete(k);
-        });
-    }
-
-    return hits.length > RATE_MAX;
-};
-
-const clientIp = (req: NextRequest) =>
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+const isOverall = createRateLimiter(60_000, 10, { countRejected: false });
 
 /** 生のIPは残さず、連投判定に使えるハッシュだけを保存する */
 const hashIp = (ip: string) =>
@@ -130,7 +112,8 @@ export async function POST(req: NextRequest) {
     if ("error" in parsed) return fail(parsed.error, 400);
 
     const ip = clientIp(req);
-    if (isRateLimited(ip, Date.now())) return fail("rateLimited", 429);
+    const now = Date.now();
+    if (isRateLimited(ip, now) || isOverall("all", now)) return fail("rateLimited", 429);
 
     const db = getAdminDb();
     if (!db) {

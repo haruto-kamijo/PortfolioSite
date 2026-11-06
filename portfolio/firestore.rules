@@ -55,6 +55,12 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ---- アクセス解析 ----
+    // 操作の日ごとの回数。書くのは /api/events（Admin SDK）、読むのは管理画面（Admin SDK）だけ
+    match /analytics/{docId} {
+      allow read, write: if false;
+    }
+
     // ---- 問い合わせ ----
     // 受信内容は個人情報なので公開側からは読ませない。
     // 保存も API Route（サーバー）でバリデーション後に行う。

@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 
 import { ContactList } from "@/components/admin/ContactList";
 import { listContacts } from "@/lib/admin/contacts";
+import { requireAdminPage } from "@/lib/admin/session";
 
 /** 認証を通った後にだけ描画されるため、ここでタイトルを付けても存在は漏れない */
 export const metadata: Metadata = {
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminContactsPage() {
+    await requireAdminPage();
     const contacts = await listContacts();
     const unread = contacts.filter((c) => !c.read).length;
 

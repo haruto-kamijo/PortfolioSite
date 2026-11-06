@@ -1,6 +1,7 @@
 // src/lib/admin/session.ts
 
 import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
 import { getAdminAuth } from "@/lib/firebase/admin";
 import { ADMIN_SESSION_COOKIE } from "./cookieName";
 
@@ -119,4 +120,16 @@ export const getAdminUser = async (): Promise<AdminUser | null> => {
         console.warn("[admin] getAdminUser: セッションCookieの検証に失敗しました:", err);
         return null;
     }
+};
+
+/**
+ * 管理ページの最初に呼ぶ。未認証なら 404（app/admin/layout.tsx と同じ扱い）。
+ * レイアウトは管理画面の中を移動するときに描画し直されないので、
+ * 開いたままセッションが切れたり失効させたりしても、レイアウトの確認だけでは別のページのデータを読めてしまう。
+ * そのため、データを読む前に各ページでも確かめる
+ */
+export const requireAdminPage = async (): Promise<AdminUser> => {
+    const user = await getAdminUser();
+    if (!user) notFound();
+    return user;
 };

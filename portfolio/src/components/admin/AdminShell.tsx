@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { getFirebaseAuth } from "@/lib/firebase/client";
 import { useSpaceScene } from "@/components/space/SpaceSceneProvider";
@@ -12,11 +12,12 @@ const NAV = [
     { label: "プロフィール", href: "/admin/profile" },
     { label: "TOPカード", href: "/admin/works" },
     { label: "ポートフォリオ", href: "/admin/portfolio" },
+    { label: "アクセス解析", href: "/admin/analytics" },
 ] as const;
 
 /**
  * 管理画面の外枠。
- * 認証はサーバー側（app/admin/layout.tsx）で済んでいるので、ここは見た目とログアウトだけを担う。
+ * 認証はサーバー側（app/admin/layout.tsx と各ページの requireAdminPage）で済んでいるので、ここは見た目とログアウトだけを担う。
  */
 export const AdminShell = ({
                                email,
@@ -27,7 +28,6 @@ export const AdminShell = ({
 }) => {
     const { setPhase } = useSpaceScene();
     const pathname = usePathname();
-    const router = useRouter();
     const [signingOut, setSigningOut] = useState(false);
 
     // 背景は公開ページと同じ落ち着いた状態にする
@@ -44,7 +44,9 @@ export const AdminShell = ({
         const auth = getFirebaseAuth();
         if (auth) await auth.signOut().catch(() => undefined);
 
-        router.replace("/login");
+        // router.replace だと、ブラウザに残った管理ページの描画結果（Router Cache）が消えず、
+        // 戻るボタンなどで管理画面のデータがまた見えてしまう。ページを丸ごと読み直して捨てる
+        window.location.replace("/login");
     };
 
     return (

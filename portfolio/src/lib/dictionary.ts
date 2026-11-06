@@ -12,6 +12,8 @@ export type Dictionary = {
     meta: { siteTitle: string; home: string; about: string; aboutDescription: string; portfolio: string; portfolioDescription: string; contact: string; contactDescription: string; catalog: string; catalogDescription: string; catalogParts: string; catalogPartsDescription: string; career: string; careerDescription: string };
     start: { kicker: string; cta: string; hintPointer: string; hintTouch: string };
     header: { openMenu: string; soon: string; switchTo: string; switchLabel: string };
+    /** フッターに出す、閲覧数を数えていることのお知らせ */
+    footer: { analytics: string };
     home: {
         kicker: string;
         github: string;
@@ -175,6 +177,9 @@ const ja: Dictionary = {
         hintTouch: "タップで出発",
     },
     header: { openMenu: "メニューを開閉する", soon: "準備中", switchTo: "EN", switchLabel: "English に切り替える" },
+    footer: {
+        analytics: "このサイトは Cloudflare Web Analytics で閲覧数を数えています（Cookie は使いません）。",
+    },
     home: {
         kicker: "ポートフォリオサイト",
         github: "GitHub",
@@ -330,6 +335,9 @@ const en: Dictionary = {
         hintTouch: "Tap to start",
     },
     header: { openMenu: "Toggle menu", soon: "Soon", switchTo: "JA", switchLabel: "日本語に切り替える" },
+    footer: {
+        analytics: "This site counts page views with Cloudflare Web Analytics (no cookies).",
+    },
     home: {
         kicker: "PORTFOLIO SITE",
         github: "GITHUB",

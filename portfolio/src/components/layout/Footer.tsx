@@ -1,8 +1,13 @@
 // src/components/layout/Footer.tsx
+import { getDictionary } from "@/lib/dictionary";
+import type { Locale } from "@/lib/i18n";
 import { links, site } from "@/lib/site";
 
-/** 著作権表記とリンク。リンク名は固有名詞なので、日英で同じ表記にしている */
-export const Footer = () => {
+/**
+ * 著作権表記とリンク。リンク名は固有名詞なので、日英で同じ表記にしている。
+ * 閲覧数を数えていることも、ここで知らせる
+ */
+export const Footer = ({ lang }: { lang: Locale }) => {
     const year = new Date().getFullYear();
     const period = year > site.copyrightSince ? `${site.copyrightSince}-${year}` : `${year}`;
 
@@ -28,6 +33,9 @@ export const Footer = () => {
                     </a>
                 </div>
             </div>
+            <p className="mx-auto max-w-6xl px-5 pb-6 text-center text-[11px] leading-relaxed text-white/50 sm:-mt-3 sm:text-left">
+                {getDictionary(lang).footer.analytics}
+            </p>
         </footer>
     );
 };

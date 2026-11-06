@@ -101,7 +101,7 @@ firebase deploy
 | `/catalog/parts` | パーツ図鑑。UI パーツの名前・別名・役割と、各見本での見え方。「ページで見る」で `/catalog/<見本>?part=<パーツ>` に戻る（「パーツの名前を見る」で開く）。各見本の「コードを見る」で、描いた HTML と Tailwind CSS のクラスを出し、コピーできる |
 | `/og.png` | リンクを貼ったときに出る画像（OGP、ビルド時に生成） |
 | `/login` | 管理者ログイン（Googleサインイン） |
-| `/admin` | CMS。受信箱・プロフィール編集・TOPカード・ポートフォリオ管理 |
+| `/admin` | CMS。受信箱・プロフィール編集・TOPカード・ポートフォリオ管理・アクセス解析（操作の回数） |
 
 公開ページは日本語と英語の2言語で配信する。日本語が既定で上の URL のまま、
 英語は先頭に `/en` を付ける（`/en/home`、`/en/portfolio?tab=games` など）。
@@ -136,14 +136,17 @@ src/
       profile/             // プロフィール編集
       works/               // TOPカード（home の WORKS 5枚）の管理
       portfolio/           // /portfolio の中身（カテゴリ別の個々の作品）の管理
+      analytics/           // アクセス解析（操作の回数を期間ごとに。閲覧数は Cloudflare のダッシュボードへ）
     login/page.tsx         // 管理者ログイン。有効なセッションがあれば /admin へ即リダイレクト
     og.png/route.tsx       // OGP 画像（1200×630）。拡張子付きなので middleware を通らない
     catalog-cover.png/route.tsx // デザインカタログのカードのカバー画像
     api/
       contact/route.ts     // 問い合わせの受け口
+      events/route.ts      // 操作の回数の受け口（外へのリンク・タグ・カタログ）
       admin/session/route.ts // セッションCookieの発行・失効
   components/
     layout/                // Header / Footer / LanguageSwitch（日英の切り替えボタン）
+    analytics/             // CloudflareAnalytics（閲覧数のスクリプト）/ AnalyticsEvents（押されたリンクを見て操作を数える）
     i18n/HtmlLang.tsx      // 英語ページで <html lang> を en に書き換える
     space/
       SpaceSceneProvider.tsx // 背景シーンの状態（idle→spinup→flash→warp→cruise）
@@ -177,6 +180,12 @@ src/
     academicYear.ts         // 学年の自動計算
     warpTimeline.ts         // ワープ演出のタイミング定数
     useReducedMotion.ts     // prefers-reduced-motion の判定
+    rateLimit.ts            // API の簡易レート制限（問い合わせ・操作の回数で共通）
+    readLimited.ts          // リクエストの本文を上限のバイト数まで読む
+    analytics/
+      events.ts             // 数える操作の種類と対象の形（クライアントとサーバーで共通）
+      known.ts              // サイトに出ている外へのリンクとタグ（ここに無いものは数えない）
+      track.ts              // 操作を /api/events に送る（sendBeacon）
     notify/                 // メール(Resend) / チャット(Discord・Slack) 通知
     firebase/
       client.ts             // ブラウザ用SDK（管理画面のログイン・アップロードで使用）
@@ -185,6 +194,7 @@ src/
       session.ts            // 管理者セッションの発行・検証
       cookieName.ts          // Cookie名（middlewareとも共有するため独立）
       contacts.ts / portfolio.ts // 管理画面向けの読み出し
+      analytics.ts           // 操作の回数を期間ごとに足し合わせる
       revalidatePublic.ts    // 保存後に公開ページ（日英とも）のキャッシュを捨てる
     content/
       types.ts               // Firestoreと静的既定値で共通の型
@@ -246,6 +256,7 @@ scripts/
 | `portfolioItems/{id}` | `/portfolio` の中身。カテゴリごとの個々の作品（`category` `order` `ready` `coverUrl` `links` `tags`） | ○（`ready:true` のみ） | 管理者のみ |
 | `career/timeline` | `/career` の年表（`items` に全項目をまとめて持つ） | ×（サーバーが読む） | 登録スクリプトのみ |
 | `stats/claudeUsage` | About の Claude Code 利用状況（日ごとのトークン数・応答数・セッション数と合計） | ×（サーバーが読む） | 登録スクリプトのみ |
+| `analytics/{日付}` | 操作の日ごとの回数（日本時間の `2026-11-05` ごと。`external` `tag` `catalog` に対象ごとの回数） | × | サーバーのみ（`/api/events`） |
 | `contacts/{id}` | 問い合わせ内容 | × | サーバーのみ |
 
 works と portfolioItems は役割が違う：works は「Web Sites」などカテゴリへの入口カード（常に5枚）、
@@ -273,7 +284,8 @@ Storage は `works/{workId}/{fileName}` と `portfolioItems/{itemId}/{fileName}`
 逆に保存できないときは 503 を返す（受け付けたふりをして問い合わせを失わないため）。
 
 スパム対策は、人間には見えないハニーポット項目（埋まっていたら成功を装って破棄）と
-IPごとのレート制限（60秒に3件）。レート制限は Cloud Run インスタンスごとのメモリなので厳密ではない。
+IPごとのレート制限（60秒に3件、`src/lib/rateLimit.ts`）。レート制限は Cloud Run インスタンスごとのメモリなので厳密ではない。
+IP は `X-Forwarded-For` から取るので偽れる。IP ごとの制限をすり抜けられても保存と通知が増え続けないよう、インスタンス全体でも 60 秒に 10 件までにしている。
 
 保存する値は氏名・メール・本文・`createdAt`・`read`・UserAgent・**IPのハッシュ**。
 生のIPは保存しない（連投判定に使えれば十分なため）。
@@ -452,6 +464,23 @@ Register-ScheduledTask -TaskName ClaudeUsageToPortfolio `
 About ページは ISR（5 分）なので、書き込んでから 5 分以内に反映される。
 タイルの右上には最後に集計した日を出し、「直近 7 日」「今月」もその日を基準に数える。
 `stats/claudeUsage` が無い・読めないときはタイルを出さない。
+
+### アクセス解析
+
+Cookie を使わず、同意のバナーも出さない。数えていることはフッターに一文で知らせる。
+
+- **ページの閲覧数**：Cloudflare Web Analytics。`src/lib/site.ts` の `analytics.cloudflareToken` に、
+  Cloudflare のダッシュボード（Web Analytics → Add a site → `kamijoharuto.com`）で出る token を書く。
+  token はページの HTML に載る値なので、コードに置いてよい。空のあいだと、本番のドメイン以外（手元・E2E）では読み込まない。
+  `/admin` `/login` と、カタログの iframe の中（`/catalog-frame`）では読み込まない。
+- **操作の回数**：Cloudflare では数えられないので、`/api/events` に送って `analytics/{日付}` に回数だけを足す（誰が押したかは残さない）。
+  数えるのは、外へのリンク（リンク先の URL。`#` 以降は除く）、タグでの絞り込み（新しく選んだタグ）、
+  カタログの幅の切り替え・パーツの名前を見るモード・パーツ図鑑でのコードのコピー。
+  誰でも送れるので、ほかのサイトからのもの（`Sec-Fetch-Site`、無ければ `Origin`・`Referer`）・ボット・連投（IP ごとに 1 分 30 回）・
+  サイトに出ていないリンクやタグは数えない。IP は偽れるので、書き込みはインスタンス全体でも 1 分 300 回までにして、費用に上限を付けている。
+- **問い合わせの送信**：保存した `contacts` をその期間で数える。
+
+回数は管理画面の「アクセス解析」で、直近 7 日・30 日・90 日を選んで見る。自分で公開ページを見た分も数えに入る。
 
 ### フォールバック設計
 

@@ -33,6 +33,17 @@ export const links = {
 };
 
 /**
+ * アクセス解析。ページの閲覧数は Cloudflare Web Analytics で数える（components/analytics/CloudflareAnalytics.tsx）。
+ * token は Cloudflare のダッシュボードの Web Analytics でサイトを足すと出る値。ページの HTML に載る値なので、隠さなくてよい。
+ * 空のあいだは計測用のスクリプトを読み込まない
+ */
+export const analytics = {
+    cloudflareToken: "",
+    /** 管理画面から開く、閲覧数を見るところ */
+    dashboardUrl: "https://dash.cloudflare.com/?to=/:account/web-analytics",
+};
+
+/**
  * /portfolio のブログのタブに自動で並べる記事の RSS。
  * name はカードのタグに出す。記事の URL が host 以外を指していたら載せない
  */
