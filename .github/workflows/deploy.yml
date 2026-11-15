@@ -54,8 +54,13 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
 
-      - name: Deploy
+      # 1 回の firebase deploy で両方に出すと、App Hosting の準備で失敗したときに kamijoharuto.com（Hosting）も更新されない。
+      # 移行のあいだは、いま公開している Hosting を先に出し、App Hosting はその後に分けて出す
+      - name: Deploy (Hosting・Functions・ルール)
         # App Hosting のデプロイの不具合（15.28.2 で修正。デプロイする SA に compute SA を作る権限が無いと失敗する）を避けるため、15.28.2 以上にする
-        run: npx --yes firebase-tools@15.36.0 deploy --project portfoliosite-b12da --non-interactive --force
+        run: npx --yes firebase-tools@15.36.0 deploy --project portfoliosite-b12da --non-interactive --force --except apphosting
         env:
           FIREBASE_CLI_EXPERIMENTS: webframeworks
+
+      - name: Deploy (App Hosting)
+        run: npx --yes firebase-tools@15.36.0 deploy --project portfoliosite-b12da --non-interactive --force --only apphosting
