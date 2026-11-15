@@ -50,7 +50,7 @@ Firebase Hosting（プロジェクト: `portfoliosite-b12da`）。
 
 Firebase App Hosting へ移っている途中。今は Hosting（web frameworks 連携）と App Hosting の両方にデプロイしていて、kamijoharuto.com はまだ Hosting を向いている。
 
-- App Hosting の backend は `portfolio`（asia-east1・Node 24）。確認用の URL は https://portfolio--portfoliosite-b12da.asia-east1.hosted.app
+- App Hosting の backend は `portfolio`（asia-east1・Node 24）。確認用の URL は [https://portfolio--portfoliosite-b12da.asia-east1.hosted.app](https://portfolio--portfoliosite-b12da.asia-east1.hosted.app)
 - 設定は `apphosting.yaml`（台数の上限・環境変数）。Firebase の Web 用の設定は公開の値なのでそこに書き、秘密の値（`ADMIN_EMAILS`・`RESEND_API_KEY`・`CONTACT_NOTIFY_TO`・`CONTACT_NOTIFY_FROM`・`CONTACT_CHAT_WEBHOOK_URL`）は Cloud Secret Manager に置く。値を変えるときは `firebase apphosting:secrets:set <名前>` で新しい版を足し、デプロイし直す
 - App Hosting は `next/image` の最適化を切る（画像はそのままの URL で返す）。middleware を通るページは CDN にキャッシュされない（このサイトは言語の振り分けで全ページが通る）
 
