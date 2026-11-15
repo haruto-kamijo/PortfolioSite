@@ -1,0 +1,53 @@
+# Firebase App Hosting の設定（backend: portfolio、region: asia-east1）。
+# https://firebase.google.com/docs/app-hosting/configure
+
+runConfig:
+  # 個人のサイトなので、使われていないときは 0 台にする（最初の 1 回は起動を待つ）
+  minInstances: 0
+  # 大量のアクセスで費用がふくらまないよう、台数に上限を付ける
+  maxInstances: 2
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
+
+env:
+  # Firebase の Web 用の設定。ブラウザに配られる公開の値なので、ここに書く（守りは firestore.rules・storage.rules で行う）
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: "AIzaSyAX0qT7F__Yydvz6h0BD1Zz_pPVJRR127w"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: "portfoliosite-b12da.firebaseapp.com"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: "portfoliosite-b12da"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: "portfoliosite-b12da.firebasestorage.app"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "728568221122"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:728568221122:web:574f2aa8678a66ccee9a5b"
+    availability: [BUILD, RUNTIME]
+
+  # 秘密の値は Cloud Secret Manager に置き、実行時にだけ読む（firebase apphosting:secrets:set <名前> で登録する）
+  - variable: ADMIN_EMAILS
+    secret: ADMIN_EMAILS
+    availability: [RUNTIME]
+  - variable: RESEND_API_KEY
+    secret: RESEND_API_KEY
+    availability: [RUNTIME]
+  - variable: CONTACT_NOTIFY_TO
+    secret: CONTACT_NOTIFY_TO
+    availability: [RUNTIME]
+  - variable: CONTACT_NOTIFY_FROM
+    secret: CONTACT_NOTIFY_FROM
+    availability: [RUNTIME]
+  - variable: CONTACT_CHAT_WEBHOOK_URL
+    secret: CONTACT_CHAT_WEBHOOK_URL
+    availability: [RUNTIME]
+  # 通知を送るチャットの種類。秘密ではないので、値をここに書く
+  - variable: CONTACT_CHAT_WEBHOOK_KIND
+    value: slack
+    availability: [RUNTIME]

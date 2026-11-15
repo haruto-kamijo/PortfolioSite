@@ -48,6 +48,12 @@ CI で落ちたときは、ワークフローの artifact（`playwright-report`�
 
 Firebase Hosting（プロジェクト: `portfoliosite-b12da`）。
 
+Firebase App Hosting へ移っている途中。今は Hosting（web frameworks 連携）と App Hosting の両方にデプロイしていて、kamijoharuto.com はまだ Hosting を向いている。
+
+- App Hosting の backend は `portfolio`（asia-east1・Node 24）。確認用の URL は [https://portfolio--portfoliosite-b12da.asia-east1.hosted.app](https://portfolio--portfoliosite-b12da.asia-east1.hosted.app)
+- 設定は `apphosting.yaml`（台数の上限・環境変数）。Firebase の Web 用の設定は公開の値なのでそこに書き、秘密の値（`ADMIN_EMAILS`・`RESEND_API_KEY`・`CONTACT_NOTIFY_TO`・`CONTACT_NOTIFY_FROM`・`CONTACT_CHAT_WEBHOOK_URL`）は Cloud Secret Manager に置く。値を変えるときは `firebase apphosting:secrets:set <名前>` で新しい版を足し、デプロイし直す
+- App Hosting は `next/image` の最適化を切る（画像はそのままの URL で返す）。middleware を通るページは CDN にキャッシュされない（このサイトは言語の振り分けで全ページが通る）
+
 main に push すると GitHub Actions（`.github/workflows/deploy.yml`）が自動でデプロイする。
 SSR 用 Cloud Functions の Node のバージョンは `package.json` の `engines.node` で決まる。Cloud Functions で提供が終わると（Node 20 は 2026-10-30 に終了）デプロイが止まるので、そのときは `engines.node` を上げる（`deploy.yml` もここから Node の版を読む）。共通 CI は `engines.node` を読まない（`.nvmrc` / `.node-version` しか見ない）ので、`.github/workflows/ci.yml` の `node-version` を手で合わせる。
 
@@ -300,6 +306,8 @@ IP は `X-Forwarded-For` から取るので偽れる。IP ごとの制限をす�
 | `CONTACT_NOTIFY_FROM` | 差出人（要ドメイン認証） |
 | `CONTACT_CHAT_WEBHOOK_URL` | Discord / Slack の Incoming Webhook（任意） |
 | `CONTACT_CHAT_WEBHOOK_KIND` | `discord` または `slack` |
+
+App Hosting では、`CONTACT_CHAT_WEBHOOK_KIND` は `apphosting.yaml` に値（`slack`）を書き、ほかは Cloud Secret Manager に置く。
 
 **未設定の通知チャネルは自動でスキップ**され、エラーにはならない。
 メールには `Reply-To` に訪問者のアドレスが入るので、受信メールで返信すればそのままやり取りできる。
