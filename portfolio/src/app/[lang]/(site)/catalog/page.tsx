@@ -9,11 +9,12 @@ import { getDictionary } from "@/lib/dictionary";
 import { DEFAULT_LOCALE, alternatesFor, isLocale, localizePath, pick } from "@/lib/i18n";
 import { openGraphFor } from "@/lib/metadata";
 
-type Props = { params: { lang: string } };
+type Props = { params: Promise<{ lang: string }> };
 
-const langOf = (params: Props["params"]) => (isLocale(params.lang) ? params.lang : DEFAULT_LOCALE);
+const langOf = (params: Awaited<Props["params"]>) => (isLocale(params.lang) ? params.lang : DEFAULT_LOCALE);
 
-export const generateMetadata = ({ params }: Props): Metadata => {
+export const generateMetadata = async (props: Props): Promise<Metadata> => {
+    const params = await props.params;
     const lang = langOf(params);
     const t = getDictionary(lang).meta;
     return {
@@ -25,7 +26,8 @@ export const generateMetadata = ({ params }: Props): Metadata => {
 };
 
 /** デザインカタログの入口。見本のページを、それぞれの見た目のままの小さなカードで並べる */
-export default function CatalogPage({ params }: Props) {
+export default async function CatalogPage(props: Props) {
+    const params = await props.params;
     const lang = langOf(params);
     const t = getDictionary(lang).catalog;
 

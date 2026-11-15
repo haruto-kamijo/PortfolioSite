@@ -13,11 +13,12 @@ import { getDictionary } from "@/lib/dictionary";
 import { DEFAULT_LOCALE, alternatesFor, isLocale, localizePath, pick, pickList } from "@/lib/i18n";
 import { openGraphFor } from "@/lib/metadata";
 
-type Props = { params: { lang: string } };
+type Props = { params: Promise<{ lang: string }> };
 
-const langOf = (params: Props["params"]) => (isLocale(params.lang) ? params.lang : DEFAULT_LOCALE);
+const langOf = (params: Awaited<Props["params"]>) => (isLocale(params.lang) ? params.lang : DEFAULT_LOCALE);
 
-export const generateMetadata = ({ params }: Props): Metadata => {
+export const generateMetadata = async (props: Props): Promise<Metadata> => {
+    const params = await props.params;
     const lang = langOf(params);
     const t = getDictionary(lang).meta;
     return {
@@ -46,7 +47,8 @@ const WIDE_PARTS = new Set<CatalogPartId>([
  * パーツ図鑑。パーツごとに名前・別名・役割と、そのパーツを使っている見本のページでの見え方を並べる。
  * 見本のページでパーツを押すと #<パーツの id> 付きでここに来るので、その項目を枠で目立たせる（HashHighlight）
  */
-export default function CatalogPartsPage({ params }: Props) {
+export default async function CatalogPartsPage(props: Props) {
+    const params = await props.params;
     const lang = langOf(params);
     const t = getDictionary(lang).catalog;
 
@@ -108,8 +110,7 @@ export default function CatalogPartsPage({ params }: Props) {
                                                     aria-label={`${pick(concept.name, lang)} — ${pick(part.name, lang)}`}
                                                     className="overflow-hidden border-b border-white/10"
                                                     // 見本の中のボタンや入力欄は、見本のページで動かすもの。ここでは絵として見せ、押せないようにする
-                                                    // （React 18 は inert を属性として扱わず、true では出力されないので、空の文字列で渡す）
-                                                    {...({ inert: "" } as object)}
+                                                    inert
                                                 >
                                                     <Frame>
                                                         <Sample lang={lang} />

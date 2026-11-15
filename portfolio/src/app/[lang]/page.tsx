@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { CSSProperties, useCallback, useEffect, useMemo, useRef } from "react";
+import { CSSProperties, use, useCallback, useEffect, useMemo, useRef } from "react";
 import { ScenePhase, useSpaceScene } from "@/components/space/SpaceSceneProvider";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { getDictionary } from "@/lib/dictionary";
@@ -479,7 +479,8 @@ function ContentRings({
     );
 }
 
-export default function StartPage({ params }: { params: { lang: string } }) {
+export default function StartPage(props: { params: Promise<{ lang: string }> }) {
+    const params = use(props.params);
     const lang = isLocale(params.lang) ? params.lang : DEFAULT_LOCALE;
     const homePath = localizePath("/home", lang);
     const router = useRouter();

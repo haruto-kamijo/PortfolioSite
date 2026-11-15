@@ -64,8 +64,9 @@ const Table = ({ title, rows, label }: { title: string; rows: AnalyticsRow[]; la
     );
 };
 
-export default async function AdminAnalyticsPage({ searchParams }: { searchParams: { days?: string } }) {
+export default async function AdminAnalyticsPage(props: { searchParams: Promise<{ days?: string }> }) {
     await requireAdminPage();
+    const searchParams = await props.searchParams;
     const requested = Number(searchParams.days);
     const days = isAnalyticsPeriod(requested) ? requested : 30;
     // タグは小文字にして数えているので、作品に付いている書き方に戻して出す

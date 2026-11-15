@@ -6,9 +6,9 @@ import { CATALOG_CONCEPTS, CATALOG_CONCEPT_IDS, isCatalogConceptId } from "@/lib
 import { DEFAULT_LOCALE, alternatesFor, isLocale, pick } from "@/lib/i18n";
 import { openGraphFor } from "@/lib/metadata";
 
-type Props = { params: { lang: string; concept: string } };
+type Props = { params: Promise<{ lang: string; concept: string }> };
 
-const langOf = (params: Props["params"]) => (isLocale(params.lang) ? params.lang : DEFAULT_LOCALE);
+const langOf = (params: Awaited<Props["params"]>) => (isLocale(params.lang) ? params.lang : DEFAULT_LOCALE);
 
 /**
  * 見本のページだけを描くページ。
@@ -22,7 +22,8 @@ export const dynamicParams = false;
 
 export const generateStaticParams = () => CATALOG_CONCEPT_IDS.map((concept) => ({ concept }));
 
-export const generateMetadata = ({ params }: Props): Metadata => {
+export const generateMetadata = async (props: Props): Promise<Metadata> => {
+    const params = await props.params;
     if (!isCatalogConceptId(params.concept)) return {};
     const lang = langOf(params);
     // 正規の URL は見本の本体のページ（言語のレイアウトの既定ではトップを指してしまうため、ここで上書きする）
@@ -35,7 +36,8 @@ export const generateMetadata = ({ params }: Props): Metadata => {
     };
 };
 
-export default function CatalogFramePage({ params }: Props) {
+export default async function CatalogFramePage(props: Props) {
+    const params = await props.params;
     if (!isCatalogConceptId(params.concept)) notFound();
     const { Page } = CONCEPT_VIEWS[params.concept];
     // data-catalog-page は、見本の中のナビや CTA ボタンが、動かす先のパーツを探す範囲の目印（Interactive.tsx）
