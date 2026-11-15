@@ -62,9 +62,10 @@ firebase deploy
 
 - **Dependabot**（`.github/dependabot.yml`）：毎週月曜に、npm の依存と GitHub Actions の更新を PR で出す。
   - minor・patch の更新は、1つの PR にまとめる。ただし `three`・`@types/three` は 0.x で壊れやすいので、まとめずに別の PR にする。
+  - React と `@react-three/*` も別の PR にまとめる。`@react-three/fiber` は peer で React の上限を切っている（9.8 は 19.4 未満）ので、React だけが先に上がると入らない。fiber が対応した版と一緒に上がる。
   - Next.js・React・Tailwind・ESLint などのメジャー更新は、作り直しを伴うので出さない。
   - TypeScript（Next 14 では 7 が使えなかった。Next 15 で使えるかは確かめていない）のメジャー更新も出さない。Next を上げるときに手で上げる。
-  - firebase・firebase-admin のメジャー更新も出さない。デプロイのときに firebase-tools が足す `firebase-frameworks` が firebase 12・firebase-admin 13 までしか対応しておらず、それより上ではデプロイが止まる（PR の CI では分からない）。外すのは、`deploy.yml` で固定した firebase-tools が足す範囲（今は `firebase-frameworks ^0.11.0`）の中に、対応した版が出てから。範囲の外の版でしか対応していなければ、先に firebase-tools を上げる。firebase 13 は Node 24.12 以上も求めるので、`engines.node` を 24（24.12 以上）に上げることも条件。
+  - firebase・firebase-admin のメジャー更新も出さない。デプロイのときに firebase-tools が足す `firebase-frameworks` が firebase 12・firebase-admin 13 までしか対応しておらず、それより上ではデプロイが止まる（PR の CI では分からない）。外すのは、`deploy.yml` で固定した firebase-tools が足す範囲（今は `firebase-frameworks ^0.11.0`）の中に、対応した版が出てから。範囲の外の版でしか対応していなければ、先に firebase-tools を上げる。firebase 13 は Node 24.12 以上も求める（`engines.node` は 24 にした。`deploy.yml` は 24 の最新を入れるので 24.12 以上になる）。
   - この除外が効くのは、毎週の通常の更新だけ。リポジトリで Dependabot のセキュリティ更新を有効にしていると、脆弱性を直すためのメジャー更新は除外していても PR が出る。
 - **サポート期限の確認**（`.github/workflows/lifecycle.yml`）：毎週月曜に、次の期限や遅れを確かめる。
   - Cloud Functions の Node のランタイム：期限は firebase-tools の対応表から読む。
