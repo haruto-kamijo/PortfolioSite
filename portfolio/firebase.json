@@ -10,6 +10,23 @@
       "region": "asia-east1"
     }
   },
+  "apphosting": [
+    {
+      "backendId": "portfolio",
+      "rootDir": "/",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "**/.env*",
+        ".next",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "test-results",
+        "playwright-report",
+        "tsconfig.tsbuildinfo"
+      ]
+    }
+  ],
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
