@@ -17,7 +17,12 @@ updates:
       prefix: "[chore]"
     # 小さな更新（minor・patch）は1つの PR にまとめる。
     # three は 0.x で、minor でも作りが変わり @react-three/* と合わなくなることがあるので、まとめずに別の PR にする
+    # React と @react-three/* も別の PR にまとめる。@react-three/fiber は React の minor ごとに作られていて、peer で React の上限を切っている（9.8 は <19.4）。
+    # React だけが先に上がると入らないので、fiber と同じ PR にして、fiber が対応した版と一緒に上げる（対応前はこの PR だけが止まる）
     groups:
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom", "@react-three/*"]
+        update-types: [minor, patch]
       minor-and-patch:
         update-types: [minor, patch]
         exclude-patterns: ["three", "@types/three"]
@@ -45,14 +50,14 @@ updates:
       # 型は engines.node の Node と合わせて、engines を上げるときに手で上げる
       - dependency-name: "@types/node"
         update-types: [version-update:semver-major]
-      # TypeScript 7 は Next 14 が使う Compiler API を持たず、ビルドが止まる。Next を上げるときに合わせて上げる
+      # TypeScript 7 は Next 14 が使う Compiler API を持たず、ビルドが止まった（Next 15 では確かめていない）。Next を上げるときに合わせて上げる
       - dependency-name: typescript
         update-types: [version-update:semver-major]
       # firebase-tools はデプロイのときに firebase-frameworks を足す。その peer が firebase ^12・firebase-admin ^13 までなので、
       # それより上のメジャーにするとデプロイの npm install が ERESOLVE で止まる（CI では分からない）。
       # 外すのは、deploy.yml で固定した firebase-tools が足す範囲（今は firebase-frameworks ^0.11.0）の中に、新しいメジャーに対応した版が出てから。
       # 範囲の外の版でしか対応していなければ、先に deploy.yml の firebase-tools を上げて、足される範囲を確かめる。
-      # firebase 13 はさらに engines で Node 24.12 以上を求めるので、engines.node を 24（24.12 以上）に上げることも条件
+      # firebase 13 はさらに engines で Node 24.12 以上を求めるので、engines.node は 24 にした（deploy.yml は 24 の最新を入れるので 24.12 以上になる）
       - dependency-name: firebase
         update-types: [version-update:semver-major]
       - dependency-name: firebase-admin

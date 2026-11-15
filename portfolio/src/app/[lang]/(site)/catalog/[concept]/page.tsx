@@ -12,16 +12,17 @@ import { getDictionary } from "@/lib/dictionary";
 import { DEFAULT_LOCALE, alternatesFor, isLocale, localizePath, pick } from "@/lib/i18n";
 import { openGraphFor } from "@/lib/metadata";
 
-type Props = { params: { lang: string; concept: string } };
+type Props = { params: Promise<{ lang: string; concept: string }> };
 
-const langOf = (params: Props["params"]) => (isLocale(params.lang) ? params.lang : DEFAULT_LOCALE);
+const langOf = (params: Awaited<Props["params"]>) => (isLocale(params.lang) ? params.lang : DEFAULT_LOCALE);
 
 /** 見本のページは決まった4つだけ。それ以外の名前は 404 にする */
 export const dynamicParams = false;
 
 export const generateStaticParams = () => CATALOG_CONCEPT_IDS.map((concept) => ({ concept }));
 
-export const generateMetadata = ({ params }: Props): Metadata => {
+export const generateMetadata = async (props: Props): Promise<Metadata> => {
+    const params = await props.params;
     if (!isCatalogConceptId(params.concept)) return {};
     const lang = langOf(params);
     const concept = CATALOG_CONCEPTS[params.concept];
@@ -34,7 +35,8 @@ export const generateMetadata = ({ params }: Props): Metadata => {
     };
 };
 
-export default function CatalogConceptPage({ params }: Props) {
+export default async function CatalogConceptPage(props: Props) {
+    const params = await props.params;
     if (!isCatalogConceptId(params.concept)) notFound();
     const id = params.concept;
     const lang = langOf(params);

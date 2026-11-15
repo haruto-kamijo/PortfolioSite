@@ -19,7 +19,8 @@ export const dynamicParams = false;
 
 export const generateStaticParams = () => LOCALES.map((lang) => ({ lang }));
 
-export const generateMetadata = ({ params }: { params: { lang: string } }): Metadata => {
+export const generateMetadata = async (props: { params: Promise<{ lang: string }> }): Promise<Metadata> => {
+    const params = await props.params;
     if (!isLocale(params.lang)) return {};
     const lang = params.lang;
     const t = getDictionary(lang);
@@ -36,19 +37,20 @@ export const generateMetadata = ({ params }: { params: { lang: string } }): Meta
     };
 };
 
-export default function LangLayout({
-                                       children,
-                                       params,
-                                   }: {
+export default async function LangLayout({
+                                             children,
+                                             params,
+                                         }: {
     children: React.ReactNode;
-    params: { lang: string };
+    params: Promise<{ lang: string }>;
 }) {
-    if (!isLocale(params.lang)) notFound();
+    const { lang } = await params;
+    if (!isLocale(lang)) notFound();
 
     return (
         // contents にしておくと、このラッパーがレイアウト（flex や min-h）に影響しない
-        <div lang={params.lang} className="contents">
-            <HtmlLang lang={params.lang} />
+        <div lang={lang} className="contents">
+            <HtmlLang lang={lang} />
             {children}
             <CloudflareAnalytics />
         </div>

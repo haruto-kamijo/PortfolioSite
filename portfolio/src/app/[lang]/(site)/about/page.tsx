@@ -12,11 +12,12 @@ import { getDictionary } from "@/lib/dictionary";
 import { DEFAULT_LOCALE, alternatesFor, isLocale, pick, pickList } from "@/lib/i18n";
 import { openGraphFor } from "@/lib/metadata";
 
-type Props = { params: { lang: string } };
+type Props = { params: Promise<{ lang: string }> };
 
-const langOf = (params: Props["params"]) => (isLocale(params.lang) ? params.lang : DEFAULT_LOCALE);
+const langOf = (params: Awaited<Props["params"]>) => (isLocale(params.lang) ? params.lang : DEFAULT_LOCALE);
 
-export const generateMetadata = ({ params }: Props): Metadata => {
+export const generateMetadata = async (props: Props): Promise<Metadata> => {
+    const params = await props.params;
     const lang = langOf(params);
     const t = getDictionary(lang).meta;
     return {
@@ -43,7 +44,8 @@ const TagList = ({ items }: { items: string[] }) => (
     </ul>
 );
 
-export default async function AboutPage({ params }: Props) {
+export default async function AboutPage(props: Props) {
+    const params = await props.params;
     const lang = langOf(params);
     const otherLang = lang === "ja" ? "en" : "ja";
     const t = getDictionary(lang);

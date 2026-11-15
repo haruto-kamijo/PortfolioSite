@@ -15,11 +15,12 @@ import { DEFAULT_LOCALE, alternatesFor, isLocale, localizePath, pick, pickList }
 import { openGraphFor } from "@/lib/metadata";
 import { links, site } from "@/lib/site";
 
-type Props = { params: { lang: string } };
+type Props = { params: Promise<{ lang: string }> };
 
-const langOf = (params: Props["params"]) => (isLocale(params.lang) ? params.lang : DEFAULT_LOCALE);
+const langOf = (params: Awaited<Props["params"]>) => (isLocale(params.lang) ? params.lang : DEFAULT_LOCALE);
 
-export const generateMetadata = ({ params }: Props): Metadata => {
+export const generateMetadata = async (props: Props): Promise<Metadata> => {
+    const params = await props.params;
     const lang = langOf(params);
     return {
         title: getDictionary(lang).meta.home,
@@ -48,7 +49,8 @@ const getLatest = async (): Promise<PortfolioItem[]> => {
  */
 export const revalidate = 300;
 
-export default async function HomePage({ params }: Props) {
+export default async function HomePage(props: Props) {
+    const params = await props.params;
     const lang = langOf(params);
     const t = getDictionary(lang);
     const [{ profile, skillGroups, works }, latest] = await Promise.all([getSiteContent(), getLatest()]);

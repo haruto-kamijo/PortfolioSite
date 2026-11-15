@@ -152,7 +152,8 @@ export const CatalogViewer = ({
     useLayoutEffect(measure, [measure, frameHeight, framePx, frameLoaded]);
 
     // 名前を見るモードでは iframe を inert にして、クリック・キーボード・タッチ・フォーカスのどれでも見本の部品が動かないようにする。
-    // React 18 は inert を属性として持たないので、直接付け外しする。iframe はサーバーから inert で届き、ページを操作するモードならここで外す
+    // iframe の props の inert は、サーバーから inert で届けるためのもので、値を変えない（React は付け直さない）。
+    // 付け外しはここで直接行い、ページを操作するモードなら外す
     // （ハイドレーションの前に、名前を見るモードの見本を押せないように）
     useLayoutEffect(() => {
         frameRef.current?.toggleAttribute("inert", mode === "parts");
@@ -491,8 +492,7 @@ export const CatalogViewer = ({
                                     pointerEvents: mode === "parts" ? "none" : undefined,
                                 }}
                                 // サーバーで描くときは見方が分からないので、inert で出しておき、動かせるようになってから外す
-                                // （React 18 は inert を属性として扱わないので、空の文字列で渡す）
-                                {...({ inert: "" } as object)}
+                                inert
                             />
                         </div>
 

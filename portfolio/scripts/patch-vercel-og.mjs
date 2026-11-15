@@ -2,7 +2,7 @@
 //
 // Windows の手元で next build・next dev が OG 画像（/og.png・/catalog-cover.png）を作れない問題を、npm install のあとに直す。
 //
-// Next 14 に同梱の @vercel/og は、フォントと wasm の場所を path.join(import.meta.url, "../…") で組み立てている。
+// Next 14・15 に同梱の @vercel/og は、フォントと wasm の場所を path.join(import.meta.url, "../…") で組み立てている。
 // Windows の新しい Node（22.23 など）は、path.join が "file:" で始まる部分の前に ".\" を付けるので、
 // fileURLToPath が Invalid URL で失敗する。URL のまま new URL("./…", import.meta.url) で組み立てるように書き換える
 // （path.join はファイル名をフォルダとして数えるので "../" で同じフォルダを指す。URL では "./" が同じフォルダ）。

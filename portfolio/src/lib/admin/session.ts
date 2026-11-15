@@ -92,7 +92,7 @@ export const createAdminSession = async (
  * すぐに弾ける（毎回1回のネットワーク往復が増えるが、管理画面なので許容する）。
  */
 export const getAdminUser = async (): Promise<AdminUser | null> => {
-    const token = cookies().get(ADMIN_SESSION_COOKIE)?.value;
+    const token = (await cookies()).get(ADMIN_SESSION_COOKIE)?.value;
     if (!token) {
         // middleware は Cookie の有無しか見ないため、ここに来た時点でCookie無しなら
         // middleware をすり抜けた別経路（Server Action の直接呼び出し等）ということになる

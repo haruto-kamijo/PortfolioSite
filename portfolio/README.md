@@ -11,7 +11,7 @@ npm run build   # 本番ビルド（型チェックとLintも走る）
 npm run lint
 ```
 
-Windows の新しい Node（22.23 など）では、Next 14 に同梱の `@vercel/og` がフォントや wasm の場所を読めず、ビルドや dev で `/og.png` などを作るところが `Invalid URL` で止まる。
+Windows の新しい Node（22.23 など）では、Next 14・15 に同梱の `@vercel/og` がフォントや wasm の場所を読めず、ビルドや dev で `/og.png` などを作るところが `Invalid URL` で止まる。
 `npm install` のあとに `scripts/patch-vercel-og.mjs`（`postinstall`）がそこを書き換えるので、ふつうは何もしなくてよい。Windows 以外（CI・本番の Linux）では書き換えない。
 それでも止まるときは、`node scripts/patch-vercel-og.mjs` を実行して、出たメッセージを見る。
 
@@ -62,9 +62,10 @@ firebase deploy
 
 - **Dependabot**（`.github/dependabot.yml`）：毎週月曜に、npm の依存と GitHub Actions の更新を PR で出す。
   - minor・patch の更新は、1つの PR にまとめる。ただし `three`・`@types/three` は 0.x で壊れやすいので、まとめずに別の PR にする。
+  - React と `@react-three/*` も別の PR にまとめる。`@react-three/fiber` は peer で React の上限を切っている（9.8 は 19.4 未満）ので、React だけが先に上がると入らない。fiber が対応した版と一緒に上がる。
   - Next.js・React・Tailwind・ESLint などのメジャー更新は、作り直しを伴うので出さない。
-  - TypeScript（Next 14 では 7 が使えない）のメジャー更新も出さない。Next を上げるときに手で上げる。
-  - firebase・firebase-admin のメジャー更新も出さない。デプロイのときに firebase-tools が足す `firebase-frameworks` が firebase 12・firebase-admin 13 までしか対応しておらず、それより上ではデプロイが止まる（PR の CI では分からない）。外すのは、`deploy.yml` で固定した firebase-tools が足す範囲（今は `firebase-frameworks ^0.11.0`）の中に、対応した版が出てから。範囲の外の版でしか対応していなければ、先に firebase-tools を上げる。firebase 13 は Node 24.12 以上も求めるので、`engines.node` を 24（24.12 以上）に上げることも条件。
+  - TypeScript（Next 14 では 7 が使えなかった。Next 15 で使えるかは確かめていない）のメジャー更新も出さない。Next を上げるときに手で上げる。
+  - firebase・firebase-admin のメジャー更新も出さない。デプロイのときに firebase-tools が足す `firebase-frameworks` が firebase 12・firebase-admin 13 までしか対応しておらず、それより上ではデプロイが止まる（PR の CI では分からない）。外すのは、`deploy.yml` で固定した firebase-tools が足す範囲（今は `firebase-frameworks ^0.11.0`）の中に、対応した版が出てから。範囲の外の版でしか対応していなければ、先に firebase-tools を上げる。firebase 13 は Node 24.12 以上も求める（`engines.node` は 24 にした。`deploy.yml` は 24 の最新を入れるので 24.12 以上になる）。
   - この除外が効くのは、毎週の通常の更新だけ。リポジトリで Dependabot のセキュリティ更新を有効にしていると、脆弱性を直すためのメジャー更新は除外していても PR が出る。
 - **サポート期限の確認**（`.github/workflows/lifecycle.yml`）：毎週月曜に、次の期限や遅れを確かめる。
   - Cloud Functions の Node のランタイム：期限は firebase-tools の対応表から読む。
@@ -79,7 +80,7 @@ firebase deploy
   - 情報を読めなかった。
 
   開いている Issue は毎週本文を書き換える。要対応・注意の項目のうち、前回から状態が変わったもの（新しく出た・重くなった・軽くなった）があるときはコメントを付けるので、通知が届く（問題なしに戻っただけのものはコメントしない）。
-  対応が必要なものが無くなったら閉じる。Next.js 14 はすでにサポートが終わっているので、Next.js 15 以降に移るまで Issue は開いたままになる。
+  対応が必要なものが無くなったら閉じる。Next.js 15 は 2027-01-31 にサポートが終わるので、Next.js 16 に移るまで Issue は「注意」のまま開いている。
   手で動かすときは Actions の画面から `workflow_dispatch` で実行する。
   公開リポジトリでは、60 日間リポジトリに活動が無いと GitHub が schedule を止めるので、Issue の日付が古いままなら Actions の画面で有効に戻す。
 - Dependabot のコミットと PR のタイトルは、`[chore]` の後ろに Dependabot がコロンを足して `[chore]: Bump ...` になることがある。

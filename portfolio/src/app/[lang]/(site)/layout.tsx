@@ -1,7 +1,7 @@
 // src/app/[lang]/(site)/layout.tsx
 "use client";
 
-import React, { useEffect } from "react";
+import React, { use, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { AnalyticsEvents } from "@/components/analytics/AnalyticsEvents";
@@ -18,9 +18,10 @@ export default function SiteLayout({
                                        params,
                                    }: {
     children: React.ReactNode;
-    params: { lang: string };
+    params: Promise<{ lang: string }>;
 }) {
-    const lang = isLocale(params.lang) ? params.lang : DEFAULT_LOCALE;
+    const { lang: requested } = use(params);
+    const lang = isLocale(requested) ? requested : DEFAULT_LOCALE;
     const { setPhase } = useSpaceScene();
 
     // ワープ直後は背景が拡大・暗転したままなので、通常表示に戻す
