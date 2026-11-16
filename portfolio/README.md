@@ -46,21 +46,20 @@ CI で落ちたときは、ワークフローの artifact（`playwright-report`�
 
 ## デプロイ
 
-Firebase Hosting（プロジェクト: `portfoliosite-b12da`）。
+Firebase App Hosting（プロジェクト: `portfoliosite-b12da`、backend: `portfolio`、asia-east1・Node 24）。kamijoharuto.com は App Hosting のカスタムドメイン（DNS は Cloudflare、DNS only）。
 
-Firebase App Hosting へ移っている途中。今は Hosting（web frameworks 連携）と App Hosting の両方にデプロイしていて、kamijoharuto.com はまだ Hosting を向いている。
-
-- App Hosting の backend は `portfolio`（asia-east1・Node 24）。確認用の URL は [https://portfolio--portfoliosite-b12da.asia-east1.hosted.app](https://portfolio--portfoliosite-b12da.asia-east1.hosted.app)
+- App Hosting の既定の URL は [https://portfolio--portfoliosite-b12da.asia-east1.hosted.app](https://portfolio--portfoliosite-b12da.asia-east1.hosted.app)。この URL は Firebase Auth の承認済みドメインに入れていないので、管理画面へのログインは kamijoharuto.com で行う
+- Cloudflare の TXT（`fah-claim`・`hosting-site`）と CNAME（`_acme-challenge_…`）は、ドメインの所有と証明書の更新に使うので消さない
+- Firebase Hosting（`portfoliosite-b12da.web.app`・`firebaseapp.com`）は、すべてのパスを kamijoharuto.com の同じパスへ 301 で転送するだけ（`firebase.json` の `redirects`、公開するのは `hosting-redirect/` のリンクだけのページ）。ログインの `/__/auth/` は Firebase が先に返すので転送されない
 - 設定は `apphosting.yaml`（台数の上限・環境変数）。Firebase の Web 用の設定は公開の値なのでそこに書き、秘密の値（`ADMIN_EMAILS`・`RESEND_API_KEY`・`CONTACT_NOTIFY_TO`・`CONTACT_NOTIFY_FROM`・`CONTACT_CHAT_WEBHOOK_URL`）は Cloud Secret Manager に置く。値を変えるときは `firebase apphosting:secrets:set <名前>` で新しい版を足し、デプロイし直す
 - App Hosting は `next/image` の最適化を切る（画像はそのままの URL で返す）。middleware を通るページは CDN にキャッシュされない（このサイトは言語の振り分けで全ページが通る）
 
-main に push すると GitHub Actions（`.github/workflows/deploy.yml`）が自動でデプロイする。
-SSR 用 Cloud Functions の Node のバージョンは `package.json` の `engines.node` で決まる。Cloud Functions で提供が終わると（Node 20 は 2026-10-30 に終了）デプロイが止まるので、そのときは `engines.node` を上げる（`deploy.yml` もここから Node の版を読む）。共通 CI は `engines.node` を読まない（`.nvmrc` / `.node-version` しか見ない）ので、`.github/workflows/ci.yml` の `node-version` を手で合わせる。
+main に push すると GitHub Actions（`.github/workflows/deploy.yml`）が自動でデプロイする。App Hosting は Firebase 側でビルドするので、Actions ではビルドしない。
+App Hosting の実行環境の Node のバージョンは `package.json` の `engines.node` で決まる。Google Cloud で提供が終わるとデプロイが止まるおそれがあるので（Cloud Functions では Node 20 が 2026-10-30 に終わり、実際に止まった）、期限が近づいたら `engines.node` を上げる。backend の runtime は `nodejs24` のように版で指定している（自動のベースイメージ更新を使うため）ので、`engines.node` と食い違うとビルドが止まる。先に Firebase コンソールで backend の runtime を同じ版へ変えてから、`engines.node` を上げる。共通 CI は `engines.node` を読まない（`.nvmrc` / `.node-version` しか見ない）ので、`.github/workflows/ci.yml` の `node-version` を手で合わせる。
 
-手元からデプロイする場合：
+手元からデプロイする場合（ソースを上げて Firebase 側でビルドする）：
 
 ```bash
-npm run build
 firebase deploy
 ```
 
@@ -71,10 +70,10 @@ firebase deploy
   - React と `@react-three/*` も別の PR にまとめる。`@react-three/fiber` は peer で React の上限を切っている（9.8 は 19.4 未満）ので、React だけが先に上がると入らない。fiber が対応した版と一緒に上がる。
   - Next.js・React・Tailwind・ESLint などのメジャー更新は、作り直しを伴うので出さない。
   - TypeScript（Next 14 では 7 が使えなかった。Next 15 で使えるかは確かめていない）のメジャー更新も出さない。Next を上げるときに手で上げる。
-  - firebase・firebase-admin のメジャー更新も出さない。デプロイのときに firebase-tools が足す `firebase-frameworks` が firebase 12・firebase-admin 13 までしか対応しておらず、それより上ではデプロイが止まる（PR の CI では分からない）。外すのは、`deploy.yml` で固定した firebase-tools が足す範囲（今は `firebase-frameworks ^0.11.0`）の中に、対応した版が出てから。範囲の外の版でしか対応していなければ、先に firebase-tools を上げる。firebase 13 は Node 24.12 以上も求める（`engines.node` は 24 にした。`deploy.yml` は 24 の最新を入れるので 24.12 以上になる）。
+  - firebase・firebase-admin のメジャー更新は出す（Firebase Hosting の web frameworks 連携をやめたので、`firebase-frameworks` の対応範囲に縛られなくなった）。firebase 13 は Node 24.12 以上を求めるので、マージの後に App Hosting のビルドが通るかを確かめる。
   - この除外が効くのは、毎週の通常の更新だけ。リポジトリで Dependabot のセキュリティ更新を有効にしていると、脆弱性を直すためのメジャー更新は除外していても PR が出る。
 - **サポート期限の確認**（`.github/workflows/lifecycle.yml`）：毎週月曜に、次の期限や遅れを確かめる。
-  - Cloud Functions の Node のランタイム：期限は firebase-tools の対応表から読む。
+  - App Hosting の Node のランタイム：期限は、目安として firebase-tools の Cloud Functions の対応表から読む（どちらも Google Cloud の Node のランタイムを使う）。
   - Node.js・Next.js：期限は endoflife.date から読む。
   - Next.js の同じ系列の新しいパッチ。
   - `deploy.yml` で固定している firebase-tools の版の遅れ。

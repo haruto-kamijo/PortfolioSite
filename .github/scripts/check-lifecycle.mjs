@@ -2,10 +2,10 @@
 //
 // サポート期限が近いもの・切れたものを確かめる（lifecycle.yml から毎週動かす）。
 //
-//   - Cloud Functions の Node のランタイム（portfolio/package.json の engines.node）
-//     期限は firebase-tools の対応表（deprecationDate / decommissionDate）から読む。
-//     最新版の表で期限を見て、deploy.yml で固定している版の表にその Node が入っているかも見る。
-//     2026-10-30 に Node 20 の提供が終わってデプロイが止まったことがあり、その再発を防ぐため
+//   - App Hosting の Node のランタイム（portfolio/package.json の engines.node）
+//     期限は、目安として firebase-tools の Cloud Functions の対応表（deprecationDate / decommissionDate）から読む
+//     （App Hosting も Cloud Functions も Google Cloud の Node のランタイムを使う）。
+//     Cloud Functions で 2026-10-30 に Node 20 の提供が終わってデプロイが止まったことがあり、その再発を防ぐため
 //   - Node.js そのもののサポート期限（endoflife.date）
 //   - Next.js のサポート期限と、同じ系列の新しいパッチ（endoflife.date）
 //   - deploy.yml で固定している firebase-tools の版が、最新からメジャーで遅れていないか
@@ -133,14 +133,13 @@ const settle = async (fn) => {
 };
 // 順番に読む（npm pack の待ち時間で、fetch のタイムアウトを使い切らないように）
 const latestTable = await settle(() => readRuntimeTable("firebase-tools@latest"));
-const pinnedTable = pinnedFirebaseTools ? await settle(() => readRuntimeTable(`firebase-tools@${pinnedFirebaseTools}`)) : null;
 const nodeCycles = await settle(() => getCycles("https://endoflife.date/api/nodejs.json"));
 const nextCycles = await settle(() => getCycles("https://endoflife.date/api/nextjs.json"));
 
 // ---- 確かめる ----
 
-// Cloud Functions の Node のランタイム
-const runtimeName = `Cloud Functions の Node ${nodeMajor ?? "?"}`;
+// App Hosting の Node のランタイム
+const runtimeName = `App Hosting の Node ${nodeMajor ?? "?"}`;
 if (!nodeMajor) {
     findings.push({ level: "error", name: runtimeName, detail: "portfolio/package.json に engines.node が無い", action: "engines.node を書く" });
 } else if (latestTable.error) {
@@ -152,7 +151,7 @@ if (!nodeMajor) {
             level: "error",
             name: runtimeName,
             detail: `firebase-tools ${latestTable.value.version} の対応表に nodejs${nodeMajor} が無い`,
-            action: "engines.node を Cloud Functions が対応している版にする",
+            action: "engines.node を Google Cloud が対応している Node の版にする",
         });
     } else if (!isValidDate(runtime.deprecationDate) || !isValidDate(runtime.decommissionDate)) {
         // 日付を読めない・暦に無い日だと期限の判定が狂うので、読めなかったものとして出す
@@ -167,7 +166,7 @@ if (!nodeMajor) {
             name: runtimeName,
             detail: `非推奨 ${when(runtime.deprecationDate)}・提供終了 ${when(runtime.decommissionDate)}。提供終了の日を過ぎるとデプロイが止まる`,
             action:
-                level === "ok" ? undefined : "portfolio/package.json の engines.node を新しい版に上げる（deploy.yml・e2e.yml もここから版を読む。.github/workflows/ci.yml の node-version は手で合わせる）",
+                level === "ok" ? undefined : "portfolio/package.json の engines.node を新しい版に上げる。App Hosting の backend（portfolio）は runtime を nodejs24 のように版で指定しているので、先に Firebase コンソールで同じ版へ変える（deploy.yml・e2e.yml も engines.node から版を読む。.github/workflows/ci.yml の node-version は手で合わせる）",
         });
     }
 }
@@ -176,17 +175,8 @@ if (!nodeMajor) {
 const pinnedName = `firebase-tools ${pinnedFirebaseTools ?? "?"}（deploy.yml）`;
 if (!pinnedFirebaseTools) {
     findings.push({ level: "warn", name: pinnedName, detail: "deploy.yml から firebase-tools の版を読めない", action: "deploy.yml の書き方を確かめる" });
-} else if (pinnedTable.error) {
-    unreadable(pinnedName, pinnedTable.error);
-} else if (nodeMajor && !pinnedTable.value.runtimes[`nodejs${nodeMajor}`]) {
-    // 固定している版が engines.node の Node を知らないと、デプロイで失敗する
-    findings.push({
-        level: "error",
-        name: pinnedName,
-        detail: `この版の対応表に nodejs${nodeMajor} が無い（engines.node の版でデプロイできない）`,
-        action: "deploy.yml の firebase-tools の版を上げる",
-    });
 } else if (!latestTable.error) {
+    // Cloud Functions はもう出さないので、固定した版の対応表に engines.node の Node があるかは見ない（App Hosting は Firebase 側でビルドする）
     const behind = Number(latestTable.value.version.split(".")[0]) - Number(pinnedFirebaseTools.split(".")[0]);
     findings.push({
         level: behind >= 1 ? "warn" : "ok",
@@ -205,7 +195,7 @@ if (nodeMajor) {
         if (!cycle) {
             findings.push({ level: "warn", name: `Node.js ${nodeMajor}`, detail: "endoflife.date にこの系列が無い", action: "取得先の形が変わっていないか確かめる" });
         } else {
-            // 実行環境の期限は Cloud Functions の行で見ているので、こちらは注意までにする
+            // 実行環境の期限は App Hosting の行で見ているので、こちらは注意までにする
             const level = eolLevel(cycle.eol) === "ok" ? "ok" : "warn";
             findings.push({
                 level,

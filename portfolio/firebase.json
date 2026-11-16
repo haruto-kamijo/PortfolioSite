@@ -1,14 +1,16 @@
 {
   "hosting": {
-    "source": ".",
+    "public": "hosting-redirect",
     "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
+      "**/.*"
     ],
-    "frameworksBackend": {
-      "region": "asia-east1"
-    }
+    "redirects": [
+      {
+        "regex": "^/(?P<path>.*)$",
+        "destination": "https://kamijoharuto.com/:path",
+        "type": 301
+      }
+    ]
   },
   "apphosting": [
     {
@@ -23,6 +25,7 @@
         "firebase-debug.*.log",
         "test-results",
         "playwright-report",
+        "hosting-redirect",
         "tsconfig.tsbuildinfo"
       ]
     }

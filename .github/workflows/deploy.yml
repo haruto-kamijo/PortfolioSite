@@ -1,7 +1,7 @@
-# main への push で Firebase（Hosting + SSR Functions + App Hosting + Firestore/Storage ルール）へデプロイする。
-# App Hosting へ移っている途中なので、今は Hosting（web frameworks 連携）と App Hosting の両方に出す。
-# kamijoharuto.com を App Hosting に付け替えたら、Hosting の frameworksBackend と下の env ファイル・FIREBASE_CLI_EXPERIMENTS を外す。
-# App Hosting は portfolio/apphosting.yaml の設定で Firebase 側がビルドする（秘密の値は Cloud Secret Manager から読む）。
+# main への push で Firebase（App Hosting + Hosting の転送 + Firestore/Storage ルール）へデプロイする。
+# kamijoharuto.com は App Hosting（backend: portfolio）が配る。App Hosting は portfolio/apphosting.yaml の設定で
+# Firebase 側がビルドする（秘密の値は Cloud Secret Manager から読む）ので、ここではビルドも npm ci もしない。
+# Hosting（portfoliosite-b12da.web.app・firebaseapp.com）は、すべてのパスを kamijoharuto.com へ転送するだけ（firebase.json）。
 # GCP への認証は Workload Identity Federation を使い、サービスアカウントキーは保存しない。
 name: Deploy to Firebase
 
@@ -27,40 +27,22 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          # npm ci で依存のスクリプトが動くので、GitHub のトークンを .git に残さない
           persist-credentials: false
 
-      # SSR 用 Cloud Functions のランタイムは portfolio/package.json の engines.node で決まる（Node 20 は 2026-10-30 に提供終了）。
-      # ビルドも同じ版で行うよう、ここでも engines.node を読む（版を書く場所を1つにするため）
+      # firebase-tools を動かすためだけに使う。App Hosting の実行環境の Node は engines.node で決まる
       - uses: actions/setup-node@v7
         with:
           node-version-file: portfolio/package.json
-          cache: npm
-          cache-dependency-path: portfolio/package-lock.json
-
-      - run: npm ci
-
-      # .env.local は next build 用、.env.portfoliosite-b12da は Functions のランタイム環境変数用
-      - name: Write env files
-        env:
-          ENV_LOCAL: ${{ secrets.ENV_LOCAL }}
-          ENV_FUNCTIONS: ${{ secrets.ENV_FUNCTIONS }}
-        run: |
-          printf '%s\n' "$ENV_LOCAL" > .env.local
-          printf '%s\n' "$ENV_FUNCTIONS" > .env.portfoliosite-b12da
 
       - uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
 
-      # 1 回の firebase deploy で両方に出すと、App Hosting の準備で失敗したときに kamijoharuto.com（Hosting）も更新されない。
-      # 移行のあいだは、いま公開している Hosting を先に出し、App Hosting はその後に分けて出す
-      - name: Deploy (Hosting・Functions・ルール)
-        # App Hosting のデプロイの不具合（15.28.2 で修正。デプロイする SA に compute SA を作る権限が無いと失敗する）を避けるため、15.28.2 以上にする
+      # App Hosting のビルドで失敗しても、ルール（firestore・storage）と Hosting の転送は先に出し終えておくため、2 回に分ける
+      - name: Deploy (ルール・Hosting の転送)
         run: npx --yes firebase-tools@15.36.0 deploy --project portfoliosite-b12da --non-interactive --force --except apphosting
-        env:
-          FIREBASE_CLI_EXPERIMENTS: webframeworks
 
+      # App Hosting のデプロイの不具合（15.28.2 で修正。デプロイする SA に compute SA を作る権限が無いと失敗する）を避けるため、15.28.2 以上にする
       - name: Deploy (App Hosting)
         run: npx --yes firebase-tools@15.36.0 deploy --project portfoliosite-b12da --non-interactive --force --only apphosting

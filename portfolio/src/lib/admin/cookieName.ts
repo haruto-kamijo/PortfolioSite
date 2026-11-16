@@ -3,7 +3,8 @@
 /**
  * 管理画面のセッションCookie名。
  *
- * 名前は必ず "__session" にする（Firebase App Hosting でもこの名前のまま使える）。Firebase Hosting は CDN 層で、
+ * 名前は "__session" のままにする（今の Firebase App Hosting でもこの名前で動く）。
+ * 以前サイトを配っていた Firebase Hosting は CDN 層で、
  * "__session" という名前以外の Cookie をオリジン（Cloud Run）へ転送する前に
  * 全て削除してしまう（キャッシュ効率化のための既知の仕様）。
  * これに気づかず "__admin_session" にしていたところ、ブラウザは正しく
