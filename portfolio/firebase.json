@@ -6,8 +6,8 @@
     ],
     "redirects": [
       {
-        "regex": "^/(.*)$",
-        "destination": "https://kamijoharuto.com/:1",
+        "regex": "^/(?P<path>.*)$",
+        "destination": "https://kamijoharuto.com/:path",
         "type": 301
       }
     ]

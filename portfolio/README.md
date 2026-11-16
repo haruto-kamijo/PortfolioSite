@@ -50,7 +50,7 @@ Firebase App Hosting（プロジェクト: `portfoliosite-b12da`、backend: `por
 
 - App Hosting の既定の URL は [https://portfolio--portfoliosite-b12da.asia-east1.hosted.app](https://portfolio--portfoliosite-b12da.asia-east1.hosted.app)。この URL は Firebase Auth の承認済みドメインに入れていないので、管理画面へのログインは kamijoharuto.com で行う
 - Cloudflare の TXT（`fah-claim`・`hosting-site`）と CNAME（`_acme-challenge_…`）は、ドメインの所有と証明書の更新に使うので消さない
-- Firebase Hosting（`portfoliosite-b12da.web.app`・`firebaseapp.com`）は、すべてのパスを kamijoharuto.com の同じパスへ 301 で転送するだけ（`firebase.json` の `redirects`、公開するのは `hosting-redirect/` の空のページ）。ログインの `/__/auth/` は Firebase が先に返すので転送されない
+- Firebase Hosting（`portfoliosite-b12da.web.app`・`firebaseapp.com`）は、すべてのパスを kamijoharuto.com の同じパスへ 301 で転送するだけ（`firebase.json` の `redirects`、公開するのは `hosting-redirect/` のリンクだけのページ）。ログインの `/__/auth/` は Firebase が先に返すので転送されない
 - 設定は `apphosting.yaml`（台数の上限・環境変数）。Firebase の Web 用の設定は公開の値なのでそこに書き、秘密の値（`ADMIN_EMAILS`・`RESEND_API_KEY`・`CONTACT_NOTIFY_TO`・`CONTACT_NOTIFY_FROM`・`CONTACT_CHAT_WEBHOOK_URL`）は Cloud Secret Manager に置く。値を変えるときは `firebase apphosting:secrets:set <名前>` で新しい版を足し、デプロイし直す
 - App Hosting は `next/image` の最適化を切る（画像はそのままの URL で返す）。middleware を通るページは CDN にキャッシュされない（このサイトは言語の振り分けで全ページが通る）
 

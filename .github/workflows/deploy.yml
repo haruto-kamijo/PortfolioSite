@@ -39,6 +39,10 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
 
+      # App Hosting のビルドで失敗しても、ルール（firestore・storage）と Hosting の転送は先に出し終えておくため、2 回に分ける
+      - name: Deploy (ルール・Hosting の転送)
+        run: npx --yes firebase-tools@15.36.0 deploy --project portfoliosite-b12da --non-interactive --force --except apphosting
+
       # App Hosting のデプロイの不具合（15.28.2 で修正。デプロイする SA に compute SA を作る権限が無いと失敗する）を避けるため、15.28.2 以上にする
-      - name: Deploy
-        run: npx --yes firebase-tools@15.36.0 deploy --project portfoliosite-b12da --non-interactive --force
+      - name: Deploy (App Hosting)
+        run: npx --yes firebase-tools@15.36.0 deploy --project portfoliosite-b12da --non-interactive --force --only apphosting
