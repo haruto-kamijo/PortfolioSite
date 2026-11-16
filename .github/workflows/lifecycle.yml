@@ -1,4 +1,4 @@
-# サポート期限が近いもの・切れたもの（Cloud Functions の Node のランタイム・Node.js・Next.js・firebase-tools）を
+# サポート期限が近いもの・切れたもの（App Hosting の Node のランタイム・Node.js・Next.js・firebase-tools）を
 # 毎週確かめ、対応が必要なものがあれば Issue で知らせる。中身は .github/scripts/check-lifecycle.mjs
 name: Lifecycle check
 

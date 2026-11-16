@@ -12,7 +12,7 @@ import { getStorage } from "firebase-admin/storage";
  * Admin SDK はセキュリティルールを迂回するため、必ずサーバー側だけで使う。
  *
  * 認証情報の解決:
- *  - Cloud Run（Firebase Hosting の frameworksBackend・Firebase App Hosting）上では既定のサービスアカウントが自動で使われる
+ *  - Cloud Run（Firebase App Hosting）上では既定のサービスアカウントが自動で使われる
  *  - ローカルでエミュレータを使う場合は認証情報が不要
  *  - ローカルから本番に繋ぐ場合のみ GOOGLE_APPLICATION_CREDENTIALS を指定する
  *
