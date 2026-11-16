@@ -55,7 +55,7 @@ Firebase App Hosting（プロジェクト: `portfoliosite-b12da`、backend: `por
 - App Hosting は `next/image` の最適化を切る（画像はそのままの URL で返す）。middleware を通るページは CDN にキャッシュされない（このサイトは言語の振り分けで全ページが通る）
 
 main に push すると GitHub Actions（`.github/workflows/deploy.yml`）が自動でデプロイする。App Hosting は Firebase 側でビルドするので、Actions ではビルドしない。
-App Hosting の実行環境の Node のバージョンは `package.json` の `engines.node` で決まる。Google Cloud で提供が終わるとデプロイが止まるおそれがあるので（Cloud Functions では Node 20 が 2026-10-30 に終わり、実際に止まった）、期限が近づいたら `engines.node` を上げる。共通 CI は `engines.node` を読まない（`.nvmrc` / `.node-version` しか見ない）ので、`.github/workflows/ci.yml` の `node-version` を手で合わせる。
+App Hosting の実行環境の Node のバージョンは `package.json` の `engines.node` で決まる。Google Cloud で提供が終わるとデプロイが止まるおそれがあるので（Cloud Functions では Node 20 が 2026-10-30 に終わり、実際に止まった）、期限が近づいたら `engines.node` を上げる。backend の runtime は `nodejs24` のように版で指定している（自動のベースイメージ更新を使うため）ので、`engines.node` と食い違うとビルドが止まる。先に Firebase コンソールで backend の runtime を同じ版へ変えてから、`engines.node` を上げる。共通 CI は `engines.node` を読まない（`.nvmrc` / `.node-version` しか見ない）ので、`.github/workflows/ci.yml` の `node-version` を手で合わせる。
 
 手元からデプロイする場合（ソースを上げて Firebase 側でビルドする）：
 
